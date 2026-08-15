@@ -11,9 +11,8 @@ class RegistrarStudentClient {
 
     public function __construct($pdo) {
         // Read from REGISTRAR_API_BASE_URL (defined in config or .env)
-        // If not yet defined by the Registrar module, fallback to their expected endpoint route
         if (defined('REGISTRAR_API_BASE_URL')) {
-            $this->apiUrl = REGISTRAR_API_BASE_URL . "/students/search"; // Adjust endpoint as necessary
+            $this->apiUrl = REGISTRAR_API_BASE_URL . "/students/search"; 
         } else {
             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -32,12 +31,32 @@ class RegistrarStudentClient {
         $student_number = trim($student_number);
         if (empty($student_number)) return null;
 
-        // 1. Fetch from External API
+        // 1. Fetch from External API using cURL (UPGRADED)
         $url = $this->apiUrl . "?student_number=" . urlencode($student_number);
-        $context = stream_context_create(['http' => ['ignore_errors' => true, 'timeout' => 5]]);
-        $response = @file_get_contents($url, false, $context);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        // Timeout handling: 5 seconds to connect, 10 seconds total execution
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
+        // (Optional) Kung nagte-test ka sa localhost na walang valid SSL certificate, i-uncomment ito:
+        // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-        if (!$response) return null;
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        
+        curl_close($ch);
+
+        // Kapag nag-fail ang cURL request o hindi 200 OK (hal. 404 Not Found, 500 Server Error)
+        if ($response === false || $httpCode >= 400) {
+            $errorMsg = $response === false ? $curlError : "HTTP Status $httpCode";
+            file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' API Error: ' . $errorMsg . PHP_EOL, FILE_APPEND);
+            return null;
+        }
 
         $data = json_decode($response, true);
         if (!isset($data['success']) || $data['success'] !== true) {
