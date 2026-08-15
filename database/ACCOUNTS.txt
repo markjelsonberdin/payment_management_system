@@ -1,0 +1,22 @@
+SMS 2 – Official accounts
+=========================
+
+Login: http://localhost/SMS2_system/login/login.php
+
+Staff (email + password):
+  superadmin@bestlink.edu.ph     / @superadmin123     → ALL modules
+  registrar@bestlink.edu.ph      / @registrar123      → Enrollment, Registrar, Curriculum, Class Schedule
+  cradofficer@bestlink.edu.ph    / @cradofficer123    → CRAD
+  finance@bestlink.edu.ph        / @finance123        → Payment
+  studentaffairs@bestlink.edu.ph / @studentaffairs123 → Co-Curricular
+  itofficer@bestlink.edu.ph      / @itofficer123      → LMS
+  qualityassurance@bestlink.edu.ph / @qualityassurance123 → Accreditation
+  hr@bestlink.edu.ph             / @hr123             → Faculty
+
+Student (student ID or email):
+  s230000001  (or s230000001@bestlink.edu.ph) / @student123 → Student Portal
+
+Re-seed:
+  C:\xampp\php\php.exe database\seed_accounts.php
+
+Change passwords after first login (recommended).
