@@ -6,8 +6,8 @@
 
 declare(strict_types=1);
 
-if (!defined('STUDENT_PORTAL_DB_HOST'))    { define('STUDENT_PORTAL_DB_HOST',    'localhost'); }
-if (!defined('STUDENT_PORTAL_DB_NAME'))    { define('STUDENT_PORTAL_DB_NAME',    'student_portal_db'); }
+if (!defined('STUDENT_PORTAL_DB_HOST'))    { define('STUDENT_PORTAL_DB_HOST',    '127.0.0.1;port=3307'); }
+if (!defined('STUDENT_PORTAL_DB_NAME'))    { define('STUDENT_PORTAL_DB_NAME',    'sms2_db'); }
 if (!defined('STUDENT_PORTAL_DB_USER'))    { define('STUDENT_PORTAL_DB_USER',    'root'); }
 if (!defined('STUDENT_PORTAL_DB_PASS'))    { define('STUDENT_PORTAL_DB_PASS',    ''); }
 if (!defined('STUDENT_PORTAL_DB_CHARSET')) { define('STUDENT_PORTAL_DB_CHARSET', 'utf8mb4'); }

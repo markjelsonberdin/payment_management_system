@@ -34,8 +34,8 @@ class PaymentHistoryService {
         // No cross-database joins to sms2_db.users to prevent schema coupling issues.
         $query = "
             SELECT 
-                p.payment_id, p.reference_number, p.amount, p.payment_method, p.payment_status, p.created_at,
-                s.student_number, s.full_name,
+                p.payment_id, p.reference_number, p.amount, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel,
+                s.student_number, s.full_name, s.course,
                 b.total_amount, b.remaining_balance, b.billing_status
             FROM payments p
             JOIN students s ON p.student_id = s.student_id

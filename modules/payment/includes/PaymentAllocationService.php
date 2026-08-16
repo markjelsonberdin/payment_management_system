@@ -26,8 +26,12 @@ class PaymentAllocationService {
      * @throws Exception if validation fails or allocation rules are violated
      */
     public function allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context = 'Enrollment', $categoryId = null) {
+        $ownsTransaction = false;
         try {
-            $this->pdo->beginTransaction();
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->beginTransaction();
+                $ownsTransaction = true;
+            }
 
             // 1. Validate payment amount
             if ($amountPaid <= 0) {
@@ -159,9 +163,13 @@ class PaymentAllocationService {
             // 8. Recalculate Billing Summary using exact billing_id
             $this->updateBillingSummary($billingId);
 
-            $this->pdo->commit();
+            if ($ownsTransaction) {
+                $this->pdo->commit();
+            }
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            if ($ownsTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $e;
         }
     }

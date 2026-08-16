@@ -24,14 +24,13 @@ if (!$studentId || !$billingId || !$categoryId || !$amount) {
 
 // FIX A: Centralized Database Connection
 try {
-    require_once __DIR__ . '/../database/db_connect.php'; 
-    if (isset($pdo)) {
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } else {
-        throw new PDOException("Database connection not established.");
-    }
-} catch (PDOException $e) {
-    die(json_encode(['status' => 'error', 'message' => 'Database connection failed.']));
+    require_once __DIR__ . '/../../../../config/config.php';
+    require_once ROOT_PATH . '/config/database.php';
+    
+    $pdo = getDatabaseConnection();
+    $pdo->exec('USE payment_db');
+} catch (Exception $e) {
+    die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]));
 }
 
 try {

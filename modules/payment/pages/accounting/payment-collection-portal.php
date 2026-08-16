@@ -64,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         $change_amount = $cash_received - $amount_paid;
 
+        // Start transaction for atomic payment record + allocation
+        $pdo->beginTransaction();
+
         // 2. Insert main payment record
         $stmtPayment = $pdo->prepare("
             INSERT INTO payments (student_id, billing_id, verified_by, transaction_type, payment_method, amount, cash_received, change_amount, payment_channel, reference_number, payment_status, payment_date, receipt_number, remarks, verified_at)
@@ -86,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         // 3. Call the Payment Allocation Engine
         $allocationService = new PaymentAllocationService($pdo);
-        $allocationService->allocatePayment($billing_id, $payment_id, $amount_paid, $payment_context, $category_id);
+        // Signature: allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context, $categoryId)
+        $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $category_id);
 
         // 4. Immutable Audit Log (SMS2 centralized activity_logs)
         $stmtLog = $pdo->prepare("
@@ -99,13 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
         ]);
 
-        // Tinanggal na ang $pdo->commit(); dito
+        $pdo->commit();
 
         header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number));
         exit();
 
     } catch (Exception $e) {
-        // Tinanggal na ang $pdo->rollBack(); dito
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         header("Location: payment-collection-portal.php?error=" . urlencode($e->getMessage()));
         exit();
     }

@@ -38,11 +38,18 @@ try {
     $pdo = studentPortalDb(); 
     
     if ($pdo) {
+        // Minsan ang nasa session ay numeric lang (e.g. 230115569) pero sa database ay 'S230115569'
+        $searchSn = strtoupper(trim($studentId));
+        if (!str_starts_with($searchSn, 'S') && is_numeric($searchSn)) {
+            $searchSn = 'S' . str_pad($searchSn, 9, '0', STR_PAD_LEFT);
+        }
+
         // Kunin ang internal student_id gamit ang student_number mula sa session
-        $stmt = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_number = :student_number LIMIT 1");
+        $stmt = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_number = :student_number OR student_number = :raw_number LIMIT 1");
         
         $stmt->execute([
-            ':student_number' => $studentId
+            ':student_number' => $searchSn,
+            ':raw_number' => $studentId
         ]);
         $studentRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -64,7 +71,7 @@ try {
 
                 // Kunin ang breakdown ng fees naka-join sa fees table at fee_categories
                 $stmtItems = $pdo->prepare("
-                    SELECT bi.*, f.fee_name, f.fee_type, f.description, f.category_id, fc.category_name 
+                    SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name 
                     FROM payment_db.billing_items bi 
                     JOIN payment_db.fees f ON bi.fee_id = f.fee_id 
                     LEFT JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
