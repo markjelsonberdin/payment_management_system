@@ -184,7 +184,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                                     <input type="hidden" name="billing_id" value="<?= $row['billing_id'] ?>">
 
                                                     <div class="mb-3 bg-white p-3 rounded shadow-sm">
-                                                        <p class="mb-1 text-muted small">Student: <strong class="text-dark"><?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) ?> (<?= htmlspecialchars($row['student_number']) ?>)</strong></p>
+                                                        <p class="mb-1 text-muted small">Student: <strong class="text-dark"><?= htmlspecialchars($row['full_name']) ?> (<?= htmlspecialchars($row['student_number']) ?>)</strong></p>
                                                         <p class="mb-1 text-muted small">Declared Amount: <strong class="text-success">₱ <?= number_format($row['payment_amount'], 2) ?></strong></p>
                                                         <p class="mb-0 text-muted small">OCR Extracted Ref: <strong class="text-dark"><?= htmlspecialchars($row['ocr_ref'] ?? 'None') ?></strong></p>
                                                     </div>

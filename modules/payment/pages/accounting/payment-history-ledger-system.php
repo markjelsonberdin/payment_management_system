@@ -112,7 +112,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <tr>
                                     <td class="ps-4 fw-bold text-primary">#<?= htmlspecialchars($pay['reference_number'] ?? 'N/A') ?></td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($pay['first_name'] . ' ' . $pay['last_name']) ?></div>
+                                        <div class="fw-bold text-dark"><?= htmlspecialchars($pay['full_name']) ?></div>
                                         <small class="text-muted"><?= htmlspecialchars($pay['student_number']) ?> (<?= htmlspecialchars($pay['course']) ?>)</small>
                                     </td>
                                     <td>

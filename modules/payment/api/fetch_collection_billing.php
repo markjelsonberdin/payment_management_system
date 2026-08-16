@@ -46,7 +46,7 @@ try {
             'success' => true,
             'billing_id' => $billing['billing_id'],
             'student_id' => $student_id,
-            'name' => trim($student['first_name'] . ' ' . $student['last_name']),
+            'name' => trim($student['full_name'] ?? 'Unknown Student'),
             'student_number' => $student['student_number'],
             'course_year' => $course_str,
             'billing_type' => $billing['billing_type'],

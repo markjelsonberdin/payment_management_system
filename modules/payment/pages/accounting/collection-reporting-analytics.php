@@ -174,7 +174,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <tr>
                                             <td class="ps-4 fw-bold text-primary">#<?= htmlspecialchars($rc['reference_number'] ?? 'N/A') ?></td>
                                             <td>
-                                                <div class="fw-bold text-dark"><?= htmlspecialchars($rc['first_name'] . ' ' . $rc['last_name']) ?></div>
+                                                <div class="fw-bold text-dark"><?= htmlspecialchars($rc['full_name']) ?></div>
                                                 <small class="text-muted"><?= htmlspecialchars($rc['student_number']) ?></small>
                                             </td>
                                             <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($rc['payment_channel']) ?></span></td>

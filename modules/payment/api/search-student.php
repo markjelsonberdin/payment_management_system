@@ -19,7 +19,7 @@ try {
     if ($student) {
         echo json_encode([
             'success' => true,
-            'name' => trim($student['first_name'] . ' ' . $student['last_name']),
+            'name' => trim($student['full_name'] ?? 'Unknown Student'),
             'student_id' => $student['student_id'] // Used by Invoicing
         ]);
         exit;

@@ -55,6 +55,24 @@ class RegistrarStudentClient {
         if ($response === false || $httpCode >= 400) {
             $errorMsg = $response === false ? $curlError : "HTTP Status $httpCode";
             file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' API Error: ' . $errorMsg . PHP_EOL, FILE_APPEND);
+            
+            // FALLBACK TO LOCAL CACHE IF API IS OFFLINE
+            $stmt = $this->pdo->prepare("SELECT * FROM students WHERE student_number = :sn LIMIT 1");
+            $stmt->execute([':sn' => $student_number]);
+            $localStudent = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($localStudent) {
+                // Return in the format expected by the system
+                return [
+                    'student_id' => $localStudent['student_id'],
+                    'student_number' => $localStudent['student_number'],
+                    'full_name' => $localStudent['full_name'],
+                    'course_id' => $localStudent['course'],
+                    'year_level' => $localStudent['year_level'],
+                    'status' => $localStudent['status']
+                ];
+            }
+            
             return null;
         }
 
@@ -73,6 +91,15 @@ class RegistrarStudentClient {
 
     private function syncLocalReference($student) {
         try {
+            // Support both old API format (first_name/last_name) and new format (full_name)
+            $fullName = isset($student['full_name']) 
+                ? $student['full_name'] 
+                : trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
+
+            if (empty(trim($fullName))) {
+                $fullName = 'Unknown Student';
+            }
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO students (student_id, user_id, student_number, full_name, course, year_level, status)
                 VALUES (:id, :uid, :sn, :name, :course, :yr, :status)
@@ -87,7 +114,7 @@ class RegistrarStudentClient {
                 ':id' => $student['student_id'],
                 ':uid' => $student['student_id'], // Fallback for legacy user_id
                 ':sn' => $student['student_number'],
-                ':name' => trim($student['first_name'] . ' ' . $student['last_name']),
+                ':name' => $fullName,
                 ':course' => $student['course_id'] ?? 'Unknown',
                 ':yr' => $student['year_level'] ?? '1',
                 ':status' => $student['status'] ?? 'Enrolled'
