@@ -35,8 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_billing'])) 
     }
 
     try {
-        $pdo->beginTransaction();
-
         // MICROSERVICE CONSUMER: Fetch/Sync Student from Registrar API
         $client = new RegistrarStudentClient($pdo);
         $student = $client->getAndSyncStudent($student_number);
@@ -68,6 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_billing'])) 
         // ==========================================
         // CALL BILLING SERVICE
         // ==========================================
+        // Tinanggal na natin ang manual $pdo->beginTransaction() dito dahil 
+        // mismong BillingService na ang naghahandle ng database locking.
         $billingService = new BillingService($pdo);
         $discountAmount = 0.00; // Will be implemented in the next phase
         
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_billing'])) 
         exit();
 
     } catch (Exception $e) {
-        $pdo->rollBack();
+        // Tinanggal na natin ang $pdo->rollBack() dahil hawak na ito ng BillingService
         header("Location: $redirect_url?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -250,7 +250,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark"><?= htmlspecialchars($bill['semester']) ?> Semester</div>
-                                        <small class="text-muted">A.Y. <?= htmlspecialchars($bill['academic_year']) ?></small>
+                                        <small class="text-muted">A.Y. <?= htmlspecialchars($bill['academic_year']) ?> &bull; <span class="text-primary fw-bold"><?= htmlspecialchars($bill['billing_type']) ?></span></small>
                                     </td>
                                     <td class="fw-bold text-dark">₱ <?= number_format($bill['total_amount'], 2) ?></td>
                                     <td class="fw-bold text-danger">₱ <?= number_format($bill['remaining_balance'], 2) ?></td>

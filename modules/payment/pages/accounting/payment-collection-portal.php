@@ -12,7 +12,8 @@ require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 requireAuth();
 requireModuleAccess('payment');
 
-session_start();
+// Tinanggal ko ang session_start() dito dahil karaniwang nasa authentication.php o config.php na ito.
+// Kung mag-throw ng error na walang session, ibalik mo lang sa baba ng requireModuleAccess.
 $cashier_id = $_SESSION['user_id'] ?? 1; // Fallback user ID kung sakaling walang active session
 
 // ==========================================
@@ -20,8 +21,9 @@ $cashier_id = $_SESSION['user_id'] ?? 1; // Fallback user ID kung sakaling walan
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     
-    $billing_id       = $_POST['billing_id'];
-    $student_id       = $_POST['student_id'];
+    $billing_id       = $_POST['billing_id'] ?? '';
+    $student_id       = $_POST['student_id'] ?? '';
+    
     $amount_paid      = (float) $_POST['amount_paid'];
     $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
     $payment_context  = $_POST['payment_context'] ?? 'Enrollment';
@@ -31,7 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     $remarks          = trim($_POST['remarks']);
 
     try {
-        $pdo->beginTransaction();
+        // Idagdag itong checker na ito
+        if (empty($billing_id)) {
+            throw new Exception("Cache Error: Walang naipasang Billing ID ang form! Paki-Hard Refresh (CTRL + F5) ang iyong browser.");
+        }
+
+        // Tinanggal na ang $pdo->beginTransaction(); dito dahil hawak na ito ng Allocation Service
 
         // 1. Validate Billing (Service will handle FOR UPDATE locking on items)
         $stmtBill = $pdo->prepare("SELECT remaining_balance, billing_type FROM billing WHERE billing_id = :id");
@@ -92,12 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
         ]);
 
-        $pdo->commit();
+        // Tinanggal na ang $pdo->commit(); dito
+
         header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number));
         exit();
 
     } catch (Exception $e) {
-        $pdo->rollBack();
+        // Tinanggal na ang $pdo->rollBack(); dito
         header("Location: payment-collection-portal.php?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -270,6 +278,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
-<script src="../../assets/js/payment-collection.js"></script>
+<!-- Dinagdagan ng ?v=time() para laging fresh ang basahin ng browser na JavaScript file -->
+<script src="../../assets/js/payment-collection.js?v=<?= time() ?>"></script>
 <script src="<?= BASE_URL ?>/assets/js/payment-search.js"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

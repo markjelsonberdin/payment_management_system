@@ -16,7 +16,7 @@ class RegistrarStudentClient {
         } else {
             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $this->apiUrl = $protocol . "://" . $host . BASE_URL . "/api/registrar/students"; 
+           $this->apiUrl = $protocol . "://" . $host . BASE_URL . "/modules/user-management/api/students.php"; 
         }
         
         $this->pdo = $pdo;
