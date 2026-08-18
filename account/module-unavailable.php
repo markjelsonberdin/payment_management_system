@@ -157,7 +157,7 @@ body.maintenance-lock-page {
 <main class="maint-stage" role="main" aria-labelledby="maintTitle">
     <div class="maint-logo" aria-hidden="true">
         <div class="maint-logo__plate">
-            <img src="<?= BASE_URL ?>/images/bestlink.png?v=crest-maint" alt="" width="72" height="72">
+            <img src="<?= BASE_URL ?>/images/bcp-logo-source.png?v=crest-maint" alt="" width="72" height="72">
         </div>
         <span class="maint-logo__badge" title="Under maintenance">🛠️</span>
     </div>

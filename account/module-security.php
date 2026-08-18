@@ -28,7 +28,7 @@ smsEnsureSecurityTables();
 smsEnsureAuthenticatorTable();
 
 // Super Admin: security lives only under User Management → Module Security
-if (getCurrentUserRoleKey() === 'admin') {
+if (in_array(getCurrentUserRoleKey(), ['admin', 'superadmin'], true)) {
     $mod = (string) ($_GET['focus'] ?? $_GET['sec_mod'] ?? $_GET['mod'] ?? $_GET['module'] ?? $_GET['m'] ?? '');
     if ($mod === 'student-portal') {
         $mod = 'student_portal';
@@ -66,6 +66,30 @@ $moduleLabel = is_array($info) ? (string) ($info['label'] ?? smsModuleLabel($mod
 $moduleIconFallback = 'fa-shield-alt';
 if (is_array($info) && !empty($info['icon'])) {
     $moduleIconFallback = (string) $info['icon'];
+}
+$securityRoleKey = getCurrentUserRoleKey();
+$accountContext = [
+    'student' => ['module' => 'student_portal', 'label' => 'Student Portal', 'icon' => 'fa-user-graduate'],
+    'admission' => ['module' => 'enrollment', 'label' => 'Admission Account', 'icon' => 'fa-user-plus'],
+    'adviser' => ['module' => 'faculty', 'label' => 'Adviser Account', 'icon' => 'fa-user-tie'],
+    'panel' => ['module' => 'faculty', 'label' => 'Panel Account', 'icon' => 'fa-users'],
+    'research_director' => ['module' => 'faculty', 'label' => 'Research Director Account', 'icon' => 'fa-user-shield'],
+    'hr' => ['module' => 'faculty', 'label' => 'HR Account', 'icon' => 'fa-chalkboard-teacher'],
+    'research_coordinator' => ['module' => 'crad', 'label' => 'Research Coordinator', 'icon' => 'fa-microscope'],
+    'crad_officer' => ['module' => 'crad', 'label' => 'CRAD Officer', 'icon' => 'fa-flask'],
+    'research_grant' => ['module' => 'crad_grant', 'label' => 'Research Grant Account', 'icon' => 'fa-hand-holding-usd'],
+    'finance' => ['module' => 'payment', 'label' => 'Finance Account', 'icon' => 'fa-credit-card'],
+    'registrar' => ['module' => $moduleKey, 'label' => 'Registrar Account', 'icon' => 'fa-folder-open'],
+    'osa' => ['module' => 'cocurricular', 'label' => 'OSA Account', 'icon' => 'fa-users'],
+    'it_office' => ['module' => 'lms', 'label' => 'IT Office Account', 'icon' => 'fa-laptop'],
+    'qa' => ['module' => 'accreditation', 'label' => 'QA Account', 'icon' => 'fa-award'],
+];
+if (isset($accountContext[$securityRoleKey])) {
+    $context = $accountContext[$securityRoleKey];
+    if (($context['module'] ?? $moduleKey) === $moduleKey || $securityRoleKey === 'registrar') {
+        $moduleLabel = (string) $context['label'];
+        $moduleIconFallback = (string) $context['icon'];
+    }
 }
 $tab = (string) ($_GET['tab'] ?? 'logs');
 // Legacy tabs → combined Account Security
@@ -322,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($_SESSION['sec_view_' . $modul
     $_SESSION['sec_view_' . $moduleKey] = time();
 }
 
-$logs = smsModuleActivityLogs($moduleKey, 200);
+$logs = smsModuleActivityLogs($moduleKey, 200, $userId);
 $pendingRequests = $isAdmin ? smsPendingPasswordRequests($moduleKey) : [];
 
 // Users for admin reset (active accounts)
@@ -375,6 +399,8 @@ $breadcrumbs  = [
     ],
     ['label' => 'Security Settings', 'url' => null],
 ];
+$pageBannerIcon = $moduleIconFallback;
+$pageBannerDescription = 'Activity logs, password options, and Authenticator / passkeys for ' . $moduleLabel . '.';
 
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
@@ -406,19 +432,6 @@ ksort($logActions);
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
 <div id="secModuleRoot" class="sms-sec-root" data-initial-panel="<?= e($initialPanel) ?>" data-url-mode="staff" data-module="<?= e($moduleKey) ?>">
-    <div class="page-header sms-sec-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-        <div>
-            <h1>
-                <i class="fas <?= e($moduleIcon) ?> text-sms-primary me-2"></i>
-                <?= e($moduleLabel) ?> Security Settings
-            </h1>
-            <p class="mb-0">
-                Security tools for <strong><?= e($moduleLabel) ?></strong> only —
-                activity logs, password options, and Authenticator / passkeys.
-            </p>
-        </div>
-    </div>
-
     <?php if ($success): ?>
         <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i><?= e($success) ?></div>
     <?php endif; ?>

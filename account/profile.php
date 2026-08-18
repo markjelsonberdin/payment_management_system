@@ -246,6 +246,8 @@ $activePage = '';
 $breadcrumbs = [
     ['label' => 'Account Settings', 'url' => null],
 ];
+$pageBannerIcon = 'fa-user-shield';
+$pageBannerDescription = 'Super Admin profile and login security, separate from Module Security.';
 
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
@@ -254,14 +256,6 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <link href="<?= BASE_URL ?>/assets/css/password-strength.css" rel="stylesheet">
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
-
-<div class="page-header sms-sec-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-    <div>
-        <h1><i class="fas fa-user-shield text-sms-primary me-2"></i>Account Settings</h1>
-        <p class="mb-0">Super Admin profile and login security — separate from Module Security.</p>
-    </div>
-    <span class="placeholder-badge"><i class="fas fa-lock me-1"></i>Admin only</span>
-</div>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><?= e($success) ?></div>

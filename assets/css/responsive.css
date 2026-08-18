@@ -307,6 +307,139 @@ body.sms-app { overflow-x: hidden; }
 }
 
 /* ============================================================
+   Cross-device layout guards
+   ============================================================ */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+}
+
+img,
+video {
+    height: auto;
+}
+
+.card,
+.dropdown-menu,
+.modal-dialog,
+.alert,
+.list-group,
+.table-responsive,
+.mpl-panel,
+.ra-card,
+.ra-summary {
+    max-width: 100%;
+}
+
+.row,
+.d-flex,
+.input-group,
+.btn-toolbar,
+.btn-group,
+.pagination,
+.breadcrumb,
+.nav,
+.navbar-inner,
+.navbar-left,
+.navbar-right,
+.page-header,
+.student-portal-header,
+.ra-summary-tools,
+.mpl-toolbar,
+.mpl-filters {
+    min-width: 0;
+}
+
+.card-body,
+.card-header,
+.card-footer,
+.modal-body,
+.modal-header,
+.modal-footer,
+.dropdown-item,
+.form-label,
+.form-text,
+.text-muted,
+.page-header p,
+.page-header h1,
+.student-detail-list strong,
+.student-detail-list span,
+.student-record-grid strong,
+.student-record-grid span {
+    overflow-wrap: anywhere;
+}
+
+.table-responsive,
+.mpl-table-wrap,
+.ra-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    max-width: 100%;
+}
+
+.form-control,
+.form-select,
+.btn {
+    max-width: 100%;
+}
+
+.btn,
+.dropdown-item,
+.nav-link,
+.module-link-btn,
+.mpl-btn,
+.ra-export-btn {
+    white-space: normal;
+}
+
+.btn i,
+.nav-link i,
+.module-link-btn i,
+.mpl-btn i,
+.ra-export-btn i {
+    flex: 0 0 auto;
+}
+
+@media (min-width: 992px) and (max-width: 1180px) {
+    .sms-navbar .navbar-ph-clock {
+        min-width: 6.4rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        font-size: 0.72rem;
+    }
+
+    .navbar-right .dropdown-menu {
+        max-width: min(320px, calc(100vw - 1.5rem));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .card-body,
+    .card-header,
+    .card-footer {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+
+    .btn,
+    .module-link-btn,
+    .mpl-btn,
+    .ra-export-btn {
+        min-height: 42px;
+    }
+
+    .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+    }
+}
+
+/* ============================================================
    Print
    ============================================================ */
 @media print {
