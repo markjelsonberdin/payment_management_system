@@ -1,7 +1,7 @@
 <?php
 /**
  * SMS 2 – User Management – Overview
- * Superadmin only.
+ * User Management overview.
  */
 $pageTitle    = 'User Management';
 $activeModule = 'user-management';
@@ -17,11 +17,133 @@ require_once __DIR__ . '/../../includes/layout-start.php';
 /* requireSuperAdmin() is available after layout-start loads authentication.php */
 requireSuperAdmin();
 
+function umRoleBadgeClass(string $role, string $label = ''): string
+{
+    $value = strtolower(trim($role !== '' ? $role : $label));
+    $value = str_replace([' ', '-'], '_', $value);
+
+    $aliases = [
+        'admin' => 'superadmin',
+        'super_admin' => 'superadmin',
+        'admissionoffice' => 'admission',
+        'admission_office' => 'admission',
+        'crad_officer' => 'crad',
+        'research_grant' => 'crad',
+        'research_coordinator' => 'research_coordinator',
+        'grammarian' => 'grammarian',
+        'qa_office' => 'qa',
+    ];
+
+    $value = $aliases[$value] ?? $value;
+    return preg_replace('/[^a-z0-9_]/', '', $value) ?: 'student';
+}
+
+function umFormatLastLogin(?string $lastLogin): string
+{
+    if (!$lastLogin) {
+        return 'Never';
+    }
+
+    $ts = strtotime($lastLogin);
+    if ($ts === false) {
+        return 'Never';
+    }
+
+    $diff = max(0, time() - $ts);
+    if ($diff < 60) {
+        return 'Just now';
+    }
+    if ($diff < 3600) {
+        $mins = (int) floor($diff / 60);
+        return $mins . ' min ago';
+    }
+    if ($diff < 86400) {
+        $hours = (int) floor($diff / 3600);
+        return $hours . ' hr ago';
+    }
+    if ($diff < 172800) {
+        return 'Yesterday';
+    }
+
+    return date('M j, Y', $ts);
+}
+
+function umNormalizeOverviewUser(array $u): array
+{
+    $role = (string) ($u['role'] ?? '');
+    $username = strtolower((string) ($u['username'] ?? ''));
+
+    if ($role === 'crad_officer') {
+        $u['role'] = 'crad';
+    }
+    if ($role === 'superadmin') {
+        $u['roleLabel'] = 'Super Admin';
+    }
+    if (
+        ($role === 'admin' && $username !== 'superadmin')
+        || $role === 'admission'
+        || $role === 'admission_office'
+    ) {
+        $u['role'] = 'admission';
+        $u['roleLabel'] = 'Admission';
+    }
+    if ($role === 'hr') {
+        $u['roleLabel'] = 'Dean';
+    }
+
+    if (!empty($u['locked_until']) && strtotime((string) $u['locked_until']) > time()) {
+        $u['status'] = 'locked';
+    }
+
+    return $u;
+}
+
+$statsRaw = [
+    'total' => 0,
+    'active' => 0,
+    'inactive' => 0,
+    'locked' => 0,
+];
+$overviewUsers = [];
+
+$pdo = db();
+if ($pdo) {
+    try {
+        $statsRaw['total'] = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        $statsRaw['inactive'] = (int) $pdo->query(
+            "SELECT COUNT(*) FROM users WHERE status IN ('inactive', 'suspended')"
+        )->fetchColumn();
+        $statsRaw['locked'] = (int) $pdo->query(
+            "SELECT COUNT(*) FROM users WHERE status = 'locked' OR (locked_until IS NOT NULL AND locked_until > NOW())"
+        )->fetchColumn();
+        $statsRaw['active'] = (int) $pdo->query(
+            "SELECT COUNT(*) FROM users
+             WHERE status = 'active'
+               AND (locked_until IS NULL OR locked_until <= NOW())"
+        )->fetchColumn();
+
+        $stmt = $pdo->query(
+            'SELECT u.id, u.full_name AS name, u.username, u.email, u.role_key AS role,
+                    r.label AS roleLabel, u.status, u.last_login_at, u.locked_until
+             FROM users u
+             INNER JOIN roles r ON r.role_key = u.role_key
+             ORDER BY
+                CASE WHEN u.status = "active" THEN 0 WHEN u.status = "locked" THEN 1 ELSE 2 END,
+                COALESCE(u.last_login_at, u.created_at) DESC,
+                u.id ASC
+             LIMIT 10'
+        );
+        $overviewUsers = array_map('umNormalizeOverviewUser', $stmt->fetchAll() ?: []);
+    } catch (Throwable $e) {
+        error_log('User Management overview load failed: ' . $e->getMessage());
+    }
+}
+
 $stats = [
-    ['label' => 'Total Users',    'value' => '10',  'icon' => 'fa-users',       'type' => 'primary'],
-    ['label' => 'Active',         'value' => '8',   'icon' => 'fa-user-check',  'type' => 'success'],
-    ['label' => 'Inactive',       'value' => '1',   'icon' => 'fa-user-slash',  'type' => 'warning'],
-    ['label' => 'Locked Out',     'value' => '1',   'icon' => 'fa-user-lock',   'type' => 'info'],
+    ['key' => 'total',    'label' => 'Total Users', 'value' => (string) $statsRaw['total'],    'icon' => 'fa-users',      'type' => 'primary'],
+    ['key' => 'active',   'label' => 'Active',      'value' => (string) $statsRaw['active'],   'icon' => 'fa-user-check', 'type' => 'success'],
+    ['key' => 'inactive', 'label' => 'Inactive',    'value' => (string) $statsRaw['inactive'], 'icon' => 'fa-user-slash', 'type' => 'warning'],
+    ['key' => 'locked',   'label' => 'Locked Out',  'value' => (string) $statsRaw['locked'],   'icon' => 'fa-user-lock',  'type' => 'info'],
 ];
 
 $subpages = [
@@ -60,14 +182,14 @@ $subpages = [
 
 <link href="<?= BASE_URL ?>/modules/user-management/assets/css/user-management.css" rel="stylesheet">
 
-<?php renderBreadcrumbs($breadcrumbs); ?>
+<?php
+$pageBannerIcon        = 'fa-users-cog';
+$pageBannerDescription = 'Manage system users, roles, access permissions, activity logs, and global settings.';
+renderBreadcrumbs($breadcrumbs);
+?>
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <h1><i class="fas fa-users-cog text-sms-primary me-2"></i>User Management</h1>
-        <p>Manage system users, roles, access permissions, activity logs, and global settings.</p>
-    </div>
-    <span class="placeholder-badge"><i class="fas fa-lock me-1"></i>Superadmin Only</span>
+    <span class="placeholder-badge"><i class="fas fa-lock me-1"></i>User Management Access</span>
 </div>
 
 <!-- Summary stats -->
@@ -79,7 +201,7 @@ $subpages = [
                     <div class="stat-icon me-3"><i class="fas <?= $stat['icon'] ?>"></i></div>
                     <div>
                         <h6 class="text-muted mb-0 small"><?= $stat['label'] ?></h6>
-                        <h4 class="mb-0 fw-bold"><?= $stat['value'] ?></h4>
+                        <h4 class="mb-0 fw-bold" data-um-stat="<?= e($stat['key']) ?>"><?= $stat['value'] ?></h4>
                     </div>
                 </div>
             </section>
@@ -141,38 +263,79 @@ $subpages = [
                         <th>Last Login</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="umOverviewUsersBody">
+                    <?php if (!$overviewUsers): ?>
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="fas fa-users fa-2x mb-2 d-block opacity-50"></i>
+                            No users found.
+                        </td>
+                    </tr>
+                    <?php else: ?>
                     <?php
-                    $previewUsers = [
-                        ['name'=>'Super Admin',       'email'=>'superadmin@bestlink.edu.ph',     'role'=>'admin',     'roleLabel'=>'Super Admin',       'status'=>'active',   'last'=>'Just now'],
-                        ['name'=>'Registrar',         'email'=>'registrar@bestlink.edu.ph',      'role'=>'registrar', 'roleLabel'=>'Registrar',         'status'=>'active',   'last'=>'5 min ago'],
-                        ['name'=>'Finance',           'email'=>'finance@bestlink.edu.ph',        'role'=>'finance',   'roleLabel'=>'Finance',           'status'=>'active',   'last'=>'1 hr ago'],
-                        ['name'=>'HR',                'email'=>'hr@bestlink.edu.ph',             'role'=>'hr',        'roleLabel'=>'HR',                'status'=>'active',   'last'=>'2 hr ago'],
-                        ['name'=>'IT Officer',        'email'=>'itofficer@bestlink.edu.ph',      'role'=>'it_office', 'roleLabel'=>'IT Office',         'status'=>'active',   'last'=>'Yesterday'],
-                    ];
-                    $colors = ['a','b','c','d','e','f'];
-                    foreach ($previewUsers as $i => $u):
+                    $colors = ['a', 'b', 'c', 'd', 'e', 'f'];
+                    foreach ($overviewUsers as $i => $u):
                         $col = $colors[$i % count($colors)];
+                        $roleBadgeClass = umRoleBadgeClass((string) $u['role'], (string) $u['roleLabel']);
+                        $name = (string) ($u['name'] ?? 'User');
+                        $initial = strtoupper(substr($name, 0, 1));
+                        $status = (string) ($u['status'] ?? 'inactive');
+                        $statusLabel = $status === 'inactive' ? 'Archived' : ucfirst($status);
+                        $lastLogin = umFormatLastLogin(isset($u['last_login_at']) ? (string) $u['last_login_at'] : null);
                     ?>
                     <tr>
                         <td>
                             <div class="um-user-cell">
-                                <span class="um-avatar <?= $col ?>"><?= strtoupper($u['name'][0]) ?></span>
+                                <span class="um-avatar <?= $col ?>"><?= e($initial) ?></span>
                                 <div class="min-w-0">
-                                    <span class="um-user-name"><?= htmlspecialchars($u['name']) ?></span>
-                                    <span class="um-user-email"><?= htmlspecialchars($u['email']) ?></span>
+                                    <span class="um-user-name"><?= e($name) ?></span>
+                                    <span class="um-user-email"><?= e((string) ($u['email'] ?? '')) ?></span>
                                 </div>
                             </div>
                         </td>
-                        <td><span class="role-badge <?= $u['role'] ?>"><?= htmlspecialchars($u['roleLabel']) ?></span></td>
-                        <td><span class="user-status <?= $u['status'] ?>"><?= ucfirst($u['status']) ?></span></td>
-                        <td class="text-muted" style="font-size:.8rem;"><?= htmlspecialchars($u['last']) ?></td>
+                        <td><span class="role-badge <?= e($roleBadgeClass) ?>"><?= e((string) $u['roleLabel']) ?></span></td>
+                        <td><span class="user-status <?= e($status) ?>"><?= e($statusLabel) ?></span></td>
+                        <td class="text-muted" style="font-size:.8rem;"><?= e($lastLogin) ?></td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </section>
+
+<script>
+(function () {
+    'use strict';
+
+    var endpoint = '<?= BASE_URL ?>/modules/user-management/includes/overview-data.php';
+    var body = document.getElementById('umOverviewUsersBody');
+    if (!body || !window.fetch) return;
+
+    function applyOverview(data) {
+        if (!data || !data.ok) return;
+        if (data.stats) {
+            Object.keys(data.stats).forEach(function (key) {
+                var el = document.querySelector('[data-um-stat="' + key + '"]');
+                if (el) el.textContent = data.stats[key];
+            });
+        }
+        if (typeof data.users_html === 'string') {
+            body.innerHTML = data.users_html;
+        }
+    }
+
+    function refreshOverview() {
+        fetch(endpoint, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(applyOverview)
+            .catch(function () {});
+    }
+
+    refreshOverview();
+    setInterval(refreshOverview, 10000);
+})();
+</script>
 
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

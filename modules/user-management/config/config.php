@@ -6,11 +6,13 @@
 
 declare(strict_types=1);
 
-if (!defined('USERMGMT_DB_HOST'))    { define('USERMGMT_DB_HOST',    'localhost'); }
-if (!defined('USERMGMT_DB_NAME'))    { define('USERMGMT_DB_NAME',    'user_management_db'); }
-if (!defined('USERMGMT_DB_USER'))    { define('USERMGMT_DB_USER',    'root'); }
-if (!defined('USERMGMT_DB_PASS'))    { define('USERMGMT_DB_PASS',    ''); }
-if (!defined('USERMGMT_DB_CHARSET')) { define('USERMGMT_DB_CHARSET', 'utf8mb4'); }
+require_once dirname(__DIR__, 3) . '/config/config.php';
+
+if (!defined('USERMGMT_DB_HOST'))    { define('USERMGMT_DB_HOST',    sms2_env('USERMGMT_DB_HOST', sms2_env('SMS2_DB_HOST', 'localhost'))); }
+if (!defined('USERMGMT_DB_NAME'))    { define('USERMGMT_DB_NAME',    sms2_env('USERMGMT_DB_NAME', 'user_management_db')); }
+if (!defined('USERMGMT_DB_USER'))    { define('USERMGMT_DB_USER',    sms2_env('USERMGMT_DB_USER', sms2_env('SMS2_DB_USER', 'root'))); }
+if (!defined('USERMGMT_DB_PASS'))    { define('USERMGMT_DB_PASS',    sms2_env('USERMGMT_DB_PASS', sms2_env('SMS2_DB_PASS', ''))); }
+if (!defined('USERMGMT_DB_CHARSET')) { define('USERMGMT_DB_CHARSET', sms2_env('USERMGMT_DB_CHARSET', sms2_env('SMS2_DB_CHARSET', 'utf8mb4'))); }
 
 function getUserMgmtDatabaseConnection(): PDO
 {

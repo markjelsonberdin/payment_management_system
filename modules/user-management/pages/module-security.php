@@ -610,7 +610,11 @@ if ($hasModule) {
 }
 </style>
 
-<?php renderBreadcrumbs($breadcrumbs); ?>
+<?php
+$pageBannerIcon        = 'fa-shield-alt';
+$pageBannerDescription = 'Choose a module to open its Security Settings — activity logs, password requests, and authenticator controls.';
+renderBreadcrumbs($breadcrumbs);
+?>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i><?= e($success) ?></div>
@@ -626,10 +630,6 @@ if ($hasModule) {
 <?php endif; ?>
 
 <?php if (!$hasModule): ?>
-    <div class="page-header mb-4">
-        <h1><i class="fas fa-shield-alt text-sms-primary me-2"></i>Module Security</h1>
-        <p>Choose a module to open its Security Settings — activity logs, password requests, and authenticator controls.</p>
-    </div>
 
     <div class="row g-3 sms-sec-pick-grid mb-4">
         <?php foreach ($moduleOptions as $optKey => $info): ?>

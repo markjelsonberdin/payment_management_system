@@ -21,12 +21,13 @@
             var visible = 0;
 
             rows.forEach(function (row) {
-                var name   = (row.dataset.name   || '').toLowerCase();
-                var email  = (row.dataset.email  || '').toLowerCase();
-                var rowRole  = (row.dataset.role   || '').toLowerCase();
-                var rowStatus = (row.dataset.status || '').toLowerCase();
+                var name     = (row.dataset.name     || '').toLowerCase();
+                var email    = (row.dataset.email    || '').toLowerCase();
+                var username = (row.dataset.username || '').toLowerCase();
+                var rowRole  = (row.dataset.role     || '').toLowerCase();
+                var rowStatus = (row.dataset.status  || '').toLowerCase();
 
-                var matchSearch = !term   || name.includes(term)  || email.includes(term);
+                var matchSearch = !term   || name.includes(term)  || email.includes(term) || username.includes(term);
                 var matchRole   = !role   || rowRole   === role;
                 var matchStatus = !status || rowStatus === status;
 
@@ -42,6 +43,19 @@
             if (noResults) {
                 noResults.style.display = visible === 0 ? '' : 'none';
             }
+
+            tableBody.querySelectorAll('tr[data-group-row]').forEach(function (groupRow) {
+                var hasVisibleRow = false;
+                var cursor = groupRow.nextElementSibling;
+                while (cursor && !cursor.hasAttribute('data-group-row')) {
+                    if (cursor.classList.contains('um-user-row') && cursor.style.display !== 'none') {
+                        hasVisibleRow = true;
+                        break;
+                    }
+                    cursor = cursor.nextElementSibling;
+                }
+                groupRow.style.display = hasVisibleRow ? '' : 'none';
+            });
         }
 
         if (searchInput)  searchInput.addEventListener('input',  applyFilters);

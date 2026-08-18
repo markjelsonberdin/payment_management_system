@@ -22,6 +22,7 @@ $bodyClass = $bodyClass ?? '';
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="description" content="<?= e(APP_NAME) ?> - <?= e(INSTITUTION) ?>">
     <title><?= e($pageTitle) ?> | <?= e(APP_SHORT_NAME) ?></title>
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/images/bcp-logo-source.png">
 
     <!-- Apply theme before paint to avoid flash of wrong theme.
          Also set inline background so there's no white flash while
@@ -73,12 +74,13 @@ $bodyClass = $bodyClass ?? '';
     })();
     </script>
     <!-- SMS 2 Theme -->
-    <link href="<?= BASE_URL ?>/assets/css/theme.css" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/layout.css?v=2" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/theme.css?v=3" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/layout.css?v=4" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/dashboard-glass.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/loader.css?v=2" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/sms-security-ui.css?v=19" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/research-monitoring.css?v=1" rel="stylesheet">
 </head>
 <body class="<?= htmlspecialchars($bodyClass) ?>"<?= strpos(' ' . $bodyClass . ' ', ' login-page ') !== false ? ' style="background:#071c48"' : '' ?>>
 <?php if (strpos(' ' . $bodyClass . ' ', ' login-page ') === false && strpos(' ' . $bodyClass . ' ', ' welcome-page ') === false): ?>

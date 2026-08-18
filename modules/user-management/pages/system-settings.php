@@ -288,13 +288,14 @@ $systemMaintenanceMsg = trim(smsSetting('system_maintenance_msg', ''));
 <!-- Toast container -->
 <div id="umToastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100;"></div>
 
-<?php renderBreadcrumbs($breadcrumbs); ?>
+<?php
+$pageBannerIcon        = 'fa-sliders-h';
+$pageBannerDescription = 'Configure application-wide settings, school year, security rules, and global feature toggles.';
+renderBreadcrumbs($breadcrumbs);
+?>
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <h1><i class="fas fa-sliders-h text-sms-primary me-2"></i>System Settings</h1>
-        <p>Configure application-wide settings, school year, security rules, and global feature toggles.</p>
-    </div>
+    <div></div>
     <span class="placeholder-badge"><i class="fas fa-lock me-1"></i>Superadmin Only</span>
 </div>
 
@@ -327,7 +328,7 @@ $systemMaintenanceMsg = trim(smsSetting('system_maintenance_msg', ''));
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Short Name</label>
-                        <input type="text" class="form-control" value="SMS 2">
+                        <input type="text" class="form-control" value="BCP">
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold">Institution</label>
@@ -476,7 +477,7 @@ $systemMaintenanceMsg = trim(smsSetting('system_maintenance_msg', ''));
                             <p class="small text-muted mb-2">
                                 One-click check (Cloudflare / Discord style) before password and 2FA.
                                 With Turnstile keys, Cloudflare’s widget is used.
-                                Without keys, SMS 2 shows a local one-click “Verify you are human” box.
+                                Without keys, BCP shows a local one-click “Verify you are human” box.
                             </p>
                         </div>
                         <div class="col-12">

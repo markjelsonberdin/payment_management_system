@@ -15,7 +15,6 @@ $breadcrumbs  = [
 ];
 
 require_once __DIR__ . '/../../../includes/breadcrumbs.php';
-require_once __DIR__ . '/../../../includes/layout-start.php';
 
 // ── Flash message from submit redirect ─────────────────────────────────────
 $flashSuccess = '';
@@ -77,7 +76,27 @@ $total         = count($proposals);
 $pending       = count(array_filter($proposals, fn($p) => in_array($p['status'], ['Submitted', 'In Progress'])));
 $panelAssigned = count(array_filter($proposals, fn($p) => $p['status'] === 'Panel Assigned'));
 $approved      = count(array_filter($proposals, fn($p) => $p['status'] === 'Approved'));
+
+$progressSnapshot = array_map(static function (array $p): array {
+    return [
+        'ref' => $p['ref'],
+        'status' => $p['status'],
+        'progress' => (int) $p['progress'],
+    ];
+}, $proposals);
+$progressSignature = sha1(json_encode($progressSnapshot));
+
+if (($_GET['ajax'] ?? '') === 'progress') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'ok' => true,
+        'signature' => $progressSignature,
+    ]);
+    exit;
+}
 ?>
+
+<?php require_once __DIR__ . '/../../../includes/layout-start.php'; ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
@@ -177,6 +196,7 @@ a.pst-pipeline-item {
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--sms-border, #e2e8f0);
     transition: background 0.12s ease;
+    cursor: pointer;
 }
 a.pst-pipeline-item:last-child { border-bottom: none; }
 a.pst-pipeline-item:hover { background: var(--sms-surface-muted, #f8fafc); }
@@ -221,7 +241,10 @@ a.pst-pipeline-item:hover .pst-review-arrow {
 }
 
 /* Progress bar */
-.pst-progress-wrap { margin-top: 0.6rem; }
+a.pst-pipeline-item:focus-visible {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+}
+.pst-progress-wrap { margin-top: 0.6rem; cursor: pointer; }
 .pst-progress-label {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;
 }
@@ -288,7 +311,7 @@ a.pst-pipeline-item:hover .pst-review-arrow {
         <div class="pst-pipeline-toolbar">
             <label class="pst-pipeline-search">
                 <i class="fas fa-search"></i>
-                <input type="search" id="pstPipelineSearch" placeholder="Search by reference, title, or researcher…" aria-label="Search proposals">
+                <input type="search" id="pstPipelineSearch" placeholder="Search by reference, title, or researcher..." aria-label="Search proposals">
             </label>
             <select id="pstPipelineStatus" class="pst-pipeline-filter" aria-label="Filter by status">
                 <option value="">All Status</option>
@@ -306,15 +329,6 @@ a.pst-pipeline-item:hover .pst-review-arrow {
                    background:var(--sms-primary,#1e40af);color:#fff;font-weight:700;
                    border:1px solid var(--sms-primary,#1e40af);border-radius:10px;">
                 <i class="fas fa-file-signature"></i> Register Proposal
-            </a>
-            <a href="<?= BASE_URL ?>/modules/student-portal/pages/submit-documents.php"
-               class="pst-pipeline-filter"
-               style="
-                   display:inline-flex;align-items:center;justify-content:center;gap:0.35rem;
-                   padding:0.5rem 0.9rem;text-decoration:none;white-space:nowrap;
-                   background:var(--sms-surface-solid,#fff);color:var(--sms-primary,#1e40af);font-weight:700;
-                   border:1px solid var(--sms-primary,#1e40af);border-radius:10px;">
-                <i class="fas fa-plus-circle"></i> New Submission
             </a>
         </div>
 
@@ -335,7 +349,7 @@ a.pst-pipeline-item:hover .pst-review-arrow {
                    class="pst-pipeline-item"
                    data-search="<?= htmlspecialchars($searchData) ?>"
                    data-status="<?= htmlspecialchars($p['status']) ?>"
-                   aria-label="Review proposal <?= htmlspecialchars($p['ref']) ?>">
+                   aria-label="Open tracking progress stage for proposal <?= htmlspecialchars($p['ref']) ?>">
                     <div class="pst-pipeline-meta">
                         <div style="display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0;">
                             <span class="pst-pipeline-ref"><?= htmlspecialchars($p['ref']) ?></span>
@@ -349,13 +363,12 @@ a.pst-pipeline-item:hover .pst-review-arrow {
                         </div>
                         <div style="display:flex;align-items:center;gap:0.65rem;flex-shrink:0;">
                             <span class="pst-badge <?= htmlspecialchars($p['status_cls']) ?>"><?= htmlspecialchars($p['status']) ?></span>
-                            <span class="pst-review-arrow"><i class="fas fa-chevron-right"></i></span>
                         </div>
                     </div>
                     <div class="pst-progress-wrap">
                         <div class="pst-progress-label">
                             <span>Tracking Progress Stage</span>
-                            <strong><?= $pct ?>%</strong>
+                            <strong><?= $pct ?>% <span class="pst-review-arrow"><i class="fas fa-chevron-right"></i></span></strong>
                         </div>
                         <div class="pst-progress-bar" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100">
                             <div class="pst-progress-fill <?= $fillClass ?>" style="width:<?= $pct ?>%"></div>
@@ -383,7 +396,7 @@ a.pst-pipeline-item:hover .pst-review-arrow {
         const q = search.value.toLowerCase().trim();
         const s = status.value;
         let n = 0;
-        list.querySelectorAll('a.pst-pipeline-item').forEach(function (row) {
+        list.querySelectorAll('.pst-pipeline-item').forEach(function (row) {
             const show = (q === '' || row.dataset.search.includes(q)) && (s === '' || row.dataset.status === s);
             row.style.display = show ? '' : 'none';
             if (show) n++;
@@ -392,6 +405,33 @@ a.pst-pipeline-item:hover .pst-review-arrow {
     }
     search.addEventListener('input', filter);
     status.addEventListener('change', filter);
+
+    const currentProgressSignature = '<?= htmlspecialchars($progressSignature, ENT_QUOTES) ?>';
+    let polling = false;
+    function checkProgressUpdates() {
+        if (polling || document.hidden) {
+            return;
+        }
+        polling = true;
+        fetch(window.location.pathname + '?ajax=progress', {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                if (data && data.ok && data.signature && data.signature !== currentProgressSignature) {
+                    window.location.reload();
+                }
+            })
+            .catch(function () {})
+            .finally(function () { polling = false; });
+    }
+    setInterval(checkProgressUpdates, 5000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            checkProgressUpdates();
+        }
+    });
 })();
 </script>
 

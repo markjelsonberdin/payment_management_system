@@ -75,13 +75,14 @@ $exports = count(array_filter($logs, static fn($l) => $l['action'] === 'export')
 
 <link href="<?= BASE_URL ?>/modules/user-management/assets/css/user-management.css" rel="stylesheet">
 
-<?php renderBreadcrumbs($breadcrumbs); ?>
+<?php
+$pageBannerIcon        = 'fa-history';
+$pageBannerDescription = 'Full Super Admin audit trail across all modules. Module Security shows each module\'s own logs separately.';
+renderBreadcrumbs($breadcrumbs);
+?>
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <h1><i class="fas fa-history text-sms-primary me-2"></i>Activity Logs</h1>
-        <p class="mb-0">Full Super Admin audit trail across all modules. Module Security shows each module’s own logs separately.</p>
-    </div>
+    <div></div>
     <button type="button" class="btn btn-outline-primary btn-sm"
             data-sms-export-csv="#adminLogTable"
             data-sms-export-rows="tbody tr.log-row"

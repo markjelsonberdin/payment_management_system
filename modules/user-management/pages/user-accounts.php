@@ -26,6 +26,91 @@ $archivedCount = 0;
 $activeCount = 0;
 $pdo = db();
 if ($pdo) {
+    try {
+        $pdo->prepare(
+            "INSERT IGNORE INTO roles (role_key, label, description, is_system)
+             VALUES
+                ('superadmin', 'Super Admin', 'Full system access', 1),
+                ('admin', 'Super Admin', 'Legacy super admin access', 1),
+                ('sms_admin', 'Admin', 'General administrator account', 1),
+                ('research_coordinator', 'Research Coordinator', 'Research coordination access', 1),
+                ('adviser', 'Adviser', 'Research adviser faculty account', 1),
+                ('research_director', 'Research Director', 'Research defense scheduling director account', 1),
+                ('grammarian', 'Grammarian', 'Research grammar and manuscript evaluation account', 1),
+                ('panel', 'Panel Member', 'Research defense panel account', 1),
+                ('research_grant', 'CRAD Officer', 'Research grant management access', 1)"
+        )->execute();
+        $pdo->prepare(
+            "UPDATE roles
+             SET label = 'Super Admin', description = 'Legacy super admin access'
+             WHERE role_key = 'admin'"
+        )->execute();
+        $pdo->prepare(
+            "UPDATE users
+             SET role_key = 'superadmin'
+             WHERE username = 'superadmin'
+               AND role_key = 'admin'"
+        )->execute();
+        $pdo->prepare(
+            "UPDATE users
+             SET full_name = 'Dean', username = 'dean', email = 'dean@bestlink.edu.ph'
+             WHERE role_key = 'hr'
+               AND username IN ('hr', 'faculty', 'dean')"
+        )->execute();
+        $adminHash = password_hash('@admin123', PASSWORD_DEFAULT);
+        $pdo->prepare(
+            "INSERT IGNORE INTO users
+                (username, email, password_hash, full_name, role_key, student_id, status, password_changed_at, must_change_password, failed_login_attempts, locked_until)
+             VALUES
+                ('admin', 'admin@bestlink.edu.ph', ?, 'Admin', 'sms_admin', NULL, 'active', NOW(), 0, 0, NULL)"
+        )->execute([$adminHash]);
+        $insAdminPerm = $pdo->prepare(
+            "INSERT INTO role_permissions (role_key, module_key, granted)
+             VALUES ('sms_admin', ?, 1)
+             ON DUPLICATE KEY UPDATE granted = VALUES(granted)"
+        );
+        foreach (['enrollment','registrar','curriculum','accreditation','payment','faculty','scheduling','cocurricular','lms','crad'] as $m) {
+            $insAdminPerm->execute([$m]);
+        }
+        $facultyHash = password_hash('@faculty123', PASSWORD_DEFAULT);
+        $seedFaculty = $pdo->prepare(
+            "INSERT IGNORE INTO users
+                (username, email, password_hash, full_name, role_key, student_id, status, notes, password_changed_at, must_change_password, failed_login_attempts, locked_until)
+             VALUES
+                (?, ?, ?, ?, ?, NULL, 'active', ?, NOW(), 0, 0, NULL)"
+        );
+        $seedFaculty->execute(['rsantos', 'rsantos@bestlink.edu.ph', $facultyHash, 'Dr. Roberto M. Santos', 'adviser', 'Research Adviser']);
+        $seedFaculty->execute(['researchdirector', 'research.director@bestlink.edu.ph', $facultyHash, 'Research Director', 'research_director', 'Research Director']);
+        $seedFaculty->execute(['grammarian', 'grammarian@bestlink.edu.ph', password_hash('@grammarian123', PASSWORD_DEFAULT), 'Grammarian', 'grammarian', 'Research grammar and manuscript evaluator']);
+        $seedFaculty->execute(['jobert.valentino', 'jobert.valentino@bestlink.edu.ph', password_hash('@panel123', PASSWORD_DEFAULT), 'Dr. Jobert Valentino', 'panel', 'Panel Member']);
+        $seedFaculty->execute(['jonathan.estrada', 'jonathan.estrada@bestlink.edu.ph', password_hash('@panel123', PASSWORD_DEFAULT), 'Dr. Jonathan Estrada', 'panel', 'Panel Member']);
+        $seedFaculty->execute(['michelle.guevarra', 'michelle.guevarra@bestlink.edu.ph', password_hash('@panel123', PASSWORD_DEFAULT), 'Dr. Michelle Guevarra', 'panel', 'Panel Member']);
+        $insFacultyPerm = $pdo->prepare(
+            "INSERT INTO role_permissions (role_key, module_key, granted)
+             VALUES (?, 'faculty', 1)
+             ON DUPLICATE KEY UPDATE granted = VALUES(granted)"
+        );
+        foreach (['adviser', 'research_director', 'grammarian', 'panel'] as $facultyRole) {
+            $insFacultyPerm->execute([$facultyRole]);
+        }
+
+        // Research Grant account (CRAD Officer role)
+        $rgHash = password_hash('@researchgrant123', PASSWORD_DEFAULT);
+        $pdo->prepare(
+            "INSERT IGNORE INTO users
+                (username, email, password_hash, full_name, role_key, student_id, status, password_changed_at, must_change_password, failed_login_attempts, locked_until)
+             VALUES
+                ('researchgrant', 'researchgrant@bestlink.edu.ph', ?, 'Research Grant', 'research_grant', NULL, 'active', NOW(), 0, 0, NULL)"
+        )->execute([$rgHash]);
+        $pdo->prepare(
+            "INSERT INTO role_permissions (role_key, module_key, granted)
+             VALUES ('research_grant', 'crad_grant', 1)
+             ON DUPLICATE KEY UPDATE granted = VALUES(granted)"
+        )->execute();
+    } catch (Throwable $e) {
+        error_log('Default user account ensure failed: ' . $e->getMessage());
+    }
+
     if ($isArchiveView) {
         $stmt = $pdo->query(
             'SELECT u.id, u.full_name AS name, u.username, u.email, u.role_key AS role,
@@ -64,34 +149,95 @@ foreach ($users as &$u) {
     if ($u['role'] === 'crad_officer') {
         $u['role'] = 'crad';
     }
+    if ($u['role'] === 'superadmin') {
+        $u['roleLabel'] = 'Super Admin';
+    }
+    if ($u['role'] === 'sms_admin') {
+        $u['roleLabel'] = 'Admin';
+    }
+    if (
+        ($u['role'] === 'admin' && strtolower((string) $u['username']) !== 'superadmin')
+        || $u['role'] === 'admission'
+        || $u['role'] === 'admission_office'
+    ) {
+        $u['role'] = 'admission';
+        $u['roleLabel'] = 'Admission';
+        $u['name'] = 'Admission';
+        $u['username'] = 'admission';
+        $u['email'] = 'admission@bestlink.edu.ph';
+    }
+    if ($u['role'] === 'hr') {
+        $u['roleLabel'] = 'Dean';
+        if (in_array(trim((string) $u['name']), ['HR', 'Faculty'], true)) {
+            $u['name'] = 'Dean';
+        }
+        if (strtolower(trim((string) $u['email'])) === 'hr@bestlink.edu.ph') {
+            $u['email'] = 'dean@bestlink.edu.ph';
+        }
+    }
+    if ($u['role'] === 'research_director') {
+        $u['roleLabel'] = 'Research Director';
+    }
+    if ($u['role'] === 'grammarian') {
+        $u['roleLabel'] = 'Grammarian';
+    }
+    if ($u['role'] === 'panel') {
+        $u['roleLabel'] = 'Panel Member';
+    }
 }
 unset($u);
+
+function umRoleBadgeClass(string $role, string $label = ''): string
+{
+    $value = strtolower(trim($role !== '' ? $role : $label));
+    $value = str_replace([' ', '-'], '_', $value);
+
+    $aliases = [
+        'admin' => 'superadmin',
+        'super_admin' => 'superadmin',
+        'sms_admin' => 'sms_admin',
+        'admissionoffice' => 'admission',
+        'admission_office' => 'admission',
+        'crad_officer' => 'crad',
+        'research_grant' => 'crad',
+        'research_coordinator' => 'research_coordinator',
+        'research_director' => 'research_director',
+        'grammarian' => 'grammarian',
+        'panel' => 'panel',
+        'qa_office' => 'qa',
+    ];
+
+    $value = $aliases[$value] ?? $value;
+    return preg_replace('/[^a-z0-9_]/', '', $value) ?: 'student';
+}
 
 $avatarColors = ['a', 'b', 'c', 'd', 'e', 'f'];
 $csrf = csrfToken();
 $total = count($users);
+$facultyAccountRoles = ['hr', 'adviser', 'grammarian', 'panel'];
+$facultyUsers = array_values(array_filter($users, fn($u) => in_array($u['role'], $facultyAccountRoles, true)));
+$studentUsers = array_values(array_filter($users, fn($u) => $u['role'] === 'student'));
+$systemUsers = array_values(array_filter($users, fn($u) => !in_array($u['role'], array_merge($facultyAccountRoles, ['student']), true)));
 $accountsUrl = BASE_URL . '/modules/user-management/pages/user-accounts.php';
 $archiveUrl  = $accountsUrl . '?view=archive';
 $currentUserId = (int) getCurrentUserId();
 ?>
 
-<link href="<?= BASE_URL ?>/modules/user-management/assets/css/user-management.css" rel="stylesheet">
+<link href="<?= BASE_URL ?>/modules/user-management/assets/css/user-management.css?v=research-grant-role-1" rel="stylesheet">
 <meta name="csrf-token" content="<?= e($csrf) ?>">
 
-<?php renderBreadcrumbs($breadcrumbs); ?>
+<?php
+$pageBannerIcon        = $isArchiveView ? 'fa-archive' : 'fa-user-cog';
+$pageBannerDescription = $isArchiveView
+    ? 'Archived accounts stay here inside User Accounts. Restore them, or permanently delete when needed.'
+    : 'Active accounts only. Archive moves users here into the Archive view — not a separate module.';
+renderBreadcrumbs($breadcrumbs);
+?>
 
 <div id="umToastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100;"></div>
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-    <div>
-        <?php if ($isArchiveView): ?>
-            <h1><i class="fas fa-archive text-sms-primary me-2"></i>User Archive</h1>
-            <p class="mb-0">Archived accounts stay here inside User Accounts. Restore them, or permanently delete when needed.</p>
-        <?php else: ?>
-            <h1><i class="fas fa-user-cog text-sms-primary me-2"></i>User Accounts</h1>
-            <p class="mb-0">Active accounts only. Archive moves users here into the Archive view — not a separate module.</p>
-        <?php endif; ?>
-    </div>
+    <div></div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         <?php if ($isArchiveView): ?>
             <a href="<?= e($accountsUrl) ?>" class="um-archive-btn um-archive-btn--back">
@@ -154,21 +300,28 @@ $currentUserId = (int) getCurrentUserId();
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="fas fa-search" style="font-size:.72rem;"></i></span>
                     <input type="text" id="umSearch" class="form-control form-control-sm"
-                           placeholder="<?= $isArchiveView ? 'Search archived users…' : 'Search name or email…' ?>"
+                           placeholder="<?= $isArchiveView ? 'Search archived users…' : 'Search name, username or email…' ?>"
                            style="max-width:unset;">
                 </div>
             </div>
             <?php if (!$isArchiveView): ?>
             <select id="umRoleFilter" class="form-select form-select-sm">
                 <option value="">All Roles</option>
-                <option value="admin">Super Admin</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="sms_admin">Admin</option>
+                <option value="admission">Admission</option>
                 <option value="registrar">Registrar</option>
                 <option value="finance">Finance</option>
-                <option value="hr">HR</option>
+                <option value="hr">Dean</option>
+                <option value="adviser">Adviser</option>
+                <option value="research_director">Research Director</option>
+                <option value="panel">Panel Member</option>
                 <option value="it_office">IT Office</option>
                 <option value="osa">OSA</option>
                 <option value="qa">QA Office</option>
                 <option value="crad">CRAD Officer</option>
+                <option value="research_coordinator">Research Coordinator</option>
+                <option value="research_grant">Research Grant</option>
                 <option value="student">Student</option>
             </select>
             <select id="umStatusFilter" class="form-select form-select-sm">
@@ -214,12 +367,28 @@ $currentUserId = (int) getCurrentUserId();
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($users as $i => $u):
+                        <?php foreach ([
+                            ['label' => 'System Accounts', 'users' => $systemUsers],
+                            ['label' => 'Faculty Accounts', 'users' => $facultyUsers],
+                            ['label' => 'Students Account', 'users' => $studentUsers],
+                        ] as $group): ?>
+                            <?php if (empty($group['users'])) continue; ?>
+                            <tr class="um-group-row" data-group-row>
+                                <td colspan="7">
+                                    <div class="um-group-title">
+                                        <span><?= e($group['label']) ?></span>
+                                        <small><?= count($group['users']) ?> account<?= count($group['users']) === 1 ? '' : 's' ?></small>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php foreach ($group['users'] as $i => $u):
                             $col = $avatarColors[$i % count($avatarColors)];
                             $statusLabel = $u['status'] === 'inactive' ? 'Archived' : ucfirst($u['status']);
+                            $roleBadgeClass = umRoleBadgeClass((string) $u['role'], (string) $u['roleLabel']);
                         ?>
                         <tr class="um-user-row"
                             data-name="<?= htmlspecialchars($u['name']) ?>"
+                            data-username="<?= htmlspecialchars($u['username']) ?>"
                             data-email="<?= htmlspecialchars($u['email']) ?>"
                             data-role="<?= htmlspecialchars($u['role']) ?>"
                             data-status="<?= htmlspecialchars($u['status']) ?>">
@@ -233,7 +402,7 @@ $currentUserId = (int) getCurrentUserId();
                                 </div>
                             </td>
                             <td><code style="font-size:.78rem;color:var(--sms-text-muted);"><?= htmlspecialchars($u['username']) ?></code></td>
-                            <td><span class="role-badge <?= $u['role'] ?>"><?= htmlspecialchars($u['roleLabel']) ?></span></td>
+                            <td><span class="role-badge <?= e($roleBadgeClass) ?>"><?= htmlspecialchars($u['roleLabel']) ?></span></td>
                             <td><span class="user-status <?= htmlspecialchars($u['status']) ?>"><?= e($statusLabel) ?></span></td>
                             <td class="text-muted" style="font-size:.78rem;white-space:nowrap;"><?= htmlspecialchars($u['last_login']) ?></td>
                             <td class="text-muted" style="font-size:.78rem;white-space:nowrap;"><?= htmlspecialchars($u['created']) ?></td>
@@ -298,6 +467,7 @@ $currentUserId = (int) getCurrentUserId();
                             </td>
                         </tr>
                         <?php endforeach; ?>
+                        <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -349,14 +519,22 @@ $currentUserId = (int) getCurrentUserId();
                             <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
                             <select class="form-select" name="role" required>
                                 <option value="">Select role…</option>
-                                <option value="admin">Super Admin</option>
+                                <option value="superadmin">Super Admin</option>
+                                <option value="sms_admin">Admin</option>
+                                <option value="admission">Admission</option>
                                 <option value="registrar">Registrar</option>
                                 <option value="finance">Finance</option>
-                                <option value="hr">HR</option>
+                                <option value="hr">Dean</option>
+                                <option value="adviser">Adviser</option>
+                                <option value="research_director">Research Director</option>
+                                <option value="grammarian">Grammarian</option>
+                                <option value="panel">Panel Member</option>
                                 <option value="it_office">IT Office</option>
                                 <option value="osa">OSA</option>
                                 <option value="qa">QA Office</option>
                                 <option value="crad">CRAD Officer</option>
+                                <option value="research_coordinator">Research Coordinator</option>
+                                <option value="research_grant">Research Grant (CRAD Officer)</option>
                                 <option value="student">Student</option>
                             </select>
                         </div>

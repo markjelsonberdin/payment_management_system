@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../config/config.php';
+
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 $isCli = PHP_SAPI === 'cli';
 
@@ -24,11 +26,11 @@ function out(string $msg, bool $ok = true): void
 }
 
 // ── Settings ─────────────────────────────────────────────────────────────────
-$host    = 'localhost';
-$user    = 'root';
-$pass    = '';
-$dbName  = 'crad_db';
-$charset = 'utf8mb4';
+$host    = CRAD_DB_HOST;
+$user    = CRAD_DB_USER;
+$pass    = CRAD_DB_PASS;
+$dbName  = CRAD_DB_NAME;
+$charset = CRAD_DB_CHARSET;
 $sqlFile = __DIR__ . '/crad_db.sql';
 
 if (!$isCli) {
@@ -136,6 +138,17 @@ foreach ($expected as $table) {
 }
 
 // ── Done ──────────────────────────────────────────────────────────────────────
+try {
+    $consistency = cradEnsureTitleApprovalAdviserAssignmentConsistency($pdo, true);
+    out($consistency['message'], !empty($consistency['ok']));
+    if (empty($consistency['ok'])) {
+        $errors++;
+    }
+} catch (Throwable $e) {
+    out('Title approval adviser assignment consistency check failed: ' . $e->getMessage(), false);
+    $errors++;
+}
+
 if (!$isCli) {
     $msg = $errors === 0
         ? 'Installation complete. You can now use the CRAD module.'

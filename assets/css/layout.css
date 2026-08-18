@@ -654,6 +654,9 @@ body.sidebar-collapsed .crad-officer-sidebar .crad-sidebar-link {
     body.sidebar-collapsed .sidebar-nav {
         padding: 0.35rem 0.45rem 1rem;
     }
+    body.sidebar-collapsed .sidebar-nav > ul > .sidebar-group-label {
+        display: none !important;
+    }
     body.sidebar-collapsed .sidebar-nav > ul > .nav-item {
         margin-bottom: 0.2rem;
     }

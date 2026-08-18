@@ -38,6 +38,9 @@ function smsNormalizeRoleKey(string $roleKey): string
     if ($roleKey === 'crad') {
         return 'crad_officer';
     }
+    if ($roleKey === 'admissionoffice' || $roleKey === 'admission_office') {
+        return 'admission';
+    }
     return $roleKey;
 }
 
@@ -98,12 +101,22 @@ function getCurrentUserId(): ?int
  */
 function smsDefaultModulesForRole(string $roleKey): array
 {
+    $roleKey = smsNormalizeRoleKey($roleKey);
     $defaults = [
+        'superadmin'       => ['user-management', 'student_portal'],
+        'admin'            => ['user-management'],
+        'admission'        => ['enrollment'],
         'student'      => ['student_portal'],
-        'registrar'    => ['enrollment', 'registrar', 'curriculum', 'scheduling'],
+        'registrar'    => ['registrar', 'curriculum', 'scheduling'],
         'crad_officer' => ['crad'],
+        'research_coordinator' => ['crad'],
+        'research_grant' => ['crad_grant'],
         'finance'      => ['payment'],
         'hr'           => ['faculty'],
+        'adviser'      => ['faculty'],
+        'panel'        => ['faculty'],
+        'research_director' => ['faculty'],
+        'grammarian'   => ['faculty'],
         'it_office'    => ['lms'],
         'osa'          => ['cocurricular'],
         'qa'           => ['accreditation'],
@@ -115,13 +128,9 @@ function smsDefaultModulesForRole(string $roleKey): array
 /**
  * Load granted modules for a role from DB (+ JSON file legacy overrides).
  */
-function getAllowedModuleKeys(): array
+function smsAllowedModuleKeysForRole(string $roleKey): array
 {
-    $roleKey = getCurrentUserRoleKey();
-
-    if ($roleKey === 'admin') {
-        return []; // empty = full access
-    }
+    $roleKey = smsNormalizeRoleKey($roleKey);
 
     $allowed = [];
 
@@ -171,7 +180,28 @@ function getAllowedModuleKeys(): array
         }
     }
 
+    if (in_array($roleKey, ['superadmin', 'admin'], true) && !in_array('user-management', $allowed, true)) {
+        $allowed[] = 'user-management';
+    }
+
+    if ($roleKey === 'student') {
+        $allowed = ['student_portal'];
+    } elseif ($roleKey !== 'superadmin') {
+        $allowed = array_values(array_filter(
+            $allowed,
+            static fn($moduleKey) => $moduleKey !== 'student_portal'
+        ));
+    }
+
     return $allowed;
+}
+
+/**
+ * Load granted modules for the current session role.
+ */
+function getAllowedModuleKeys(): array
+{
+    return smsAllowedModuleKeysForRole(getCurrentUserRoleKey());
 }
 
 function userCanAccessModule(string $moduleKey): bool
@@ -181,10 +211,14 @@ function userCanAccessModule(string $moduleKey): bool
     }
 
     if ($moduleKey === 'user-management') {
-        return getCurrentUserRoleKey() === 'admin';
+        $roleKey = getCurrentUserRoleKey();
+        if (in_array($roleKey, ['superadmin', 'admin'], true)) {
+            return true;
+        }
+        return in_array('user-management', getAllowedModuleKeys(), true);
     }
 
-    // Super Admin can only access dashboard and user-management
+    // Legacy admin accounts are restricted to dashboard and User Management.
     if (getCurrentUserRoleKey() === 'admin') {
         return false;
     }
@@ -192,14 +226,13 @@ function userCanAccessModule(string $moduleKey): bool
     // Student portal alias
     if ($moduleKey === 'student-portal' || $moduleKey === 'student_portal') {
         $moduleKey = 'student_portal';
-        if (getCurrentUserRoleKey() === 'student') {
+        $roleKey = getCurrentUserRoleKey();
+        if ($roleKey === 'student') {
             return true;
         }
-    }
-
-    // Super Admin only — empty grant list must NOT mean “allow all” for other roles
-    if (getCurrentUserRoleKey() === 'admin') {
-        return true;
+        if ($roleKey !== 'superadmin') {
+            return false;
+        }
     }
 
     $allowedModules = getAllowedModuleKeys();
@@ -208,7 +241,7 @@ function userCanAccessModule(string $moduleKey): bool
 
 function requireSuperAdmin(): void
 {
-    if (getCurrentUserRoleKey() !== 'admin') {
+    if (!userCanAccessModule('user-management')) {
         header('Location: ' . BASE_URL . '/dashboard/index.php');
         exit;
     }
@@ -216,12 +249,42 @@ function requireSuperAdmin(): void
 
 function getVisibleModules(array $modules): array
 {
-    if (getCurrentUserRoleKey() === 'admin') {
-        // Super Admin sees Dashboard (always shown separately) + User Management only
-        $visible = array_intersect_key($modules, array_flip(['user-management']));
-    } else {
-        $allowedModules = getAllowedModuleKeys();
-        $visible = array_intersect_key($modules, array_flip($allowedModules));
+    $allowedModules = getAllowedModuleKeys();
+    $visible = array_intersect_key($modules, array_flip($allowedModules));
+
+    if (getCurrentUserRoleKey() === 'research_coordinator' && isset($visible['crad'])) {
+        $visible['crad'] = smsResearchCoordinatorCradModule();
+    }
+
+    if (in_array('student_portal', $allowedModules, true) && !isset($visible['student_portal'])) {
+        $visible['student_portal'] = [
+            'label' => 'Student Portal',
+            'icon'  => 'fa-user-graduate',
+            'groups' => [
+                'Overview' => ['dashboard'],
+                'Student Information' => ['my-profile', 'student-id'],
+                'Financial' => ['account-balance', 'payment-history'],
+                'Academics' => ['class-schedule', 'academic-records', 'subjects-professors', 'grades-portal'],
+                'Research' => ['research-proposal-submission'],
+                'Document Submission' => ['submit-chapters', 'my-submissions', 'submission-status', 'submission-history'],
+            ],
+            'pages' => [
+                ['slug' => 'dashboard', 'title' => 'Dashboard'],
+                ['slug' => 'my-profile', 'title' => 'My Profile'],
+                ['slug' => 'student-id', 'title' => 'Student ID'],
+                ['slug' => 'account-balance', 'title' => 'Account Balance'],
+                ['slug' => 'payment-history', 'title' => 'Payment History'],
+                ['slug' => 'class-schedule', 'title' => 'Class Schedule'],
+                ['slug' => 'academic-records', 'title' => 'Academic Records'],
+                ['slug' => 'subjects-professors', 'title' => 'Subject & Professors'],
+                ['slug' => 'grades-portal', 'title' => 'Grades Portal'],
+                ['slug' => 'research-proposal-submission', 'title' => 'Research Proposal'],
+                ['slug' => 'submit-chapters', 'title' => 'Submit Chapter 1-3'],
+                ['slug' => 'my-submissions', 'title' => 'My Submissions'],
+                ['slug' => 'submission-status', 'title' => 'Submission Status'],
+                ['slug' => 'submission-history', 'title' => 'Submission History'],
+            ],
+        ];
     }
 
     if (isset($visible['reports-analytics'])) {
@@ -237,6 +300,82 @@ function getVisibleModules(array $modules): array
     }
 
     return $visible;
+}
+
+function smsResearchCoordinatorCradModule(): array
+{
+    return [
+        'label' => 'Research Coordinator',
+        'icon'  => 'fa-microscope',
+        'groups' => [
+            'Approved Research' => [
+                'approved-research',
+            ],
+            'A. Adviser Assignment' => [
+                'retrieve-approved-research',
+                'find-contact-adviser',
+                'adviser-availability',
+                'assign-research-adviser',
+            ],
+            'B. Panel Assignment' => [
+                'retrieve-defense-ready-research',
+                'select-panel-members',
+                'check-panel-availability',
+                'assign-panel-members',
+            ],
+            'Coordination' => [
+                'manage-assignments',
+            ],
+            'System' => [
+                'security-settings',
+            ],
+        ],
+        'pages' => [
+            ['slug' => 'approved-research', 'title' => 'View Approved Research'],
+            ['slug' => 'retrieve-approved-research', 'title' => 'Retrieve Approved Research'],
+            ['slug' => 'find-contact-adviser', 'title' => 'Find/Contact Adviser'],
+            ['slug' => 'adviser-availability', 'title' => 'Check Adviser Availability'],
+            ['slug' => 'assign-research-adviser', 'title' => 'Assign Research Adviser'],
+            ['slug' => 'retrieve-defense-ready-research', 'title' => 'Retrieve Defense-Ready Research'],
+            ['slug' => 'select-panel-members', 'title' => 'Select Panel Members'],
+            ['slug' => 'check-panel-availability', 'title' => 'Check Panel Availability'],
+            ['slug' => 'assign-panel-members', 'title' => 'Assign Panel Members'],
+            ['slug' => 'manage-assignments', 'title' => 'View/Manage Assignments'],
+            ['slug' => 'security-settings', 'title' => 'Security Settings'],
+        ],
+    ];
+}
+
+function smsPostLoginRedirectUrl(): string
+{
+    $allowedModules = getAllowedModuleKeys();
+    $priority = [
+        'user-management',
+        'enrollment',
+        'registrar',
+        'curriculum',
+        'accreditation',
+        'payment',
+        'faculty',
+        'scheduling',
+        'cocurricular',
+        'lms',
+        'crad',
+        'reports-analytics',
+        'student_portal',
+    ];
+
+    foreach ($priority as $moduleKey) {
+        if (!in_array($moduleKey, $allowedModules, true)) {
+            continue;
+        }
+        if ($moduleKey === 'student_portal') {
+            return BASE_URL . '/modules/student-portal/pages/my-profile.php';
+        }
+        return BASE_URL . '/modules/' . $moduleKey . '/index.php';
+    }
+
+    return BASE_URL . '/dashboard/index.php';
 }
 
 function requireModuleAccess(string $moduleKey): void
@@ -257,7 +396,7 @@ function requireModuleAccess(string $moduleKey): void
 
     if (
         smsIsModuleInMaintenance($key)
-        && getCurrentUserRoleKey() !== 'admin'
+        && !in_array(getCurrentUserRoleKey(), ['superadmin', 'admin'], true)
         && $key !== 'user-management'
         && !$isMaintEscape
     ) {
@@ -265,8 +404,39 @@ function requireModuleAccess(string $moduleKey): void
         exit;
     }
 
+    if ($key === 'crad' && getCurrentUserRoleKey() === 'research_coordinator') {
+        $allowedCoordinatorPages = [
+            '/account/module-security.php',
+            '/account/security.php',
+            '/modules/crad/index.php',
+            '/modules/crad/pages/approved-research.php',
+            '/modules/crad/pages/adviser-panel-assignment.php',
+            '/modules/crad/pages/retrieve-approved-research.php',
+            '/modules/crad/pages/find-contact-adviser.php',
+            '/modules/crad/pages/adviser-availability.php',
+            '/modules/crad/pages/assign-research-adviser.php',
+            '/modules/crad/pages/retrieve-defense-ready-research.php',
+            '/modules/crad/pages/select-panel-members.php',
+            '/modules/crad/pages/check-panel-availability.php',
+            '/modules/crad/pages/assign-panel-members.php',
+            '/modules/crad/pages/send-notifications.php',
+            '/modules/crad/pages/manage-assignments.php',
+        ];
+        $isAllowedCoordinatorPage = false;
+        foreach ($allowedCoordinatorPages as $allowedPath) {
+            if (str_ends_with($scriptPath, $allowedPath)) {
+                $isAllowedCoordinatorPage = true;
+                break;
+            }
+        }
+        if (!$isAllowedCoordinatorPage) {
+            header('Location: ' . BASE_URL . '/modules/crad/index.php');
+            exit;
+        }
+    }
+
     if ($key === 'student_portal') {
-        if (getCurrentUserRoleKey() === 'student' || getCurrentUserRoleKey() === 'admin' || userCanAccessModule('student_portal')) {
+        if (userCanAccessModule('student_portal')) {
             return;
         }
         header('Location: ' . BASE_URL . '/dashboard/index.php');

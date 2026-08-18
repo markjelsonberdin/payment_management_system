@@ -4,11 +4,13 @@
  * Student Portal — CRAD FORM S2 V3 (Title Approval)
  */
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../modules/crad/config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 
-$studentId = $_SESSION['student_id'] ?? 'S230000001';
-$studentName = $_SESSION['user_name'] ?? 'Juan Dela Cruz';
+$studentId     = $_SESSION['student_id'] ?? 'S230000001';
+$studentUserId = $_SESSION['user_id']    ?? null;
+$studentName   = $_SESSION['user_name']  ?? 'Juan Dela Cruz';
 $nameParts = array_values(array_filter(preg_split('/\s+/', trim($studentName)) ?: []));
 if (count($nameParts) >= 3) {
     $lastName = $nameParts[count($nameParts) - 2] . ' ' . $nameParts[count($nameParts) - 1];
@@ -22,20 +24,194 @@ if (count($nameParts) >= 3) {
 }
 $defaultMemberName = $lastName . ', ' . $firstNames . ' A.';
 $defaultOrNumber = 'OR-' . date('y') . str_pad((string) random_int(10000, 99999), 5, '0', STR_PAD_LEFT);
+$requestedResubmitId = (int) ($_GET['resubmit_title_approval'] ?? 0);
 $submitted = ($_GET['process'] ?? '') === 'submit-proposal';
-$submittedDate = $_GET['submission_date'] ?? date('Y-m-d');
-$submittedDepartment = $_GET['department'] ?? 'College of Computer Studies';
-$submittedMembers = array_values((array) ($_GET['member_name'] ?? []));
-$submittedSections = array_values((array) ($_GET['member_section'] ?? []));
-$submittedReceipts = array_values((array) ($_GET['member_or'] ?? []));
-$submittedDiscipline = $_GET['discipline_cluster'] ?? '';
-$submittedAgenda = $_GET['research_agenda'] ?? '';
-if (str_starts_with($submittedAgenda, 'Others')) {
-    $submittedAgenda = trim((string) ($_GET['research_agenda_others'] ?? '')) ?: $submittedAgenda;
+$resubmitSubmission = null;
+
+/* ── Try to restore a previously saved submission from the DB ──────── */
+$existingSubmission  = null; // will hold the title_approvals row if found
+$alreadySentToAdviser = false; // true when the row was saved before this pageload
+try {
+    $cradPdoEarly = getCradDatabaseConnection();
+    if ($requestedResubmitId > 0) {
+        $exStmt = $cradPdoEarly->prepare(
+            "SELECT * FROM title_approvals
+             WHERE student_id = :sid AND id = :id
+             LIMIT 1"
+        );
+        $exStmt->execute([':sid' => $studentId, ':id' => $requestedResubmitId]);
+        $resubmitSubmission = $exStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    } else {
+        $exStmt = $cradPdoEarly->prepare(
+            "SELECT * FROM title_approvals
+             WHERE student_id = :sid
+             ORDER BY id DESC
+             LIMIT 1"
+        );
+        $exStmt->execute([':sid' => $studentId]);
+        $existingSubmission = $exStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+} catch (Throwable) {
+    $existingSubmission = null;
+    $resubmitSubmission = null;
 }
-$submittedSdg = $_GET['primary_sdg'] ?? '';
-$submittedTitle = strtoupper(trim((string) ($_GET['proposed_title'] ?? '')));
-$submittedJustification = trim((string) ($_GET['sdg_justification'] ?? ''));
+
+$isResubmitMode = false;
+
+if ($existingSubmission) {
+    if (!$submitted && $requestedResubmitId <= 0 && ((string) ($existingSubmission['status'] ?? '') === 'Returned' || (string) ($existingSubmission['coordinator_status'] ?? '') === 'Returned')) {
+        header('Location: ' . BASE_URL . '/notifications/view.php?type=returned_title_approval&title_approval=' . (int) $existingSubmission['id']);
+        exit;
+    }
+    /* Restore all submitted* vars from DB — works on refresh / back */
+    $submitted             = true;
+    $isResubmitMode = ((string) ($existingSubmission['status'] ?? '') === 'Returned' || (string) ($existingSubmission['coordinator_status'] ?? '') === 'Returned')
+        && ($requestedResubmitId <= 0 || $requestedResubmitId === (int) ($existingSubmission['id'] ?? 0));
+    $alreadySentToAdviser  = !$isResubmitMode; // returned rows can be sent again without duplicating
+
+    $submittedDate         = $existingSubmission['submission_date'] ?? date('Y-m-d');
+    $submittedDepartment   = $existingSubmission['department']      ?? 'College of Computer Studies';
+    $submittedDiscipline   = $existingSubmission['discipline_cluster'] ?? '';
+    $submittedSdg          = $existingSubmission['primary_sdg']     ?? '';
+    $submittedTitle        = strtoupper(trim((string) ($existingSubmission['proposed_title'] ?? '')));
+    $submittedJustification = trim((string) ($existingSubmission['sdg_justification'] ?? ''));
+
+    /* Restore research_agenda — may be the "Others" raw text */
+    $rawAgenda     = $existingSubmission['research_agenda'] ?? '';
+    $submittedAgenda = $rawAgenda;
+
+    /* Decode members JSON back into parallel arrays */
+    $membersDecoded   = json_decode((string) ($existingSubmission['members_json'] ?? '[]'), true);
+    $submittedMembers  = [];
+    $submittedSections = [];
+    $submittedReceipts = [];
+    if (is_array($membersDecoded)) {
+        foreach ($membersDecoded as $m) {
+            $submittedMembers[]  = $m[0] ?? ($m['name']    ?? '');
+            $submittedSections[] = $m[1] ?? ($m['section'] ?? '');
+            $submittedReceipts[] = $m[2] ?? ($m['or']      ?? '');
+        }
+    }
+} else {
+    /* Fresh submission via GET (just submitted the form right now) */
+    $submittedDate         = $_GET['submission_date'] ?? date('Y-m-d');
+    $submittedDepartment   = $_GET['department']      ?? 'College of Computer Studies';
+    $submittedMembers      = array_values((array) ($_GET['member_name']    ?? []));
+    $submittedSections     = array_values((array) ($_GET['member_section'] ?? []));
+    $submittedReceipts     = array_values((array) ($_GET['member_or']      ?? []));
+    $submittedDiscipline   = $_GET['discipline_cluster'] ?? '';
+    $submittedAgenda       = $_GET['research_agenda']    ?? '';
+    if (str_starts_with($submittedAgenda, 'Others')) {
+        $submittedAgenda = trim((string) ($_GET['research_agenda_others'] ?? '')) ?: $submittedAgenda;
+    }
+    $submittedSdg           = $_GET['primary_sdg']      ?? '';
+    $submittedTitle         = strtoupper(trim((string) ($_GET['proposed_title']   ?? '')));
+    $submittedJustification = trim((string) ($_GET['sdg_justification'] ?? ''));
+}
+
+/* ── Look up assigned adviser for this student ─────────────────── */
+if ($resubmitSubmission && ((string) ($resubmitSubmission['status'] ?? '') === 'Returned' || (string) ($resubmitSubmission['coordinator_status'] ?? '') === 'Returned')) {
+    $isResubmitMode = true;
+    $alreadySentToAdviser = false;
+}
+
+$assignedAdviserName  = '';
+$assignedAdviserEmail = '';
+$assignedCoordName    = '';
+$defaultCoordinatorName = 'Mrs. Kris Guevarra';
+
+/* Restore adviser info directly from the saved submission row when available */
+$adviserSignatureData = ''; // base64 PNG of the adviser's digital signature (if approved)
+$coordinatorSignatureData = '';
+$cradSignatureData = '';
+$coordinatorScreening = [];
+if ($existingSubmission) {
+    $assignedAdviserName  = (string) ($existingSubmission['adviser_name']  ?? '');
+    $assignedAdviserEmail = (string) ($existingSubmission['adviser_email'] ?? '');
+    $assignedCoordName    = (string) ($existingSubmission['coordinator_name'] ?? '');
+    $adviserSignatureData = (string) ($existingSubmission['adviser_signature_data'] ?? '');
+    $coordinatorSignatureData = (string) ($existingSubmission['coordinator_signature_data'] ?? '');
+    $cradSignatureData = (string) ($existingSubmission['crad_signature_data'] ?? '');
+    $decodedScreening = json_decode((string) ($existingSubmission['coordinator_screening_json'] ?? '{}'), true);
+    $coordinatorScreening = is_array($decodedScreening) ? $decodedScreening : [];
+} elseif ($resubmitSubmission) {
+    $assignedAdviserName  = (string) ($resubmitSubmission['adviser_name']  ?? '');
+    $assignedAdviserEmail = (string) ($resubmitSubmission['adviser_email'] ?? '');
+    $assignedCoordName    = (string) ($resubmitSubmission['coordinator_name'] ?? '');
+}
+
+if ($submitted && $assignedAdviserName === '') {
+    try {
+        $cradPdo = getCradDatabaseConnection();
+        // Find the adviser assigned (assignment_status='Assigned') for the
+        // most recent research group this student leads.
+        $advStmt = $cradPdo->prepare(
+            "SELECT a.adviser_name, a.adviser_email
+             FROM research_groups g
+             JOIN research_adviser_assignments a
+               ON (
+                    a.research_group_id = g.id
+                 OR (a.group_number IS NOT NULL AND a.group_number <> '' AND a.group_number = g.group_number)
+                 OR (a.proposal_id IS NOT NULL AND a.proposal_id = g.proposal_id)
+               )
+             WHERE g.leader_id = :sid
+               AND a.assignment_status = 'Assigned'
+             ORDER BY g.id DESC
+             LIMIT 1"
+        );
+        $advStmt->execute([':sid' => $studentId]);
+        $advRow = $advStmt->fetch();
+        if ($advRow) {
+            $assignedAdviserName  = (string) $advRow['adviser_name'];
+            $assignedAdviserEmail = (string) $advRow['adviser_email'];
+        }
+
+        // Fallback: any adviser linked to this student (Pending is OK)
+        if ($assignedAdviserName === '') {
+            $advStmt2 = $cradPdo->prepare(
+                "SELECT a.adviser_name, a.adviser_email
+                 FROM research_groups g
+                 JOIN research_adviser_assignments a
+                   ON (
+                        a.research_group_id = g.id
+                     OR (a.group_number IS NOT NULL AND a.group_number <> '' AND a.group_number = g.group_number)
+                     OR (a.proposal_id IS NOT NULL AND a.proposal_id = g.proposal_id)
+                   )
+                 WHERE g.leader_id = :sid
+                 ORDER BY g.id DESC, a.id ASC
+                 LIMIT 1"
+            );
+            $advStmt2->execute([':sid' => $studentId]);
+            $advRow2 = $advStmt2->fetch();
+            if ($advRow2) {
+                $assignedAdviserName  = (string) $advRow2['adviser_name'];
+                $assignedAdviserEmail = (string) $advRow2['adviser_email'];
+            }
+        }
+
+        // Coordinator name (first research_coordinator in users)
+        try {
+            $mainPdo  = db();
+            $coordRow = $mainPdo?->query(
+                "SELECT full_name FROM users WHERE role_key = 'research_coordinator' LIMIT 1"
+            )?->fetch();
+            $assignedCoordName = $coordRow ? (string) $coordRow['full_name'] : $defaultCoordinatorName;
+        } catch (Throwable) {
+            $assignedCoordName = $defaultCoordinatorName;
+        }
+    } catch (Throwable $e) {
+        // Silently fall through — button will show but adviser_name may be empty
+        error_log('Adviser lookup failed: ' . $e->getMessage());
+    }
+}
+// Hardcoded fallback so the print preview always shows someone
+if ($assignedAdviserName === '') {
+    $assignedAdviserName  = 'Dr. Roberto M. Santos';
+    $assignedAdviserEmail = 'rsantos@bestlink.edu.ph';
+}
+if ($assignedCoordName === '') {
+    $assignedCoordName = $defaultCoordinatorName;
+}
 
 $pageTitle = 'Research Proposal Submission';
 $activeModule = 'student_portal';
@@ -53,6 +229,10 @@ $departments = [
     'College of Hospitality & Tourism Management',
     'College of Nursing and Health Sciences',
 ];
+
+$screeningChecked = static function (array $screening, string $key, string $value): string {
+    return strtolower((string) ($screening[$key] ?? '')) === $value ? '&#10003;' : '';
+};
 
 $disciplineClusters = [
     'Natural Sciences, Environmental Studies, and Mathematics',
@@ -107,18 +287,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <?php if ($submitted): ?>
         <div class="crad-print-preview">
             <div class="crad-print-actions">
-                <a class="btn btn-outline-secondary" href="<?= BASE_URL ?>/modules/student-portal/pages/research-proposal-submission.php">
-                    <i class="fas fa-arrow-left me-2"></i>New Submission
-                </a>
-                <button type="button" class="btn btn-sms-primary" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i>Print Title Approval Form
+                <button type="button" class="crad-btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Title Approval Form
                 </button>
             </div>
 
             <article class="crad-print-sheet">
                 <header class="print-document-header">
                     <div class="print-bcp-logo-wrap">
-                        <img class="print-bcp-logo" src="<?= BASE_URL ?>/images/bestlink.png" alt="Bestlink College of the Philippines logo">
+                        <img class="print-bcp-logo" src="<?= BASE_URL ?>/images/bcp-crest.png?v=20260811" alt="Bestlink College of the Philippines logo">
                     </div>
                     <div class="print-school-name">
                         <strong>BESTLINK COLLEGE OF THE PHILIPPINES</strong>
@@ -189,15 +366,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     <div class="print-agenda-list">
                         <?php foreach ($researchAgendas as $agenda): ?>
                             <?php
-                            $agendaSelected = $agenda === ($_GET['research_agenda'] ?? '')
-                                || (str_starts_with((string) ($_GET['research_agenda'] ?? ''), 'Others')
+                            $agendaSelected = $agenda === $submittedAgenda
+                                || (str_starts_with($submittedAgenda, 'Others')
                                     && str_starts_with($agenda, 'Others'));
                             ?>
                             <div class="<?= $agendaSelected ? 'is-selected' : '' ?>">
                                 [<?= $agendaSelected ? '✓' : ' ' ?>] <?= htmlspecialchars($agenda) ?>
                             </div>
                         <?php endforeach; ?>
-                        <?php if (str_starts_with((string) ($_GET['research_agenda'] ?? ''), 'Others')): ?>
+                        <?php if (str_starts_with($submittedAgenda, 'Others')): ?>
                             <div class="print-other-value"><?= htmlspecialchars($submittedAgenda) ?></div>
                         <?php endif; ?>
                     </div>
@@ -219,28 +396,43 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <table class="print-table">
                             <thead><tr><th>Evaluation Criteria</th><th>Yes</th><th>No</th></tr></thead>
                             <tbody>
-                                <tr><td>Title aligns with institutional research agenda</td><td></td><td></td></tr>
-                                <tr><td>Proposed study is feasible and original</td><td></td><td></td></tr>
-                                <tr><td>Ethical and SDG requirements are satisfied</td><td></td><td></td></tr>
+                                <tr><td>Title aligns with institutional research agenda</td><td><?= $screeningChecked($coordinatorScreening, 'agenda_alignment', 'yes') ?></td><td><?= $screeningChecked($coordinatorScreening, 'agenda_alignment', 'no') ?></td></tr>
+                                <tr><td>Proposed study is feasible and original</td><td><?= $screeningChecked($coordinatorScreening, 'feasible_original', 'yes') ?></td><td><?= $screeningChecked($coordinatorScreening, 'feasible_original', 'no') ?></td></tr>
+                                <tr><td>Ethical and SDG requirements are satisfied</td><td><?= $screeningChecked($coordinatorScreening, 'ethical_sdg', 'yes') ?></td><td><?= $screeningChecked($coordinatorScreening, 'ethical_sdg', 'no') ?></td></tr>
                             </tbody>
                         </table>
                     </section>
                     <section class="print-choice-box print-signature-box print-approval-ix">
                         <h2>IX. Approval (Name, signature and date)</h2>
                         <div class="print-approval-block">
-                            <div class="print-signature-line"></div>
-                            <strong class="print-approver-name">Dr. Roberto M. Santos</strong>
+                            <div class="print-sig-wrap">
+                                <div class="print-signature-line"></div>
+                                <?php if ($adviserSignatureData !== ''): ?>
+                                    <img class="print-adviser-sig-img" src="<?= htmlspecialchars($adviserSignatureData) ?>" alt="Adviser Signature">
+                                <?php endif; ?>
+                            </div>
+                            <strong class="print-approver-name"><?= htmlspecialchars($assignedAdviserName) ?></strong>
                             <span class="print-approver-role">Research Adviser</span>
                         </div>
                         <div class="print-approval-block">
-                            <div class="print-signature-line"></div>
-                            <strong class="print-approver-name">Prof. Clara T. Reyes</strong>
+                            <div class="print-sig-wrap">
+                                <div class="print-signature-line"></div>
+                                <?php if ($coordinatorSignatureData !== ''): ?>
+                                    <img class="print-adviser-sig-img" src="<?= htmlspecialchars($coordinatorSignatureData) ?>" alt="Coordinator Signature">
+                                <?php endif; ?>
+                            </div>
+                            <strong class="print-approver-name"><?= htmlspecialchars($assignedCoordName) ?></strong>
                             <span class="print-approver-role">Program Research Coordinator</span>
                         </div>
                         <div class="print-approval-divider"></div>
                         <div class="print-approval-block print-received-block">
                             <small>Received:</small>
-                            <div class="print-signature-line"></div>
+                            <div class="print-sig-wrap">
+                                <div class="print-signature-line"></div>
+                                <?php if ($cradSignatureData !== ''): ?>
+                                    <img class="print-adviser-sig-img" src="<?= htmlspecialchars($cradSignatureData) ?>" alt="CRAD Officer Signature">
+                                <?php endif; ?>
+                            </div>
                             <strong class="print-approver-name">Center for Research and Development</strong>
                             <span class="print-approver-role">Center for Research and Development Office</span>
                         </div>
@@ -249,10 +441,58 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                 <footer class="print-page-footer">CRAD Form S2 V3 &nbsp; • &nbsp; Page 1 of 1</footer>
             </article>
+
+            <div class="crad-below-sheet">
+                <button
+                    type="button"
+                    id="sendToAdviserBtn"
+                    class="crad-btn-send-adviser<?= $alreadySentToAdviser ? ' is-sent' : '' ?>"
+                    <?= $alreadySentToAdviser ? 'disabled' : '' ?>
+                    data-already-sent="<?= $alreadySentToAdviser ? '1' : '0' ?>"
+                    data-submission-id="<?= (int) (($resubmitSubmission['id'] ?? null) ?: ($existingSubmission['id'] ?? 0)) ?>"
+                    data-resubmit="<?= $isResubmitMode ? '1' : '0' ?>"
+                    data-adviser="<?= htmlspecialchars($assignedAdviserName) ?>"
+                    data-adviser-email="<?= htmlspecialchars($assignedAdviserEmail) ?>"
+                    data-coordinator="<?= htmlspecialchars($assignedCoordName) ?>"
+                    data-title="<?= htmlspecialchars($submittedTitle) ?>"
+                    data-dept="<?= htmlspecialchars($submittedDepartment) ?>"
+                    data-date="<?= htmlspecialchars($submittedDate) ?>"
+                    data-student-id="<?= htmlspecialchars($studentId) ?>"
+                    data-student-user-id="<?= htmlspecialchars((string)$studentUserId) ?>"
+                    data-student-name="<?= htmlspecialchars($studentName) ?>"
+                    data-members="<?= htmlspecialchars(json_encode(array_map(null, $submittedMembers, $submittedSections, $submittedReceipts))) ?>"
+                    data-discipline="<?= htmlspecialchars($submittedDiscipline) ?>"
+                    data-sdg="<?= htmlspecialchars($submittedSdg) ?>"
+                    data-agenda="<?= htmlspecialchars($submittedAgenda) ?>"
+                    data-justification="<?= htmlspecialchars($submittedJustification) ?>"
+                >
+                    <span class="crad-btn-send-icon"><i class="fas <?= $alreadySentToAdviser ? 'fa-check' : 'fa-paper-plane' ?>"></i></span>
+                    <span class="crad-btn-send-text"><?= $alreadySentToAdviser ? 'Document Packet Sent' : ($isResubmitMode ? 'Resubmit to Adviser' : 'Send to Adviser') ?></span>
+                </button>
+            </div>
+            <?php if ($alreadySentToAdviser): ?>
+                <div class="crad-document-packet-note" role="status">
+                    <i class="fas fa-paper-plane"></i>
+                    <div>
+                        <strong>Document Packet Sent</strong>
+                        <span>Current status: Document Packet Sent. This status is shown on your dashboard.</span>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php $resubmitRemarks = trim((string) (($resubmitSubmission['adviser_remarks'] ?? null) ?: ($existingSubmission['adviser_remarks'] ?? ''))); ?>
+            <?php if ($isResubmitMode && $resubmitRemarks !== ''): ?>
+                <div class="crad-returned-note">
+                    <strong><i class="fas fa-comment-dots"></i> Adviser remarks</strong>
+                    <span><?= htmlspecialchars($resubmitRemarks) ?></span>
+                </div>
+            <?php endif; ?>
         </div>
     <?php else: ?>
     <form class="crad-title-form" id="cradTitleForm" method="get" action="">
         <input type="hidden" name="process" value="submit-proposal" id="cradProcessField" disabled>
+        <?php if ($requestedResubmitId > 0): ?>
+            <input type="hidden" name="resubmit_title_approval" value="<?= (int) $requestedResubmitId ?>">
+        <?php endif; ?>
 
         <header class="crad-form-header">
             <div>
@@ -260,9 +500,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <h1>Submit Title Approval Form</h1>
                 <p>Register complete details for Bestlink CRD evaluation</p>
             </div>
-            <a class="crad-btn crad-btn-ghost" href="<?= BASE_URL ?>/modules/student-portal/pages/my-profile.php">
-                ← Cancel &amp; Exit
-            </a>
+
         </header>
 
         <nav class="crad-stepper" aria-label="Form steps">
@@ -704,9 +942,76 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     background: #111827;
 }
 .crad-print-actions {
-    width: 210mm; max-width: 100%; display: flex; justify-content: flex-end; gap: 0.75rem;
+    width: 210mm; max-width: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
     margin: 0 auto 1rem;
 }
+.crad-btn-print {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff; font-weight: 600; font-size: 0.9rem;
+    padding: 0.55rem 1.3rem; border-radius: 10px; border: none;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.35);
+    cursor: pointer; transition: opacity 0.15s;
+}
+.crad-btn-print:hover { opacity: 0.88; }
+
+/* Below-sheet button row */
+.crad-below-sheet {
+    width: 210mm; max-width: 100%; margin: 0 auto;
+    display: flex; justify-content: flex-end;
+    padding: 0.85rem 0 0;
+}
+.crad-returned-note {
+    width: 210mm; max-width: 100%; margin: .75rem auto 0;
+    padding: .8rem 1rem; border: 1px solid #fbbf24; border-radius: 10px;
+    background: #fffbeb; color: #78350f; font-size: .88rem;
+}
+.crad-returned-note strong {
+    display: flex; align-items: center; gap: .45rem; margin-bottom: .35rem;
+    font-weight: 800;
+}
+.crad-returned-note span { display: block; overflow-wrap: anywhere; }
+.crad-btn-send-adviser {
+    display: inline-flex; align-items: center; gap: 0.65rem;
+    padding: 0.7rem 1.5rem;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    color: #fff; font-weight: 700; font-size: 0.92rem;
+    border: none; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(22,163,74,0.45);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    white-space: nowrap; flex-shrink: 0;
+}
+.crad-btn-send-adviser:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(22,163,74,0.55);
+}
+.crad-btn-send-adviser:active { transform: translateY(0); }
+.crad-btn-send-adviser:disabled {
+    opacity: 0.6; cursor: not-allowed; transform: none;
+    box-shadow: none;
+}
+.crad-btn-send-adviser.is-sent {
+    background: linear-gradient(135deg, #0e7490 0%, #0c6380 100%);
+    box-shadow: 0 4px 18px rgba(14,116,144,0.4);
+    pointer-events: none;
+}
+.crad-btn-send-icon {
+    width: 2rem; height: 2rem; border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+}
+.crad-document-packet-note {
+    width: 210mm; max-width: 100%; margin: .75rem auto 0;
+    padding: .8rem 1rem; border: 1px solid #86efac; border-radius: 10px;
+    background: #f0fdf4; color: #14532d; font-size: .88rem;
+    display: flex; align-items: flex-start; gap: .65rem;
+}
+.crad-document-packet-note i { margin-top: .12rem; color: #16a34a; }
+.crad-document-packet-note strong {
+    display: block; margin-bottom: .2rem; font-weight: 800;
+}
+.crad-document-packet-note span { display: block; overflow-wrap: anywhere; }
 .crad-print-sheet {
     position: relative; width: 210mm; min-height: 297mm; max-width: 100%;
     margin: 0 auto 1.25rem; padding: 8mm 11mm 12mm;
@@ -728,10 +1033,11 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 }
 .print-bcp-logo-wrap {
     width: 15mm; height: 15mm; display: flex; align-items: center; justify-content: center;
-    overflow: hidden; border-radius: 50%; background: #fff;
+    overflow: visible; border-radius: 0; background: transparent;
 }
 .print-bcp-logo {
-    width: 30mm; max-width: none; height: auto; display: block; flex: 0 0 auto;
+    width: 12mm; max-width: 12mm; height: auto; display: block; flex: 0 0 auto;
+    border-radius: 0 !important; object-fit: contain; background: transparent;
 }
 .print-school-name { display: grid; gap: 0.5mm; font-size: 7pt; line-height: 1.2; }
 .print-school-name strong { font-size: 10pt; }
@@ -794,6 +1100,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     margin: 0;
     flex: 0 0 auto;
     grid-template-columns: 1.05fr 0.95fr;
+    align-items: start;
+}
+.print-approval-row > .print-choice-box:first-child {
+    align-self: start;
+    height: auto;
+    min-height: 0;
 }
 .print-signature-box { text-align: center; }
 .print-signature-box h2 { text-align: left; }
@@ -810,6 +1122,37 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 .print-signature-line::after {
     content: none !important;
     display: none !important;
+}
+/* Signature wrapper — line always shows, adviser sig image sits above it */
+.print-sig-wrap {
+    position: relative;
+    width: 82%;
+    max-width: 56mm;
+    height: 38pt;
+    margin: 3mm auto 0.8mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+.print-sig-wrap .print-signature-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+.print-adviser-sig-img {
+    position: absolute;
+    bottom: 2pt;
+    left: 0;
+    width: 100%;
+    height: 36pt;
+    object-fit: contain;
+    object-position: center bottom;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 .print-signature-box strong { font-size: 7pt; font-weight: 400; }
 .print-evaluator-box {
@@ -969,8 +1312,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 @media print {
     @page {
-        size: A4 portrait;
-        margin: 4mm 5mm;
+        size: letter portrait;
+        margin: 6mm;
     }
 
     html, body {
@@ -989,22 +1332,28 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         visibility: visible !important;
     }
 
-    .sms-page-loader,
-    .sms-sidebar,
-    .sms-navbar,
-    .sidebar-overlay,
-    .sidebar-toggle,
-    .breadcrumb,
-    nav[aria-label="breadcrumb"],
-    .crad-print-actions {
+    body:has(.crad-print-sheet) .sms-page-loader,
+    body:has(.crad-print-sheet) .sms-sidebar,
+    body:has(.crad-print-sheet) .sms-navbar,
+    body:has(.crad-print-sheet) .sidebar-overlay,
+    body:has(.crad-print-sheet) .sidebar-toggle,
+    body:has(.crad-print-sheet) .breadcrumb,
+    body:has(.crad-print-sheet) nav[aria-label="breadcrumb"],
+    body:has(.crad-print-sheet) .module-page-banner,
+    body:has(.crad-print-sheet) .sms-footer,
+    body:has(.crad-print-sheet) .crad-print-actions,
+    body:has(.crad-print-sheet) .crad-below-sheet,
+    body:has(.crad-print-sheet) .crad-returned-note,
+    body:has(.crad-print-sheet) .sms-main > :not(.student-portal),
+    body:has(.crad-print-sheet) .student-portal > :not(.crad-print-preview) {
         display: none !important;
     }
 
-    .sms-wrapper,
-    .sms-content,
-    .sms-main,
-    .student-portal,
-    .crad-title-form-wrap {
+    body:has(.crad-print-sheet) .sms-wrapper,
+    body:has(.crad-print-sheet) .sms-content,
+    body:has(.crad-print-sheet) .sms-main,
+    body:has(.crad-print-sheet) .student-portal,
+    body:has(.crad-print-sheet) .crad-title-form-wrap {
         display: block !important;
         width: 100% !important;
         max-width: none !important;
@@ -1016,7 +1365,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         overflow: visible !important;
     }
 
-    .crad-print-preview {
+    body:has(.crad-print-sheet) .crad-print-preview {
         display: block !important;
         position: static !important;
         width: 100% !important;
@@ -1028,57 +1377,144 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         box-shadow: none !important;
     }
 
-    .crad-print-sheet {
+    body:has(.crad-print-sheet) .crad-print-sheet {
         position: relative !important;
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
         max-width: none !important;
-        min-height: 289mm !important;
-        height: 289mm !important;
-        max-height: 289mm !important;
+        min-height: 267mm !important;
+        height: 267mm !important;
+        max-height: 267mm !important;
         margin: 0 !important;
-        padding: 3mm 3mm 9mm !important;
-        gap: 2mm !important;
+        padding: 4mm 5mm 8mm !important;
+        gap: 1.55mm !important;
         background: #fff !important;
         box-shadow: none !important;
         border-radius: 0 !important;
-        overflow: hidden !important;
-        page-break-after: always;
-        break-after: page;
+        overflow: visible !important;
+        page-break-after: auto;
+        break-after: auto;
         page-break-inside: avoid;
         break-inside: avoid;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    .crad-print-sheet:last-of-type {
+    body:has(.crad-print-sheet) .crad-print-sheet:last-of-type {
         page-break-after: auto;
         break-after: auto;
     }
 
-    .crad-print-sheet::before {
+    body:has(.crad-print-sheet) .crad-print-sheet::before {
         right: 0;
         top: 3mm;
     }
 
-    .print-page-footer {
-        position: absolute;
-        right: 3mm;
-        bottom: 2mm;
-        left: 3mm;
-        margin: 0;
+    body:has(.crad-print-sheet) .print-page-footer {
+        position: static !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        margin: auto 0 0 !important;
+        width: 100% !important;
     }
 
-    .print-choice-box h2,
-    .print-section h2,
-    .print-response-section h2,
-    .print-notes-box h2,
-    .print-table th,
-    .print-choice-box .is-selected,
-    .print-meta,
-    .print-form-code,
-    .print-response {
+    body:has(.crad-print-sheet) .print-document-header {
+        grid-template-columns: 14mm 1fr auto !important;
+        gap: 2.8mm !important;
+        padding-bottom: 1.8mm !important;
+    }
+
+    body:has(.crad-print-sheet) .print-bcp-logo-wrap {
+        width: 13mm !important;
+        height: 13mm !important;
+    }
+
+    body:has(.crad-print-sheet) .print-bcp-logo {
+        width: 11.5mm !important;
+        max-width: 11.5mm !important;
+    }
+
+    body:has(.crad-print-sheet) .print-school-name {
+        gap: 0.35mm !important;
+        font-size: 6.8pt !important;
+        line-height: 1.12 !important;
+    }
+
+    body:has(.crad-print-sheet) .print-school-name strong { font-size: 9pt !important; }
+    body:has(.crad-print-sheet) .print-school-name b { font-size: 7pt !important; }
+    body:has(.crad-print-sheet) .print-form-code { padding: 1.1mm 1.7mm !important; font-size: 6.8pt !important; }
+    body:has(.crad-print-sheet) .print-document-title { font-size: 14pt !important; margin-bottom: 1mm !important; }
+    body:has(.crad-print-sheet) .print-document-title::after { margin-top: 0.8mm !important; height: 0.65mm !important; }
+    body:has(.crad-print-sheet) .print-meta { padding: 1.7mm 2.4mm !important; font-size: 7.8pt !important; }
+    body:has(.crad-print-sheet) .print-meta span { min-width: 34mm !important; padding-bottom: 0.25mm !important; }
+    body:has(.crad-print-sheet) .print-section h2,
+    body:has(.crad-print-sheet) .print-response-section h2,
+    body:has(.crad-print-sheet) .print-choice-box h2 {
+        font-size: 7.6pt !important;
+        margin-bottom: 1mm !important;
+        padding: 0.95mm 1.6mm !important;
+    }
+    body:has(.crad-print-sheet) .print-table { font-size: 6.7pt !important; }
+    body:has(.crad-print-sheet) .print-table th,
+    body:has(.crad-print-sheet) .print-table td { padding: 0.78mm 1mm !important; }
+    body:has(.crad-print-sheet) .print-student-table td { height: 4.45mm !important; }
+    body:has(.crad-print-sheet) .print-two-column { gap: 2mm !important; align-items: start !important; flex: 0 0 auto !important; }
+    body:has(.crad-print-sheet) .print-choice-box { padding: 1.7mm !important; font-size: 6.8pt !important; }
+    body:has(.crad-print-sheet) .print-choice-box h2 { margin: -1.7mm -1.7mm 1mm !important; }
+    body:has(.crad-print-sheet) .print-choice-box > div { margin: 0.25mm 0 !important; padding: 0.28mm 0.65mm !important; line-height: 1.16 !important; }
+    body:has(.crad-print-sheet) .print-sdg-box > p { margin-bottom: 0.6mm !important; font-size: 6.2pt !important; }
+    body:has(.crad-print-sheet) .print-sdg-list { row-gap: 0 !important; }
+    body:has(.crad-print-sheet) .print-agenda-list { row-gap: 0 !important; }
+    body:has(.crad-print-sheet) .print-response {
+        min-height: 6.2mm !important;
+        padding: 1.45mm 2.5mm !important;
+        font-size: 8.8pt !important;
+    }
+    body:has(.crad-print-sheet) .print-response-small {
+        min-height: 7mm !important;
+        font-size: 7.2pt !important;
+    }
+    body:has(.crad-print-sheet) .print-approval-row {
+        grid-template-columns: 1.05fr 0.95fr !important;
+        align-items: start !important;
+    }
+    body:has(.crad-print-sheet) .print-approval-row > .print-choice-box:first-child {
+        align-self: start !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding-bottom: 1.5mm !important;
+    }
+    body:has(.crad-print-sheet) .print-approval-row > .print-choice-box:first-child .print-table {
+        margin-bottom: 0 !important;
+    }
+    body:has(.crad-print-sheet) .print-sig-wrap {
+        height: 25pt !important;
+        margin: 1.3mm auto 0.45mm !important;
+    }
+    body:has(.crad-print-sheet) .print-adviser-sig-img {
+        height: 24pt !important;
+    }
+    body:has(.crad-print-sheet) .print-approval-block {
+        gap: 0.15mm !important;
+        margin: 0.65mm 0 0.9mm !important;
+    }
+    body:has(.crad-print-sheet) .print-approver-name { font-size: 7.2pt !important; }
+    body:has(.crad-print-sheet) .print-approver-role { font-size: 6.3pt !important; }
+    body:has(.crad-print-sheet) .print-approval-divider { margin: 0.4mm auto 0.65mm !important; }
+    body:has(.crad-print-sheet) .print-received-block small { font-size: 6.2pt !important; margin-bottom: 0 !important; }
+    body:has(.crad-print-sheet) .print-page-footer { font-size: 6.4pt !important; padding-top: 0.7mm !important; }
+
+    body:has(.crad-print-sheet) .print-choice-box h2,
+    body:has(.crad-print-sheet) .print-section h2,
+    body:has(.crad-print-sheet) .print-response-section h2,
+    body:has(.crad-print-sheet) .print-notes-box h2,
+    body:has(.crad-print-sheet) .print-table th,
+    body:has(.crad-print-sheet) .print-choice-box .is-selected,
+    body:has(.crad-print-sheet) .print-meta,
+    body:has(.crad-print-sheet) .print-form-code,
+    body:has(.crad-print-sheet) .print-response {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -1381,6 +1817,109 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         var end = proposedTitle.selectionEnd;
         proposedTitle.value = proposedTitle.value.toUpperCase();
         proposedTitle.setSelectionRange(start, end);
+    });
+})();
+</script>
+
+<script>
+/* Send to Adviser — wires up the post-sheet button */
+(function () {
+    var btn = document.getElementById('sendToAdviserBtn');
+    if (!btn) return;
+
+    /* Create a notice element below the button */
+    var notice = document.createElement('div');
+    notice.id = 'sendAdviserNotice';
+    notice.style.cssText = [
+        'width:210mm', 'max-width:100%', 'margin:.6rem auto 0',
+        'padding:.7rem 1rem', 'border-radius:10px',
+        'font-size:.88rem', 'font-weight:700', 'display:none'
+    ].join(';');
+    btn.closest('.crad-below-sheet').insertAdjacentElement('afterend', notice);
+
+    function showNotice(msg, type) {
+        var isError = type === 'error';
+        notice.style.background   = isError ? '#fef2f2' : '#f0fdf4';
+        notice.style.color        = isError ? '#991b1b' : '#14532d';
+        notice.style.border       = '1px solid ' + (isError ? '#fecaca' : '#86efac');
+        notice.innerHTML = (isError ? '<i class="fas fa-exclamation-circle" style="margin-right:.4rem"></i>' : '<i class="fas fa-check-circle" style="margin-right:.4rem"></i>') + msg;
+        notice.style.display = 'block';
+    }
+
+    btn.addEventListener('click', function () {
+        if (btn.disabled || btn.classList.contains('is-sent')) return;
+
+        btn.disabled = true;
+        notice.style.display = 'none';
+        var icon = btn.querySelector('.crad-btn-send-icon i');
+        var text = btn.querySelector('.crad-btn-send-text');
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        if (text) text.textContent = 'Sending\u2026';
+
+        var payload = {
+            submission_id:    btn.dataset.submissionId || 0,
+            student_id:       btn.dataset.studentId,
+            student_user_id:  btn.dataset.studentUserId || null,
+            student_name:     btn.dataset.studentName,
+            adviser_name:     btn.dataset.adviser,
+            adviser_email:    btn.dataset.adviserEmail,
+            coordinator_name: btn.dataset.coordinator,
+            research_title:   btn.dataset.title,
+            department:       btn.dataset.dept,
+            submission_date:  btn.dataset.date,
+            discipline:       btn.dataset.discipline,
+            primary_sdg:      btn.dataset.sdg,
+            research_agenda:  btn.dataset.agenda,
+            justification:    btn.dataset.justification,
+            members:          btn.dataset.members
+        };
+
+        fetch('<?= BASE_URL ?>/modules/crad/api/send-to-adviser.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            /* Adviser has no account */
+            if (!data.ok && data.no_account) {
+                btn.disabled = false;
+                if (icon) icon.className = 'fas fa-paper-plane';
+                if (text) text.textContent = 'Send to Adviser';
+                showNotice('The message cannot be sent because the adviser does not have an account.', 'error');
+                return;
+            }
+            if (!data.ok) throw new Error(data.message || 'Server error');
+
+            /* Already sent */
+            if (data.already_sent) {
+                btn.classList.add('is-sent');
+                if (icon) icon.className = 'fas fa-check';
+                if (text) text.textContent = 'Document Packet Sent';
+                showNotice('<strong>Document Packet Sent</strong><br>Current status: Document Packet Sent. This status is shown on your dashboard.', 'success');
+                return;
+            }
+
+            /* Success */
+            btn.classList.add('is-sent');
+            if (icon) icon.className = 'fas fa-check';
+            if (text) text.textContent = 'Document Packet Sent';
+            showNotice('<strong>Document Packet Sent</strong><br>Current status: Document Packet Sent. This status is shown on your dashboard.', 'success');
+
+            /* Replace the URL so refresh / back still shows the submitted view
+               (PHP will load the data from title_approvals — no GET params needed) */
+            try {
+                var cleanUrl = window.location.pathname + '?process=submit-proposal';
+                history.replaceState(null, '', cleanUrl);
+            } catch (e) { /* ignore */ }
+        })
+        .catch(function (err) {
+            btn.disabled = false;
+            if (icon) icon.className = 'fas fa-paper-plane';
+            if (text) text.textContent = 'Send to Adviser';
+            showNotice('Could not send: ' + err.message, 'error');
+        });
     });
 })();
 </script>

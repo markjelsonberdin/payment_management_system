@@ -17,6 +17,19 @@ if (!defined('APP_VERSION')) {
     define('APP_VERSION', '1.0.0');
 }
 
+/**
+ * Helper to fetch environment variables
+ */
+if (!function_exists('sms2_env')) {
+    function sms2_env($key, $default = null) {
+        if (array_key_exists($key, $_ENV)) return $_ENV[$key];
+        if (array_key_exists($key, $_SERVER)) return $_SERVER[$key];
+        $val = getenv($key);
+        if ($val !== false) return $val;
+        return $default;
+    }
+}
+
 // Adjust if deployed under a different folder name
 if (!defined('BASE_URL')) {
     define('BASE_URL', '/SMS2_system');

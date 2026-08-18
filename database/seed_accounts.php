@@ -17,14 +17,47 @@ require_once ROOT_PATH . '/config/database.php';
 
 $pdo = getDatabaseConnection();
 
+echo "Ensuring roles..." . PHP_EOL;
+
+$roles = [
+    ['superadmin', 'Super Admin', 'Full system access'],
+    ['admin', 'Super Admin', 'Legacy super admin access'],
+    ['admission', 'Admission', 'Admission office access'],
+    ['registrar', 'Registrar', 'Enrollment, records, scheduling'],
+    ['finance', 'Finance', 'Payments and receivables'],
+    ['hr', 'Dean', 'Dean and faculty processes'],
+    ['it_office', 'IT Office', 'LMS and IT modules'],
+    ['osa', 'OSA', 'Student affairs / co-curricular'],
+    ['qa', 'QA Office', 'Accreditation and quality'],
+    ['crad_officer', 'CRAD Officer', 'Research and development'],
+    ['research_coordinator', 'Research Coordinator', 'Research coordination access'],
+    ['research_director', 'Research Director', 'Research defense scheduling director account'],
+    ['grammarian', 'Grammarian', 'Research grammar and manuscript evaluation account'],
+    ['panel', 'Panel Member', 'Research defense panel account'],
+    ['student', 'Student', 'Student portal only'],
+];
+
+$insRole = $pdo->prepare(
+    'INSERT INTO roles (role_key, label, description) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description)'
+);
+foreach ($roles as $role) {
+    $insRole->execute($role);
+}
+
 echo "Updating role permissions…" . PHP_EOL;
 
 $pdo->exec('DELETE FROM role_permissions');
 
 $perms = [
-    // admin = full access in code (no rows required)
-    'registrar'    => ['enrollment', 'registrar', 'curriculum', 'scheduling'],
+    'superadmin'   => ['user-management', 'student_portal'],
+    'admission'    => ['enrollment'],
+    'registrar'    => ['registrar', 'curriculum', 'scheduling'],
     'crad_officer' => ['crad'],
+    'research_coordinator' => ['crad'],
+    'research_director' => ['faculty'],
+    'grammarian'   => ['faculty'],
+    'panel'        => ['faculty'],
     'finance'      => ['payment'],
     'osa'          => ['cocurricular'],
     'it_office'    => ['lms'],
@@ -51,7 +84,15 @@ $accounts = [
         'email' => 'superadmin@bestlink.edu.ph',
         'password' => '@superadmin123',
         'full_name' => 'Super Admin',
-        'role_key' => 'admin',
+        'role_key' => 'superadmin',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'admission',
+        'email' => 'admission@bestlink.edu.ph',
+        'password' => '@admission123',
+        'full_name' => 'Admission',
+        'role_key' => 'admission',
         'student_id' => null,
     ],
     [
@@ -68,6 +109,54 @@ $accounts = [
         'password' => '@cradofficer123',
         'full_name' => 'CRAD Officer',
         'role_key' => 'crad_officer',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'researchcoordinator',
+        'email' => 'researchcoordinator@bestlink.edu.ph',
+        'password' => '@research123',
+        'full_name' => 'Mrs. Kris Guevarra',
+        'role_key' => 'research_coordinator',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'researchdirector',
+        'email' => 'research.director@bestlink.edu.ph',
+        'password' => '@faculty123',
+        'full_name' => 'Research Director',
+        'role_key' => 'research_director',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'grammarian',
+        'email' => 'grammarian@bestlink.edu.ph',
+        'password' => '@grammarian123',
+        'full_name' => 'Grammarian',
+        'role_key' => 'grammarian',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'jobert.valentino',
+        'email' => 'jobert.valentino@bestlink.edu.ph',
+        'password' => '@panel123',
+        'full_name' => 'Dr. Jobert Valentino',
+        'role_key' => 'panel',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'jonathan.estrada',
+        'email' => 'jonathan.estrada@bestlink.edu.ph',
+        'password' => '@panel123',
+        'full_name' => 'Dr. Jonathan Estrada',
+        'role_key' => 'panel',
+        'student_id' => null,
+    ],
+    [
+        'username' => 'michelle.guevarra',
+        'email' => 'michelle.guevarra@bestlink.edu.ph',
+        'password' => '@panel123',
+        'full_name' => 'Dr. Michelle Guevarra',
+        'role_key' => 'panel',
         'student_id' => null,
     ],
     [
@@ -103,10 +192,10 @@ $accounts = [
         'student_id' => null,
     ],
     [
-        'username' => 'hr',
-        'email' => 'hr@bestlink.edu.ph',
-        'password' => '@hr123',
-        'full_name' => 'HR',
+        'username' => 'dean',
+        'email' => 'dean@bestlink.edu.ph',
+        'password' => '@dean123',
+        'full_name' => 'Dean',
         'role_key' => 'hr',
         'student_id' => null,
     ],

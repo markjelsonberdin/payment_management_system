@@ -14,7 +14,7 @@ require_once ROOT_PATH . '/includes/security.php';
 
 header('Content-Type: application/json');
 
-if (!isAuthenticated() || getCurrentUserRoleKey() !== 'admin') {
+if (!isAuthenticated() || !userCanAccessModule('user-management')) {
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'Forbidden']);
     exit;
@@ -48,22 +48,28 @@ if (!$pdo) {
     exit;
 }
 
-$validRoles   = ['registrar', 'finance', 'hr', 'it_office', 'osa', 'qa', 'crad', 'student'];
+$validRoles   = ['superadmin', 'sms_admin', 'admission', 'registrar', 'finance', 'hr', 'adviser', 'research_director', 'grammarian', 'it_office', 'osa', 'qa', 'crad', 'research_coordinator', 'research_grant', 'student'];
 $validModules = [
     'enrollment', 'registrar', 'curriculum', 'accreditation',
     'payment', 'faculty', 'scheduling', 'cocurricular', 'lms', 'crad',
-    'reports-analytics', 'student_portal',
 ];
 
 $defaults = [
-    'registrar'    => ['enrollment', 'registrar', 'curriculum', 'scheduling'],
+    'superadmin'   => ['user-management', 'student_portal'],
+    'sms_admin'    => ['enrollment', 'registrar', 'curriculum', 'accreditation', 'payment', 'faculty', 'scheduling', 'cocurricular', 'lms', 'crad'],
+    'admission'    => ['enrollment'],
+    'registrar'    => ['registrar', 'curriculum', 'scheduling'],
     'finance'      => ['payment'],
     'hr'           => ['faculty'],
+    'adviser'      => ['faculty'],
+    'research_director' => ['faculty'],
+    'grammarian'   => ['faculty'],
     'it_office'    => ['lms'],
     'osa'          => ['cocurricular'],
     'qa'           => ['accreditation'],
     'crad_officer' => ['crad'],
-    'student'      => ['student_portal'],
+    'research_coordinator' => ['crad'],
+    'research_grant' => ['crad_grant'],
 ];
 
 try {
@@ -88,8 +94,18 @@ try {
         exit;
     }
 
-    if ($role === 'admin' || $module === 'user-management') {
+    if ($module === 'user-management' && $role === 'superadmin' && !$granted) {
         echo json_encode(['ok' => false, 'error' => 'This permission is locked']);
+        exit;
+    }
+
+    if ($module === 'student_portal' && !in_array($role, ['superadmin', 'student'], true)) {
+        echo json_encode(['ok' => false, 'error' => 'Student Portal is locked to Super Admin and Student only']);
+        exit;
+    }
+
+    if ($role === 'student' && ($module !== 'student_portal' || !$granted)) {
+        echo json_encode(['ok' => false, 'error' => 'Student role is locked to Student Portal only']);
         exit;
     }
 

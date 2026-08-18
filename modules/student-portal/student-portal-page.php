@@ -6,9 +6,77 @@ $studentPortalPage = $studentPortalPage ?? 'my-profile';
 
 require_once __DIR__ . '/../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
+require_once ROOT_PATH . '/modules/crad/config/config.php';
 require_once __DIR__ . '/../../includes/breadcrumbs.php';
 
 $studentId = $_SESSION['student_id'] ?? 'S230000001';
+
+$latestTitleApproval = null;
+$researchCurrentStatus = 'Not Started';
+$researchCurrentTitle = 'No title approval sent yet';
+$researchCurrentUpdated = '';
+$researchCurrentAdviser = '';
+$researchCurrentProgress = 0;
+
+try {
+    $cradPdo = getCradDatabaseConnection();
+    $titleStmt = $cradPdo->prepare(
+        "SELECT proposed_title, status, adviser_name, coordinator_status, crad_status,
+                sent_at, reviewed_at, coordinator_reviewed_at, crad_reviewed_at, updated_at
+         FROM title_approvals
+         WHERE student_id = :student_id
+         ORDER BY id DESC
+         LIMIT 1"
+    );
+    $titleStmt->execute([':student_id' => $studentId]);
+    $latestTitleApproval = $titleStmt->fetch() ?: null;
+} catch (Throwable $e) {
+    error_log('Student dashboard title approval status load failed: ' . $e->getMessage());
+}
+
+if ($latestTitleApproval) {
+    $titleStatus = (string) ($latestTitleApproval['status'] ?? '');
+    $coordinatorStatus = (string) ($latestTitleApproval['coordinator_status'] ?? '');
+    $cradStatus = (string) ($latestTitleApproval['crad_status'] ?? '');
+
+    if (strcasecmp($titleStatus, 'Returned') === 0 || strcasecmp($coordinatorStatus, 'Returned') === 0 || strcasecmp($cradStatus, 'Returned') === 0) {
+        $researchCurrentStatus = 'Returned';
+    } elseif (strcasecmp($cradStatus, 'Approved') === 0) {
+        $researchCurrentStatus = 'CRAD Approved';
+    } elseif (strcasecmp($coordinatorStatus, 'Approved') === 0) {
+        $researchCurrentStatus = 'Coordinator Approved';
+    } elseif (strcasecmp($titleStatus, 'Approved') === 0) {
+        $researchCurrentStatus = 'Adviser Approved';
+    } elseif (strcasecmp($titleStatus, 'Pending') === 0 || !empty($latestTitleApproval['sent_at'])) {
+        $researchCurrentStatus = 'Document Packet Sent';
+    }
+
+    $researchCurrentTitle = trim((string) ($latestTitleApproval['proposed_title'] ?? '')) ?: 'Research title approval';
+    $researchCurrentAdviser = trim((string) ($latestTitleApproval['adviser_name'] ?? ''));
+    $statusTimeRaw = (string) (
+        $latestTitleApproval['crad_reviewed_at']
+        ?: $latestTitleApproval['coordinator_reviewed_at']
+        ?: $latestTitleApproval['reviewed_at']
+        ?: $latestTitleApproval['sent_at']
+        ?: $latestTitleApproval['updated_at']
+        ?: ''
+    );
+    $statusTime = $statusTimeRaw !== '' ? strtotime($statusTimeRaw) : false;
+    $researchCurrentUpdated = $statusTime ? date('F j, Y h:i A', $statusTime) : '';
+}
+
+if (($_GET['ajax'] ?? '') === 'research-status') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'ok' => true,
+        'title' => $researchCurrentTitle,
+        'status' => $researchCurrentStatus,
+        'adviser' => $researchCurrentAdviser !== '' ? $researchCurrentAdviser : 'For assignment',
+        'updated_at' => $researchCurrentUpdated !== '' ? $researchCurrentUpdated : 'No activity yet',
+        'progress' => $researchCurrentProgress,
+    ]);
+    exit;
+}
 
 // ── Research Forum payment check ─────────────────────────────────────────────
 // In production, query your payments table. Here we check against the
@@ -34,8 +102,9 @@ $studentProfile = [
     'name' => 'Juan Dela Cruz',
     'student_id' => $studentId,
     'program' => 'Bachelor of Science in Information Technology',
-    'year_level' => '2nd Year',
-    'section' => 'BSIT 2A',
+    'year_level' => '4th Year',
+    'section' => 'BSIT 4A',
+    'semester' => '1st Semester',
     'status' => 'Enrolled',
     'email' => 's230000001@bcp.edu.ph',
     'mobile' => '0917 000 0001',
@@ -44,6 +113,11 @@ $studentProfile = [
 ];
 
 $studentPages = [
+    'dashboard' => [
+        'title' => 'Dashboard',
+        'icon' => 'fa-tachometer-alt',
+        'description' => 'View your enrollment, academic, finance, and research overview.',
+    ],
     'my-profile' => [
         'title' => 'My Profile',
         'icon' => 'fa-user',
@@ -92,7 +166,7 @@ $studentPages = [
 ];
 
 if (!isset($studentPages[$studentPortalPage])) {
-    $studentPortalPage = 'my-profile';
+    $studentPortalPage = 'dashboard';
 }
 
 $pageMeta = $studentPages[$studentPortalPage];
@@ -118,9 +192,11 @@ $pageTitle = $pageMeta['title'];
 $activeModule = 'student_portal';
 $activePage = $studentPortalPage;
 $breadcrumbs = [
-    ['label' => 'Student Portal', 'url' => BASE_URL . '/modules/student-portal/pages/my-profile.php'],
+    ['label' => 'Student Portal', 'url' => BASE_URL . '/modules/student-portal/pages/dashboard.php'],
     ['label' => $pageMeta['title'], 'url' => null],
 ];
+$pageBannerIcon = $pageMeta['icon'];
+$pageBannerDescription = $pageMeta['description'];
 
 require_once __DIR__ . '/../../includes/layout-start.php';
 ?>
@@ -128,18 +204,6 @@ require_once __DIR__ . '/../../includes/layout-start.php';
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
 <div class="student-portal">
-    <div class="page-header student-portal-header">
-        <div>
-            <span class="student-kicker">Student Portal</span>
-            <h1><i class="fas <?= htmlspecialchars($pageMeta['icon']) ?> text-sms-primary me-2"></i><?= htmlspecialchars($pageMeta['title']) ?></h1>
-            <p><?= htmlspecialchars($pageMeta['description']) ?></p>
-        </div>
-        <div class="student-term-badge">
-            <i class="fas fa-calendar-check"></i>
-            <span>SY 2026-2027</span>
-        </div>
-    </div>
-
     <?php if ($processMessage !== ''): ?>
         <div class="alert alert-success student-process-alert" role="alert">
             <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($processMessage) ?>
@@ -152,7 +216,77 @@ require_once __DIR__ . '/../../includes/layout-start.php';
         </div>
     <?php endif; ?>
 
-    <?php if ($studentPortalPage === 'my-profile'): ?>
+    <?php if ($studentPortalPage === 'dashboard'): ?>
+        <div class="row g-3 mb-3 dashboard-stats">
+            <div class="col-md-3">
+                <section class="card stat-card primary">
+                    <div class="card-body">
+                        <h6 class="text-muted">Enrollment Status</h6>
+                        <h4 class="fw-bold mb-0">Enrolled</h4>
+                    </div>
+                </section>
+            </div>
+            <div class="col-md-3">
+                <section class="card stat-card success">
+                    <div class="card-body">
+                        <h6 class="text-muted">Current GWA</h6>
+                        <h4 class="fw-bold mb-0">1.75</h4>
+                    </div>
+                </section>
+            </div>
+            <div class="col-md-3">
+                <section class="card stat-card warning">
+                    <div class="card-body">
+                        <h6 class="text-muted">Balance</h6>
+                        <h4 class="fw-bold mb-0">PHP 8,450.00</h4>
+                    </div>
+                </section>
+            </div>
+            <div class="col-md-3">
+                <section class="card stat-card info">
+                    <div class="card-body">
+                        <h6 class="text-muted">Current Status</h6>
+                        <h4 class="fw-bold mb-0 fs-6"><?= htmlspecialchars($researchCurrentStatus) ?></h4>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <section class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold mb-3">Today at a Glance</h5>
+                        <div class="student-list">
+                            <div><strong>Web Systems and Technologies</strong><span>8:00 AM - 9:30 AM · Lab 204</span><small>Prof. Maria Santos</small></div>
+                            <div><strong>Database Management</strong><span>10:00 AM - 11:30 AM · Room 302</span><small>Prof. Carlo Reyes</small></div>
+                            <div><strong>Systems Analysis and Design</strong><span>1:00 PM - 4:00 PM · Room 210</span><small>Hybrid session</small></div>
+                        </div>
+                        <div class="student-process-bar">
+                            <a class="btn btn-sms-primary" href="<?= BASE_URL ?>/modules/student-portal/pages/class-schedule.php"><i class="fas fa-calendar-alt me-2"></i>View Schedule</a>
+                            <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/student-portal/pages/grades-portal.php"><i class="fas fa-star-half-alt me-2"></i>Check Grades</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="col-lg-5">
+                <section class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold mb-3">Quick Actions</h5>
+                        <div class="student-process-steps">
+                            <div><span>1</span><strong>Submit research proposal</strong><p>Prepare your title proposal for CRAD review.</p></div>
+                            <div><span>2</span><strong>Upload required documents</strong><p>Research Forum payment unlocks document submission.</p></div>
+                            <div><span>3</span><strong>Monitor records</strong><p>Review balance, receipts, and academic standing.</p></div>
+                        </div>
+                        <div class="student-process-bar">
+                            <a class="btn btn-sms-primary" href="<?= BASE_URL ?>/modules/student-portal/pages/research-proposal-submission.php"><i class="fas fa-flask me-2"></i>Research Proposal</a>
+                            <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/student-portal/pages/account-balance.php"><i class="fas fa-wallet me-2"></i>Account Balance</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    <?php elseif ($studentPortalPage === 'my-profile'): ?>
         <div class="row g-3">
             <div class="col-lg-4">
                 <section class="card student-profile-card h-100">
@@ -174,6 +308,7 @@ require_once __DIR__ . '/../../includes/layout-start.php';
                             <div><span>Student ID</span><strong><?= htmlspecialchars($studentProfile['student_id']) ?></strong></div>
                             <div><span>Program</span><strong><?= htmlspecialchars($studentProfile['program']) ?></strong></div>
                             <div><span>Year Level</span><strong><?= htmlspecialchars($studentProfile['year_level']) ?></strong></div>
+                            <div><span>Semester</span><strong><?= htmlspecialchars($studentProfile['semester']) ?></strong></div>
                             <div><span>Section</span><strong><?= htmlspecialchars($studentProfile['section']) ?></strong></div>
                             <div><span>Email</span><strong><?= htmlspecialchars($studentProfile['email']) ?></strong></div>
                             <div><span>Mobile</span><strong><?= htmlspecialchars($studentProfile['mobile']) ?></strong></div>
@@ -221,6 +356,37 @@ require_once __DIR__ . '/../../includes/layout-start.php';
                 </section>
             </div>
         </div>
+    <?php elseif ($studentPortalPage === 'account-balance'): ?>
+        <div class="row g-3 mb-3 dashboard-stats">
+            <div class="col-md-4">
+                <section class="card stat-card warning"><div class="card-body"><h6 class="text-muted">Total Assessment</h6><h4 class="fw-bold mb-0">PHP 24,950.00</h4></div></section>
+            </div>
+            <div class="col-md-4">
+                <section class="card stat-card success"><div class="card-body"><h6 class="text-muted">Total Paid</h6><h4 class="fw-bold mb-0">PHP 16,500.00</h4></div></section>
+            </div>
+            <div class="col-md-4">
+                <section class="card stat-card primary"><div class="card-body"><h6 class="text-muted">Balance</h6><h4 class="fw-bold mb-0">PHP 8,450.00</h4></div></section>
+            </div>
+        </div>
+        <section class="card">
+            <div class="card-body">
+                <h5 class="card-title fw-semibold mb-3">Assessment Breakdown</h5>
+                <div class="table-responsive">
+                    <table class="table student-table align-middle mb-0">
+                        <thead><tr><th>Fee</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <tr><td>Tuition Fee</td><td class="text-end">PHP 18,000.00</td><td><span class="badge text-bg-warning">Partial</span></td></tr>
+                            <tr><td>Miscellaneous Fee</td><td class="text-end">PHP 4,450.00</td><td><span class="badge text-bg-warning">Partial</span></td></tr>
+                            <tr><td>Laboratory Fee</td><td class="text-end">PHP 2,500.00</td><td><span class="badge text-bg-success">Paid</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="student-process-bar">
+                    <a class="btn btn-sms-primary" href="?process=pay-now"><i class="fas fa-credit-card me-2"></i>Proceed to Payment</a>
+                    <a class="btn btn-outline-primary" href="?process=soa"><i class="fas fa-file-invoice me-2"></i>Request Statement of Account</a>
+                </div>
+            </div>
+        </section>
     <?php elseif ($studentPortalPage === 'class-schedule'): ?>
         <section class="card">
             <div class="card-body">

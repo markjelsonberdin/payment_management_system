@@ -6,9 +6,10 @@
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../config/config.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
+require_once ROOT_PATH . '/includes/security.php';
 
 $ref    = trim($_GET['ref'] ?? '');
-$action = $_GET['action'] ?? '';
+$action = $_POST['action'] ?? ($_GET['action'] ?? '');
 
 // ── Fetch from crad_db ────────────────────────────────────────────────────────
 $proposal  = null;
@@ -132,16 +133,84 @@ if (!$proposal) {
 
 // Handle action feedback
 $actionDone = '';
+$reviewError = '';
+
+function prvApprovalValidationErrors(array $documents): array
+{
+    $errors = [];
+    $rawVerdicts = (string) ($_POST['doc_verdicts_json'] ?? '');
+    $verdicts = json_decode($rawVerdicts, true);
+
+    if (!is_array($verdicts)) {
+        $verdicts = [];
+    }
+
+    foreach ($documents as $doc) {
+        $title = (string) ($doc['title'] ?? 'Document');
+        $key = (string) ($doc['key'] ?? '');
+        $hasFile = !empty($doc['stored_name']);
+        $isRequired = !empty($doc['required']);
+        $verdict = strtolower(trim((string) ($verdicts[$key] ?? '')));
+
+        if ($isRequired && !$hasFile) {
+            $errors[] = $title . ' is required but has no uploaded file.';
+            continue;
+        }
+
+        if ($hasFile && !in_array($verdict, ['correct', 'wrong'], true)) {
+            $errors[] = 'Please mark ' . $title . ' as Correct or Wrong.';
+            continue;
+        }
+
+        if ($hasFile && $verdict === 'wrong') {
+            $errors[] = $title . ' is marked Wrong. Return the proposal for revision before approval.';
+        }
+    }
+
+    if (empty($_POST['approval_declaration'])) {
+        $errors[] = 'Please check the final certification before approval.';
+    }
+
+    $signatureData = trim((string) ($_POST['approval_signature_data'] ?? ''));
+    if ($signatureData === '' || strlen($signatureData) < 200) {
+        $errors[] = 'Please complete the signature pad before approval.';
+    }
+
+    return $errors;
+}
 
 if (in_array($action, ['approve', 'return', 'save_progress'], true) && $proposal) {
     try {
         $cradPdo = getCradDatabaseConnection();
 
         if ($action === 'approve') {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new RuntimeException('Invalid approval request. Please use the Approve Proposal button.');
+            }
+
+            $approvalErrors = prvApprovalValidationErrors($documents);
+            if ($approvalErrors) {
+                throw new RuntimeException('Please complete the missing review requirements before approval: ' . implode(' ', $approvalErrors));
+            }
+
             // Approve: set progress = 100, status = 'Approved'
+            $columns = [
+                'approved_at' => "ALTER TABLE research_proposals ADD approved_at DATETIME NULL AFTER progress",
+                'registration_status' => "ALTER TABLE research_proposals ADD registration_status ENUM('Pending','Registered') NOT NULL DEFAULT 'Pending' AFTER approved_at",
+            ];
+            foreach ($columns as $column => $sql) {
+                $exists = $cradPdo->query("SHOW COLUMNS FROM research_proposals LIKE " . $cradPdo->quote($column))->fetch();
+                if (!$exists) {
+                    $cradPdo->exec($sql);
+                }
+            }
+
             $upd = $cradPdo->prepare(
                 "UPDATE research_proposals
-                 SET status = 'Approved', progress = 100, updated_at = NOW()
+                 SET status = 'Approved',
+                     progress = 100,
+                     approved_at = COALESCE(approved_at, NOW()),
+                     updated_at = NOW()
                  WHERE ref_code = :ref LIMIT 1"
             );
             $upd->execute([':ref' => $ref]);
@@ -161,29 +230,43 @@ if (in_array($action, ['approve', 'return', 'save_progress'], true) && $proposal
             $actionDone = 'approved';
 
         } elseif ($action === 'return') {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new RuntimeException('Invalid return request. Please use the Return Proposal button.');
+            }
+
+            $returnRemarks = trim((string) ($_POST['return_remarks'] ?? $proposal['remarks']));
+            if ($returnRemarks === '') {
+                throw new RuntimeException('Please add CRAD remarks before returning the proposal.');
+            }
+
             // Return: status = 'Returned', keep progress as-is
             $upd = $cradPdo->prepare(
                 "UPDATE research_proposals
-                 SET status = 'Returned', updated_at = NOW()
+                 SET status = 'Returned', notes = :notes, updated_at = NOW()
                  WHERE ref_code = :ref LIMIT 1"
             );
-            $upd->execute([':ref' => $ref]);
+            $upd->execute([':notes' => $returnRemarks, ':ref' => $ref]);
 
             // Audit log
             $log = $cradPdo->prepare(
                 "INSERT INTO proposal_status_logs
                     (proposal_id, old_status, new_status, changed_by, remarks)
                  VALUES
-                    (:pid, :old, 'Returned', NULL, 'CRAD Officer returned proposal for revision')"
+                    (:pid, :old, 'Returned', NULL, :remarks)"
             );
-            $log->execute([':pid' => $proposal['proposal_id'], ':old' => $proposal['status']]);
+            $log->execute([
+                ':pid' => $proposal['proposal_id'],
+                ':old' => $proposal['status'],
+                ':remarks' => $returnRemarks,
+            ]);
 
             $proposal['status']     = 'Returned';
             $proposal['status_cls'] = 'pst-badge--returned';
+            $proposal['remarks']    = $returnRemarks;
             $actionDone = 'returned';
 
         } elseif ($action === 'save_progress') {
-            // Save progress from document verdict marking (Back to Pipeline)
+            // Save progress from document verdict marking.
             // Correct count sent as GET param; max allowed via this path is 85%
             // (100% is reserved for explicit Approve)
             $correctCount = max(0, (int) ($_GET['correct'] ?? 0));
@@ -215,12 +298,28 @@ if (in_array($action, ['approve', 'return', 'save_progress'], true) && $proposal
                     ':note' => "Progress updated to {$newProgress}% after document review ({$correctCount}/{$totalDocs} correct)",
                 ]);
             }
+
+            $isAsyncProgressSave =
+                ($_GET['ajax'] ?? '') === '1'
+                || strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+
+            if ($isAsyncProgressSave) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'ok' => true,
+                    'progress' => $newProgress,
+                    'status' => statusFromProgress($newProgress, $proposal['status']),
+                ]);
+                exit;
+            }
+
             // Redirect to pipeline after saving
             header('Location: ' . BASE_URL . '/modules/crad/pages/proposal-submission-tracking.php');
             exit;
         }
     } catch (Throwable $e) {
         error_log('CRAD action error: ' . $e->getMessage());
+        $reviewError = $e->getMessage();
     }
 }
 
@@ -511,6 +610,73 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     border-top: 1px solid var(--doc-line);
 }
 .prv-footer-right { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+
+/* Confirmation modal */
+.prv-modal-backdrop {
+    position: fixed; inset: 0; z-index: 3000;
+    display: none; align-items: center; justify-content: center;
+    padding: 1.25rem;
+    background: rgba(2,6,23,0.72);
+    backdrop-filter: blur(8px);
+}
+.prv-modal-backdrop.is-open { display: flex; }
+.prv-modal {
+    width: min(460px, 100%);
+    overflow: hidden;
+    border: 1px solid rgba(167,139,250,0.28);
+    border-radius: 18px;
+    background: #111827;
+    color: #f8fafc;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+}
+.prv-modal-head {
+    display: flex; align-items: flex-start; gap: 0.85rem;
+    padding: 1.25rem 1.3rem 0.8rem;
+}
+.prv-modal-icon {
+    width: 42px; height: 42px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(16,185,129,0.14);
+    color: #6ee7b7;
+    font-size: 1rem;
+}
+.prv-modal-icon.return {
+    background: rgba(239,68,68,0.14);
+    color: #fca5a5;
+}
+.prv-modal-title { margin: 0; font-size: 1rem; font-weight: 850; color: #fff; }
+.prv-modal-text { margin: 0.35rem 0 0; color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; }
+.prv-modal-body {
+    margin: 0 1.3rem 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: rgba(15,23,42,0.7);
+}
+.prv-modal-body span {
+    display: block; color: #94a3b8; font-size: 0.68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.prv-modal-body strong {
+    display: block; margin-top: 0.22rem; color: #ede9fe; font-size: 0.9rem; line-height: 1.35;
+}
+.prv-modal-actions {
+    display: flex; justify-content: flex-end; gap: 0.65rem;
+    padding: 1rem 1.3rem 1.25rem;
+    border-top: 1px solid rgba(148,163,184,0.16);
+    background: rgba(15,23,42,0.52);
+}
+.prv-modal-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    min-height: 40px; padding: 0.55rem 1rem;
+    border-radius: 10px; border: 1px solid transparent;
+    font-size: 0.84rem; font-weight: 800;
+    cursor: pointer; text-decoration: none;
+}
+.prv-modal-cancel { color: #e2e8f0; background: rgba(255,255,255,0.06); border-color: rgba(226,232,240,0.2); }
+.prv-modal-confirm { color: #fff; background: linear-gradient(135deg, #059669, #10b981); }
+.prv-modal-confirm.return { background: linear-gradient(135deg, #dc2626, #ef4444); }
 </style>
 
 <!-- Light mode overrides -->
@@ -603,6 +769,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             Proposal <strong><?= $ref ?></strong> has been <strong>Returned</strong> to the lead researcher.
         </div>
     <?php endif; ?>
+    <?php if ($reviewError !== ''): ?>
+        <div class="prv-alert danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <?= htmlspecialchars($reviewError) ?>
+        </div>
+    <?php endif; ?>
+    <div class="prv-alert danger" id="prvReviewGuardAlert" role="alert" style="display:none;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="prvReviewGuardText">Please complete the missing review requirements before approval.</span>
+    </div>
 
     <div class="prv-form">
 
@@ -617,11 +793,6 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     &nbsp;&nbsp;
                     <span class="pst-badge <?= htmlspecialchars($proposal['status_cls']) ?>"><?= htmlspecialchars($proposal['status']) ?></span>
                 </p>
-            </div>
-            <div class="prv-header-actions">
-                <a class="prv-btn prv-btn-ghost" id="prvBackBtnHeader" href="<?= BASE_URL ?>/modules/crad/pages/proposal-submission-tracking.php">
-                    ← Back to Pipeline
-                </a>
             </div>
         </header>
 
@@ -773,7 +944,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <section class="prv-section">
             <h2><span></span>Final Declaration &amp; Representative Signature</h2>
             <label class="prv-check">
-                <input type="checkbox" id="prvDeclarationCheck" name="declaration" value="1">
+                <input type="checkbox" id="prvDeclarationCheck" name="declaration" value="1" required>
                 <span>We certify that the information provided is true and correct. We further certify that all uploaded documents are authentic, complete, and submitted on behalf of all members of the research group.</span>
             </label>
             <div class="prv-sig-row">
@@ -809,54 +980,305 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             </div>
         </section>
 
-        <!-- ── Footer Actions ── -->
+        <!-- Footer Actions -->
         <footer class="prv-footer">
-            <a class="prv-btn prv-btn-ghost"
-               id="prvBackBtn"
-               href="<?= BASE_URL ?>/modules/crad/pages/proposal-submission-tracking.php">
-                ← Back to Pipeline
-            </a>
             <div class="prv-footer-right">
                 <a class="prv-btn prv-btn-return"
-                   href="?ref=<?= urlencode($ref) ?>&action=return"
-                   onclick="return confirm('Return this proposal to the lead researcher?')">
+                   href="#"
+                   data-prv-confirm="return"
+                   data-submit-form="prvReturnForm"
+                   data-title="Return Proposal"
+                   data-message="Return this proposal to the lead researcher for revision?"
+                   data-confirm-label="Return Proposal">
                     <i class="fas fa-undo"></i> Return Proposal
                 </a>
                 <a class="prv-btn prv-btn-approve"
-                   href="?ref=<?= urlencode($ref) ?>&action=approve"
-                   onclick="return confirm('Approve this research proposal?')">
+                   href="#"
+                   data-prv-confirm="approve"
+                   data-submit-form="prvApproveForm"
+                   data-title="Approve Proposal"
+                   data-message="Approve this research proposal and move it to Register Proposal?"
+                   data-confirm-label="Approve Proposal">
                     <i class="fas fa-check-circle"></i> Approve Proposal
                 </a>
             </div>
         </footer>
 
     </div><!-- /.prv-form -->
+    <form id="prvApproveForm" method="post" action="?ref=<?= urlencode($ref) ?>" style="display:none;">
+        <?= csrfField() ?>
+        <input type="hidden" name="action" value="approve">
+        <input type="hidden" name="doc_verdicts_json" id="prvDocVerdictsJson" value="{}">
+        <input type="hidden" name="approval_declaration" id="prvApprovalDeclaration" value="">
+        <input type="hidden" name="approval_signature_data" id="prvApprovalSignatureData" value="">
+    </form>
+    <form id="prvReturnForm" method="post" action="?ref=<?= urlencode($ref) ?>" style="display:none;">
+        <?= csrfField() ?>
+        <input type="hidden" name="action" value="return">
+        <input type="hidden" name="return_remarks" id="prvReturnRemarks" value="">
+    </form>
 </div><!-- /.prv-wrap -->
+
+<div class="prv-modal-backdrop" id="prvConfirmModal" aria-hidden="true">
+    <div class="prv-modal" role="dialog" aria-modal="true" aria-labelledby="prvConfirmTitle">
+        <div class="prv-modal-head">
+            <div class="prv-modal-icon" id="prvConfirmIcon"><i class="fas fa-check-circle"></i></div>
+            <div>
+                <h2 class="prv-modal-title" id="prvConfirmTitle">Approve Proposal</h2>
+                <p class="prv-modal-text" id="prvConfirmMessage">Approve this research proposal?</p>
+            </div>
+        </div>
+        <div class="prv-modal-body">
+            <span>Proposal</span>
+            <strong><?= htmlspecialchars($proposal['ref']) ?> · <?= htmlspecialchars($proposal['title']) ?></strong>
+        </div>
+        <div class="prv-modal-actions">
+            <button type="button" class="prv-modal-btn prv-modal-cancel" id="prvConfirmCancel">
+                Cancel
+            </button>
+            <a href="#" class="prv-modal-btn prv-modal-confirm" id="prvConfirmAction">
+                <i class="fas fa-check-circle"></i> Approve Proposal
+            </a>
+        </div>
+    </div>
+</div>
 
 
 <script>
 // ── Document verdict (correct / wrong) toggles ──────────────────────────────
+var _prvCsrfToken = '<?= addslashes(csrfToken()) ?>';
+// Custom confirmation modal for final CRAD actions
+(function () {
+    var modal = document.getElementById('prvConfirmModal');
+    var title = document.getElementById('prvConfirmTitle');
+    var message = document.getElementById('prvConfirmMessage');
+    var icon = document.getElementById('prvConfirmIcon');
+    var cancel = document.getElementById('prvConfirmCancel');
+    var action = document.getElementById('prvConfirmAction');
+    if (!modal || !title || !message || !icon || !cancel || !action) return;
+    var pendingFormId = '';
+
+    function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        action.href = '#';
+        pendingFormId = '';
+        action.removeAttribute('data-submit-form');
+    }
+
+    document.querySelectorAll('[data-prv-confirm]').forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            var type = btn.getAttribute('data-prv-confirm') || 'approve';
+            if (type === 'approve' && !prvValidateApprovalReady(true)) {
+                return;
+            }
+            if (type === 'return') {
+                prvSyncReturnFields();
+                var remarks = document.getElementById('prvReturnRemarks');
+                if (!remarks || remarks.value.trim() === '') {
+                    prvShowReviewGuard(['Add CRAD remarks before returning the proposal.']);
+                    return;
+                }
+            }
+
+            var confirmLabel = btn.getAttribute('data-confirm-label') || 'Continue';
+            pendingFormId = btn.getAttribute('data-submit-form') || '';
+            title.textContent = btn.getAttribute('data-title') || confirmLabel;
+            message.textContent = btn.getAttribute('data-message') || 'Continue with this action?';
+            action.href = pendingFormId ? '#' : btn.href;
+            if (pendingFormId) {
+                action.setAttribute('data-submit-form', pendingFormId);
+            } else {
+                action.removeAttribute('data-submit-form');
+            }
+            action.innerHTML = type === 'return'
+                ? '<i class="fas fa-undo"></i> ' + confirmLabel
+                : '<i class="fas fa-check-circle"></i> ' + confirmLabel;
+            action.classList.toggle('return', type === 'return');
+            icon.classList.toggle('return', type === 'return');
+            icon.innerHTML = type === 'return'
+                ? '<i class="fas fa-undo"></i>'
+                : '<i class="fas fa-check-circle"></i>';
+
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            cancel.focus();
+        });
+    });
+
+    action.addEventListener('click', function (event) {
+        var formId = action.getAttribute('data-submit-form') || '';
+        if (!formId) {
+            return;
+        }
+
+        event.preventDefault();
+        if (formId === 'prvApproveForm' && !prvValidateApprovalReady(true)) {
+            closeModal();
+            return;
+        }
+        if (formId === 'prvReturnForm') {
+            prvSyncReturnFields();
+        }
+
+        var form = document.getElementById(formId);
+        if (form) {
+            var csrfInput = form.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                csrfInput.value = _prvCsrfToken;
+            }
+            HTMLFormElement.prototype.submit.call(form);
+        }
+    });
+
+    cancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+})();
+
 var _prvCorrectCount = 0;
 var _prvRef          = '<?= addslashes($ref) ?>';
 var _prvBaseUrl      = '<?= addslashes(BASE_URL) ?>';
 var _prvSaveBase     = '?ref=' + encodeURIComponent(_prvRef) + '&action=save_progress&correct=';
-
-function prvUpdateBackButtons() {
-    // If any verdict was marked, route through save_progress to persist progress
-    var url = (_prvCorrectCount > 0)
-        ? _prvSaveBase + _prvCorrectCount
-        : _prvBaseUrl + '/modules/crad/pages/proposal-submission-tracking.php';
-    var btns = [
-        document.getElementById('prvBackBtn'),
-        document.getElementById('prvBackBtnHeader'),
+var _prvDocVerdicts  = {};
+var _prvProgressSaveTimer = null;
+var _prvDocumentRules = <?= json_encode(array_map(static function ($doc) {
+    return [
+        'key' => $doc['key'],
+        'title' => $doc['title'],
+        'required' => (bool) $doc['required'],
+        'hasFile' => $doc['stored_name'] !== '',
     ];
-    btns.forEach(function (b) { if (b) { b.href = url; } });
+}, $documents), JSON_UNESCAPED_SLASHES) ?>;
+
+function prvSyncApprovalFields() {
+    var verdictJson = document.getElementById('prvDocVerdictsJson');
+    var declarationSource = document.getElementById('prvDeclarationCheck');
+    var declarationTarget = document.getElementById('prvApprovalDeclaration');
+    var signatureSource = document.getElementById('prvSignatureData');
+    var signatureTarget = document.getElementById('prvApprovalSignatureData');
+
+    if (verdictJson) {
+        verdictJson.value = JSON.stringify(_prvDocVerdicts);
+    }
+    if (declarationTarget) {
+        declarationTarget.value = declarationSource && declarationSource.checked ? '1' : '';
+    }
+    if (signatureTarget) {
+        signatureTarget.value = signatureSource ? signatureSource.value : '';
+    }
+}
+
+function prvSyncReturnFields() {
+    var remarksSource = document.querySelector('.prv-remarks');
+    var remarksTarget = document.getElementById('prvReturnRemarks');
+    if (remarksTarget) {
+        remarksTarget.value = remarksSource ? remarksSource.value : '';
+    }
+}
+
+function prvPersistProgress() {
+    if (_prvCorrectCount <= 0) {
+        return;
+    }
+
+    var url = _prvSaveBase + encodeURIComponent(_prvCorrectCount) + '&ajax=1';
+    fetch(url, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        keepalive: true
+    }).catch(function () {});
+}
+
+function prvQueueProgressSave() {
+    if (_prvProgressSaveTimer) {
+        clearTimeout(_prvProgressSaveTimer);
+    }
+    _prvProgressSaveTimer = setTimeout(prvPersistProgress, 350);
+}
+
+function prvShowReviewGuard(issues) {
+    var alertBox = document.getElementById('prvReviewGuardAlert');
+    var alertText = document.getElementById('prvReviewGuardText');
+    if (!alertBox || !alertText) return;
+
+    if (!issues.length) {
+        alertBox.style.display = 'none';
+        alertText.textContent = '';
+        return;
+    }
+
+    alertText.innerHTML = 'Please complete the missing review requirements before approval: ' + issues.map(function (issue) {
+        return '<span style="display:block;margin-top:0.25rem;">- ' + issue + '</span>';
+    }).join('');
+    alertBox.style.display = '';
+    alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function prvValidateApprovalReady(showNote) {
+    var issues = [];
+    var declaration = document.getElementById('prvDeclarationCheck');
+    var signature = document.getElementById('prvSignatureData');
+    var missingDeclaration = !declaration || !declaration.checked;
+
+    _prvDocumentRules.forEach(function (doc) {
+        var verdict = _prvDocVerdicts[doc.key] || '';
+
+        if (doc.required && !doc.hasFile) {
+            issues.push(doc.title + ' is required but has no uploaded file.');
+            return;
+        }
+
+        if (doc.hasFile && verdict !== 'correct' && verdict !== 'wrong') {
+            issues.push('Mark ' + doc.title + ' as Correct or Wrong.');
+            return;
+        }
+
+        if (doc.hasFile && verdict === 'wrong') {
+            issues.push(doc.title + ' is marked Wrong. Return the proposal for revision before approval.');
+        }
+    });
+
+    if (missingDeclaration) {
+        issues.push('Check the final certification.');
+    }
+    if (!signature || signature.value.length < 200) {
+        issues.push('Complete the signature pad.');
+    }
+
+    prvSyncApprovalFields();
+    if (showNote) {
+        if (missingDeclaration && issues.length === 1 && declaration && typeof declaration.reportValidity === 'function') {
+            prvShowReviewGuard([]);
+            declaration.focus();
+            declaration.reportValidity();
+            return false;
+        }
+        prvShowReviewGuard(issues);
+        if (missingDeclaration && declaration && typeof declaration.reportValidity === 'function') {
+            declaration.reportValidity();
+        }
+    }
+
+    return issues.length === 0;
 }
 
 function prvSetVerdict(btn, verdict) {
     var card     = btn.closest('.prv-doc-card');
     var isActive = btn.classList.contains('active');
     var wasCorrect = card.querySelector('.prv-verdict-btn.correct.active') !== null;
+    var docKey = btn.getAttribute('data-doc') || '';
 
     // Clear all in this card
     card.querySelectorAll('.prv-verdict-btn').forEach(function (b) {
@@ -869,6 +1291,9 @@ function prvSetVerdict(btn, verdict) {
     if (!isActive) {
         btn.classList.add('active');
         if (verdict === 'correct') { _prvCorrectCount++; }
+        if (docKey) { _prvDocVerdicts[docKey] = verdict; }
+    } else if (docKey) {
+        delete _prvDocVerdicts[docKey];
     }
 
     // Update card border
@@ -882,12 +1307,28 @@ function prvSetVerdict(btn, verdict) {
         card.style.borderStyle = 'dashed';
     }
 
-    // Update all Back to Pipeline hrefs to include current correct count
-    prvUpdateBackButtons();
+    prvSyncApprovalFields();
+    prvQueueProgressSave();
+    prvValidateApprovalReady(false);
 }
 
-// Init on load — if no verdicts yet, Back to Pipeline just goes to tracking
-prvUpdateBackButtons();
+prvSyncApprovalFields();
+
+window.addEventListener('pagehide', function () {
+    if (_prvProgressSaveTimer) {
+        clearTimeout(_prvProgressSaveTimer);
+        _prvProgressSaveTimer = null;
+    }
+    prvPersistProgress();
+});
+
+var _prvDeclaration = document.getElementById('prvDeclarationCheck');
+if (_prvDeclaration) {
+    _prvDeclaration.addEventListener('change', function () {
+        prvSyncApprovalFields();
+        prvValidateApprovalReady(false);
+    });
+}
 </script>
 
 <script>
@@ -931,6 +1372,7 @@ prvUpdateBackButtons();
     canvas.addEventListener('mousemove', function (e) {
         if (!drawing) return; var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
         document.getElementById('prvSignatureData').value = canvas.toDataURL('image/png');
+        if (typeof prvSyncApprovalFields === 'function') { prvSyncApprovalFields(); }
     });
     ['mouseup', 'mouseleave'].forEach(function (n) {
         canvas.addEventListener(n, function () { drawing = false; });
@@ -943,12 +1385,14 @@ prvUpdateBackButtons();
     canvas.addEventListener('touchmove', function (e) {
         e.preventDefault(); if (!drawing) return; var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
         document.getElementById('prvSignatureData').value = canvas.toDataURL('image/png');
+        if (typeof prvSyncApprovalFields === 'function') { prvSyncApprovalFields(); }
     }, { passive: false });
     canvas.addEventListener('touchend', function () { drawing = false; });
 
     document.getElementById('prvClearPadBtn').addEventListener('click', function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         document.getElementById('prvSignatureData').value = '';
+        if (typeof prvSyncApprovalFields === 'function') { prvSyncApprovalFields(); }
     });
 
     // Re-apply stroke color whenever the theme attribute changes on <html>
