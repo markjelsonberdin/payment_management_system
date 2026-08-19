@@ -184,13 +184,27 @@ function smsAllowedModuleKeysForRole(string $roleKey): array
         $allowed[] = 'user-management';
     }
 
-    if ($roleKey === 'student') {
-        $allowed = ['student_portal'];
-    } elseif ($roleKey !== 'superadmin') {
+    if ($roleKey === 'student' && !in_array('student_portal', $allowed, true)) {
+        $allowed[] = 'student_portal';
+    } elseif ($roleKey !== 'superadmin' && $roleKey !== 'student') {
         $allowed = array_values(array_filter(
             $allowed,
             static fn($moduleKey) => $moduleKey !== 'student_portal'
         ));
+    }
+
+    // RBAC: Automatically grant top-level modules if a granular permission is present
+    $topLevelGrants = [];
+    foreach ($allowed as $perm) {
+        if (strpos($perm, '.') !== false) {
+            $parts = explode('.', $perm, 2);
+            $topLevelGrants[$parts[0]] = true;
+        }
+    }
+    foreach (array_keys($topLevelGrants) as $topLevel) {
+        if (!in_array($topLevel, $allowed, true)) {
+            $allowed[] = $topLevel;
+        }
     }
 
     return $allowed;
@@ -218,8 +232,8 @@ function userCanAccessModule(string $moduleKey): bool
         return in_array('user-management', getAllowedModuleKeys(), true);
     }
 
-    // Legacy admin accounts are restricted to dashboard and User Management.
-    if (getCurrentUserRoleKey() === 'admin') {
+    // Legacy admin accounts are restricted to dashboard, User Management, and specific granular permissions.
+    if (getCurrentUserRoleKey() === 'admin' && strpos($moduleKey, '.') === false) {
         return false;
     }
 
@@ -244,6 +258,14 @@ function requireSuperAdmin(): void
     if (!userCanAccessModule('user-management')) {
         header('Location: ' . BASE_URL . '/dashboard/index.php');
         exit;
+    }
+}
+
+function requirePaymentPermission(string $permission): void
+{
+    if (!userCanAccessModule($permission)) {
+        http_response_code(403);
+        die('403 Forbidden: You do not have the required permission ('. htmlspecialchars($permission) .') to access this module.');
     }
 }
 

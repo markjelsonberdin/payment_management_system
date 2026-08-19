@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 
 requireAuth();
-requireModuleAccess('payment');
+requirePaymentPermission('payment.collection');
 
 // Tinanggal ko ang session_start() dito dahil karaniwang nasa authentication.php o config.php na ito.
 // Kung mag-throw ng error na walang session, ibalik mo lang sa baba ng requireModuleAccess.

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 
 // I-enforce ang login at module access
 requireAuth();
-requireModuleAccess('payment');
+requirePaymentPermission('payment.billing');
 
 require_once __DIR__ . '/../../includes/BillingService.php';
 

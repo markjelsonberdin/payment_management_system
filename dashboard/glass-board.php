@@ -204,19 +204,6 @@ if (in_array($roleKey, ['superadmin', 'admin'], true)) {
     $netFlow = '72%';
     $pipelineGaugeLabel = 'Released';
     $dashboardIntro = 'Live registrar, curriculum, and scheduling performance board.';
-} elseif ($roleKey === 'finance') {
-    $sourceTitle = 'Collections by fee type';
-    $sourceSub = 'Share of month-to-date intake';
-    $donutCenterValue = '₱1.2M';
-    $donutCenterLabel = 'Collected';
-    $sourceLegend = [
-        ['label' => 'Tuition', 'pct' => '68%', 'color' => '#3b82f6'],
-        ['label' => 'Misc', 'pct' => '12%', 'color' => '#8b5cf6'],
-        ['label' => 'Lab', 'pct' => '8%', 'color' => '#22c55e'],
-        ['label' => 'Registration', 'pct' => '7%', 'color' => '#f59e0b'],
-        ['label' => 'Others', 'pct' => '5%', 'color' => '#06b6d4'],
-    ];
-    $dashboardIntro = 'Live finance and payment management board.';
 } elseif ($roleKey === 'hr') {
     $sourceTitle = 'Faculty by department';
     $sourceSub = 'Headcount distribution';

@@ -9,7 +9,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 3) . '/config/config.php';
 
 if (!defined('CRAD_DB_HOST')) {
-    define('CRAD_DB_HOST', sms2_env('CRAD_DB_HOST', sms2_env('SMS2_DB_HOST', 'localhost')));
+    define('CRAD_DB_HOST', sms2_env('CRAD_DB_HOST', sms2_env('SMS2_DB_HOST', '127.0.0.1;port=3307')));
 }
 if (!defined('CRAD_DB_NAME')) {
     define('CRAD_DB_NAME', sms2_env('CRAD_DB_NAME', 'crad_db'));
@@ -46,8 +46,11 @@ function getCradDatabaseConnection(): PDO
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
-        cradEnsurePanelNotificationDeleteTrigger($pdo);
-        cradCleanupPreoralEvaluationsForInvalidRegistry($pdo);
+        // PERFORMANCE FIX: Do not run heavy metadata queries (SHOW TABLES, information_schema) 
+        // and complex nested DELETE sweeps on EVERY SINGLE PAGE LOAD. 
+        // These should be in install.php or triggered only on specific write actions.
+        // cradEnsurePanelNotificationDeleteTrigger($pdo);
+        // cradCleanupPreoralEvaluationsForInvalidRegistry($pdo);
     } catch (PDOException $e) {
         error_log('CRAD DB connection failed: ' . $e->getMessage());
         throw new RuntimeException(

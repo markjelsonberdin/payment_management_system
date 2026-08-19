@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-if (!defined('REPORTS_DB_HOST'))    { define('REPORTS_DB_HOST',    'localhost'); }
+if (!defined('REPORTS_DB_HOST'))    { define('REPORTS_DB_HOST',    '127.0.0.1;port=3307'); }
 if (!defined('REPORTS_DB_NAME'))    { define('REPORTS_DB_NAME',    'reports_db'); }
 if (!defined('REPORTS_DB_USER'))    { define('REPORTS_DB_USER',    'root'); }
 if (!defined('REPORTS_DB_PASS'))    { define('REPORTS_DB_PASS',    ''); }

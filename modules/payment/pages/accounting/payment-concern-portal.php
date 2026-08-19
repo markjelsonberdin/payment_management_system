@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/PaymentConcernService.php';
 require_once __DIR__ . '/../../includes/PaymentConcernVerificationService.php';
 
 requireAuth();
-requireModuleAccess('payment');
+requirePaymentPermission('payment.concern_review');
 session_start();
 
 $reviewer_id = $_SESSION['user_id'] ?? 1;

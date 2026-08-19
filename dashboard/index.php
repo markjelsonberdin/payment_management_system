@@ -530,12 +530,8 @@ if ($roleKey === 'admin') {
         ['icon'=>'fa-check-circle',  'label'=>'Enrolled This Term',  'value'=>'1,204', 'type'=>'success', 'delta'=>'+6.1%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last term'],
     ];
 } elseif ($roleKey === 'finance') {
-    $statCards = [
-        ['icon'=>'fa-peso-sign',           'label'=>'Collections Today',       'value'=>'₱38,500', 'type'=>'success', 'delta'=>'+12.5%', 'deltaDir'=>'up',   'deltaLabel'=>'vs yesterday'],
-        ['icon'=>'fa-file-invoice-dollar', 'label'=>'Pending Payments',        'value'=>'134',     'type'=>'warning', 'delta'=>'-3.2%',  'deltaDir'=>'down', 'deltaLabel'=>'vs last week'],
-        ['icon'=>'fa-wallet',              'label'=>'Total Collected (Month)', 'value'=>'₱1.2M',   'type'=>'primary', 'delta'=>'+8.4%',  'deltaDir'=>'up',   'deltaLabel'=>'vs last month'],
-        ['icon'=>'fa-times-circle',        'label'=>'Overdue Accounts',        'value'=>'23',      'type'=>'info',    'delta'=>'-1.5%',  'deltaDir'=>'down', 'deltaLabel'=>'vs last week'],
-    ];
+    require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
+    return;
 } elseif ($roleKey === 'hr') {
     $statCards = [
         ['icon'=>'fa-chalkboard-teacher', 'label'=>'Total Faculty',          'value'=>'102', 'type'=>'primary', 'delta'=>'+1.0%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last month'],

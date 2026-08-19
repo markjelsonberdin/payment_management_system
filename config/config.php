@@ -5,10 +5,10 @@
  */
 
 if (!defined('APP_NAME')) {
-    define('APP_NAME', 'Student Management System 2');
+    define('APP_NAME', 'Bestlink College of the Philippines');
 }
 if (!defined('APP_SHORT_NAME')) {
-    define('APP_SHORT_NAME', 'SMS 2');
+    define('APP_SHORT_NAME', 'BCP');
 }
 if (!defined('INSTITUTION')) {
     define('INSTITUTION', 'Bestlink College of the Philippines');
@@ -17,25 +17,60 @@ if (!defined('APP_VERSION')) {
     define('APP_VERSION', '1.0.0');
 }
 
-/**
- * Helper to fetch environment variables
- */
+if (!defined('ROOT_PATH')) {
+    define('ROOT_PATH', dirname(__DIR__));
+}
+
+// Optional machine-specific overrides. Copy config/local.example.php to
+// config/local.php on another computer if its MySQL settings are different.
+$sms2LocalConfig = __DIR__ . '/local.php';
+if (is_readable($sms2LocalConfig)) {
+    require_once $sms2LocalConfig;
+}
+
 if (!function_exists('sms2_env')) {
-    function sms2_env($key, $default = null) {
-        if (array_key_exists($key, $_ENV)) return $_ENV[$key];
-        if (array_key_exists($key, $_SERVER)) return $_SERVER[$key];
-        $val = getenv($key);
-        if ($val !== false) return $val;
-        return $default;
+    function sms2_env(string $key, ?string $default = null): ?string
+    {
+        $value = getenv($key);
+        if ($value === false || $value === '') {
+            return $default;
+        }
+        return $value;
     }
 }
 
-// Adjust if deployed under a different folder name
-if (!defined('BASE_URL')) {
-    define('BASE_URL', '/SMS2_system');
+if (!function_exists('sms2_detect_base_url')) {
+    function sms2_detect_base_url(): string
+    {
+        $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $markers = [
+            '/account/',
+            '/api/',
+            '/dashboard/',
+            '/database/',
+            '/login/',
+            '/modules/',
+            '/notifications/',
+            '/setup/',
+            '/welcome/',
+        ];
+
+        foreach ($markers as $marker) {
+            $pos = strpos($scriptName, $marker);
+            if ($pos !== false) {
+                return rtrim(substr($scriptName, 0, $pos), '/');
+            }
+        }
+
+        $dir = str_replace('\\', '/', dirname($scriptName));
+        return $dir === '/' || $dir === '.' ? '' : rtrim($dir, '/');
+    }
 }
-if (!defined('ROOT_PATH')) {
-    define('ROOT_PATH', dirname(__DIR__));
+
+// Auto-detect the folder name so the app still works when copied to another
+// XAMPP htdocs directory. Set SMS2_BASE_URL or APP_BASE_URL to override.
+if (!defined('BASE_URL')) {
+    define('BASE_URL', rtrim((string) sms2_env('SMS2_BASE_URL', sms2_env('APP_BASE_URL', sms2_detect_base_url())), '/'));
 }
 
 date_default_timezone_set('Asia/Manila');
@@ -193,12 +228,11 @@ $MODULES = [
             ['slug' => 'accreditation-reports-analytics', 'title' => 'Accreditation Reports & Analytics'],
         ],
     ],
-  'payment' => [
+    'payment' => [
         'label' => 'Payment Management',
         'icon'  => 'fa-credit-card',
-        // ETO YUNG NAWAWALA BRO: Ang 'groups' array para sa Sidebar Headers
         'groups' => [
-            'Accounting / Cashier' => [
+            'CASHIER PORTAL' => [
                 'accounting/student-billing-invoicing',
                 'accounting/payment-collection-portal',
                 'accounting/discount-scholarship-application',
@@ -206,21 +240,25 @@ $MODULES = [
                 'accounting/collection-reporting-analytics',
                 'accounting/payment-concern-portal',
             ],
-            'Admin / MIS Setup' => [
+            'ADMIN PORTAL' => [
                 'admin/fee-setup-configuration',
                 'admin/online-payment-integration',
+                'admin/payment-users',
             ],
         ],
         'pages' => [
-            ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing'],
-            ['slug' => 'accounting/payment-collection-portal', 'title' => 'Payment Collection Portal'],
-            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship Application'],
-            ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger System'],
-            ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection Reporting & Analytics'],
-            ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Portal'],
+            // Accounting / Cashier Pages
+            ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'payment.billing'],
+            ['slug' => 'accounting/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
+            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'payment.discount'],
+            ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'payment.ledger'],
+            ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.analytics'],
+            ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern_review'],
             
-            ['slug' => 'admin/fee-setup-configuration', 'title' => 'Fee Setup & Configuration'],
-            ['slug' => 'admin/online-payment-integration', 'title' => 'Online Payment Integration'],
+            // Admin Pages
+            ['slug' => 'admin/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
+            ['slug' => 'admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
+            ['slug' => 'admin/payment-users', 'title' => 'Cashier Accounts', 'permission' => 'payment.user_management'],
         ],
     ],
     'faculty' => [
@@ -366,15 +404,18 @@ $MODULES = [
         'icon'  => 'fa-flask',
         'groups' => [
             'Research Proposal' => [
-                'proposal-submission-tracking',
                 'register-proposal',
+                'research-group-number',
             ],
             'Research Management' => [
-                'adviser-panel-assignment',
+                'research-coordinator-management',
                 'research-defense-scheduling',
+                'capstone-group-student-registry',
             ],
-            'Research Funding' => [
-                'research-grants-funding-assistance',
+            'Core System' => [
+                'dashboard-analytics',
+                'grant-opportunities',
+                'proposals-applications',
             ],
             'Research Documents' => [
                 'documentation-publication-management',
@@ -384,11 +425,15 @@ $MODULES = [
             ],
         ],
         'pages' => [
-            ['slug' => 'proposal-submission-tracking', 'title' => 'Research Proposal Submission & Tracking'],
             ['slug' => 'register-proposal', 'title' => 'Register Proposal'],
-            ['slug' => 'adviser-panel-assignment', 'title' => 'Adviser & Panel Assignment'],
-            ['slug' => 'research-grants-funding-assistance', 'title' => 'Research Grants & Funding Assistance'],
+            ['slug' => 'research-group-number', 'title' => 'Research Group Number'],
+            ['slug' => 'adviser-panel-assignment', 'title' => 'Record Adviser/Panel Assignment'],
+            ['slug' => 'research-coordinator-management', 'title' => 'Research Coordinator Management'],
+            ['slug' => 'capstone-group-student-registry', 'title' => 'Capstone Group/Student Registry'],
             ['slug' => 'research-defense-scheduling', 'title' => 'Research Defense Scheduling'],
+            ['slug' => 'dashboard-analytics', 'title' => 'Dashboard & Analytics'],
+            ['slug' => 'grant-opportunities', 'title' => 'Grant Opportunities'],
+            ['slug' => 'proposals-applications', 'title' => 'Proposals & Applications'],
             ['slug' => 'documentation-publication-management', 'title' => 'Documentation & Publication Management'],
             ['slug' => 'research-analytics-reporting', 'title' => 'Research Analytics & Reporting'],
         ],
@@ -418,6 +463,74 @@ $MODULES = [
             ['slug' => 'volunteer-budget-analytics', 'title' => 'Volunteer & Budget Analytics'],
             ['slug' => 'accreditation-compliance-report', 'title' => 'Accreditation Compliance Report'],
             ['slug' => 'audit-findings-analytics', 'title' => 'Audit Findings Analytics'],
+        ],
+    ],
+
+    // ── Research Grant (CRAD Officer – grant management view) ───────────────
+    'crad_grant' => [
+        'label' => 'Research Grant',
+        'icon'  => 'fa-hand-holding-usd',
+        'groups' => [
+            'Grant Management' => [
+                'grant-opportunities',
+                'post-publish-grant-call',
+                'grant-applications',
+            ],
+            'Proposal Evaluation' => [
+                'for-evaluation',
+                'evaluation-scoring',
+                'evaluation-history',
+            ],
+            'Approval Workflow' => [
+                'pending-approvals',
+                'approval-status',
+                'approval-history',
+            ],
+            'Funding Management' => [
+                'approved-funded',
+                'fund-release',
+                'disbursement-records',
+                'funding-status',
+            ],
+            'Research Monitoring' => [
+                'funded-research',
+                'project-milestones',
+                'progress-tracking',
+            ],
+            'Research Output' => [
+                'final-outputs',
+                'publications',
+                'publications-ip-repository',
+            ],
+            'Reports' => [
+                'grant-reports',
+                'funding-reports',
+                'research-analytics',
+            ],
+        ],
+        'pages' => [
+            ['slug' => 'grant-opportunities',       'title' => 'Grant Opportunities'],
+            ['slug' => 'post-publish-grant-call',   'title' => 'Post / Publish Grant Call'],
+            ['slug' => 'grant-applications',        'title' => 'Grant Applications'],
+            ['slug' => 'for-evaluation',            'title' => 'For Evaluation'],
+            ['slug' => 'evaluation-scoring',        'title' => 'Evaluation & Scoring'],
+            ['slug' => 'evaluation-history',        'title' => 'Evaluation History'],
+            ['slug' => 'pending-approvals',         'title' => 'Pending Approvals'],
+            ['slug' => 'approval-status',           'title' => 'Approval Status'],
+            ['slug' => 'approval-history',          'title' => 'Approval History'],
+            ['slug' => 'approved-funded',           'title' => 'Approved & Funded'],
+            ['slug' => 'fund-release',              'title' => 'Fund Release'],
+            ['slug' => 'disbursement-records',      'title' => 'Disbursement Records'],
+            ['slug' => 'funding-status',            'title' => 'Funding Status'],
+            ['slug' => 'funded-research',           'title' => 'Funded Research'],
+            ['slug' => 'project-milestones',        'title' => 'Project Milestones'],
+            ['slug' => 'progress-tracking',         'title' => 'Progress Tracking'],
+            ['slug' => 'final-outputs',             'title' => 'Final Outputs'],
+            ['slug' => 'publications',              'title' => 'Publications'],
+            ['slug' => 'publications-ip-repository','title' => 'Publications & IP Repository'],
+            ['slug' => 'grant-reports',             'title' => 'Grant Reports'],
+            ['slug' => 'funding-reports',           'title' => 'Funding Reports'],
+            ['slug' => 'research-analytics',        'title' => 'Research Analytics'],
         ],
     ],
 

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 3) . '/config/config.php';
 
-if (!defined('USERMGMT_DB_HOST'))    { define('USERMGMT_DB_HOST',    sms2_env('USERMGMT_DB_HOST', sms2_env('SMS2_DB_HOST', 'localhost'))); }
+if (!defined('USERMGMT_DB_HOST'))    { define('USERMGMT_DB_HOST',    sms2_env('USERMGMT_DB_HOST', sms2_env('SMS2_DB_HOST', '127.0.0.1;port=3307'))); }
 if (!defined('USERMGMT_DB_NAME'))    { define('USERMGMT_DB_NAME',    sms2_env('USERMGMT_DB_NAME', 'user_management_db')); }
 if (!defined('USERMGMT_DB_USER'))    { define('USERMGMT_DB_USER',    sms2_env('USERMGMT_DB_USER', sms2_env('SMS2_DB_USER', 'root'))); }
 if (!defined('USERMGMT_DB_PASS'))    { define('USERMGMT_DB_PASS',    sms2_env('USERMGMT_DB_PASS', sms2_env('SMS2_DB_PASS', ''))); }

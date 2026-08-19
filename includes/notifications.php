@@ -11,20 +11,8 @@ require_once __DIR__ . '/../modules/crad/includes/chapter-evaluation-workflow.ph
 
 function smsAssignmentNotificationEnsureSentSchema(PDO $crad): void
 {
-    foreach (['research_adviser_assignments'] as $table) {
-        try {
-            $sentAt = $crad->query("SHOW COLUMNS FROM {$table} LIKE 'notification_sent_at'")->fetch();
-            if (!$sentAt) {
-                $crad->exec("ALTER TABLE {$table} ADD notification_sent_at DATETIME DEFAULT NULL AFTER updated_at");
-            }
-            $sentBy = $crad->query("SHOW COLUMNS FROM {$table} LIKE 'notification_sent_by'")->fetch();
-            if (!$sentBy) {
-                $crad->exec("ALTER TABLE {$table} ADD notification_sent_by INT UNSIGNED DEFAULT NULL AFTER notification_sent_at");
-            }
-        } catch (Throwable $e) {
-            error_log('Assignment notification sent schema check failed for ' . $table . ': ' . $e->getMessage());
-        }
-    }
+    // PERFORMANCE FIX: Skip heavy SHOW COLUMNS checks on every page load.
+    return;
 }
 
 function smsNotificationsEnsureSchema(?PDO $crad = null): void
@@ -169,10 +157,7 @@ function smsCurrentUserNotifications(int $limit = 8): array
     }
 
     try {
-        $table = $crad->query("SHOW TABLES LIKE 'chapter_evaluation_notifications'")->fetchColumn();
-        if (!$table) {
-            return [];
-        }
+        $table = 'chapter_evaluation_notifications';
 
         $where = smsCurrentUserNotificationWhere();
         $role = (string) ($_SESSION['user_role_key'] ?? '');
@@ -249,7 +234,7 @@ function smsCurrentUserNotifications(int $limit = 8): array
         $stmt->execute();
         $rows = $stmt->fetchAll() ?: [];
 
-        $panelTable = $crad->query("SHOW TABLES LIKE 'panel_assignment_notifications'")->fetchColumn();
+        $panelTable = true;
         if ($panelTable) {
             $panelRegistryFilter = function_exists('cradOfficialRegistryGroupWhereSql')
                 ? "AND (
@@ -322,10 +307,7 @@ function smsMarkCurrentUserNotificationRead(int $notificationId): void
     }
 
     try {
-        $table = $crad->query("SHOW TABLES LIKE 'chapter_evaluation_notifications'")->fetchColumn();
-        if (!$table) {
-            return;
-        }
+        $table = 'chapter_evaluation_notifications';
         $where = smsCurrentUserNotificationWhere();
         $stmt = $crad->prepare(
             "UPDATE chapter_evaluation_notifications

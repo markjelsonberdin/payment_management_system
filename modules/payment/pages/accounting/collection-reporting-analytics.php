@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 
 // I-enforce ang login at module access
 requireAuth();
-requireModuleAccess('payment');
+requirePaymentPermission('payment.analytics');
 // ==========================================
 // 1. KUNIN ANG MGA ANALYTICS & REPORTS DATA
 // ==========================================

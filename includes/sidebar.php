@@ -139,7 +139,7 @@ $studentNavGroups = [
     'Financial' => [
         ['slug' => 'account-balance',  'href' => BASE_URL . '/modules/student-portal/pages/account-balance.php',  'icon' => 'fa-wallet',  'label' => 'Account Balance',  'locked' => false],
         ['slug' => 'payment-history',  'href' => BASE_URL . '/modules/student-portal/pages/payment-history.php',  'icon' => 'fa-receipt', 'label' => 'Payment History',  'locked' => false],
-        ['slug' => 'payment-concern',  'href' => BASE_URL . '/modules/student-portal/pages/payment-concern.php',  'icon' => 'fa-exclamation-circle', 'label' => 'Payment Concern',  'locked' => false],
+        ['slug' => 'payment-concern',  'href' => BASE_URL . '/modules/student-portal/pages/student-concern-portal.php',  'icon' => 'fa-exclamation-circle', 'label' => 'Payment Concern',  'locked' => false],
     ],
     'Academics' => [
         ['slug' => 'class-schedule',      'href' => BASE_URL . '/modules/student-portal/pages/class-schedule.php',      'icon' => 'fa-calendar-alt',        'label' => 'Class Schedule',       'locked' => false],
@@ -396,22 +396,31 @@ $researchDirectorNavGroups = [
                     // Check if module has grouped sidebar sections
                     $hasGroups = !empty($module['groups']) && is_array($module['groups']);
                     if ($hasGroups):
-                        // Build a lookup map from slug to page title
+                        // Build a lookup map from slug to page title & permission
                         $pageTitles = [];
+                        $pagePerms = [];
                         foreach ($module['pages'] as $p) {
                             $pageTitles[$p['slug']] = $p['title'];
+                            if (isset($p['permission'])) {
+                                $pagePerms[$p['slug']] = $p['permission'];
+                            }
                         }
                         foreach ($module['groups'] as $groupLabel => $groupSlugs):
+                            // Filter slugs by permission
+                            $allowedSlugs = [];
+                            foreach ($groupSlugs as $slug) {
+                                if (!isset($pageTitles[$slug])) { continue; }
+                                if ($roleKey === 'crad_officer' && $slug === 'research-defense-scheduling') { continue; }
+                                if (isset($pagePerms[$slug]) && !userCanAccessModule($pagePerms[$slug])) { continue; }
+                                $allowedSlugs[] = $slug;
+                            }
+                            if (empty($allowedSlugs)) { continue; }
                     ?>
                         <li class="nav-item sidebar-group-label">
                             <span class="nav-link sidebar-group-heading"><?= htmlspecialchars($groupLabel) ?></span>
                         </li>
-                        <?php foreach ($groupSlugs as $slug): ?>
+                        <?php foreach ($allowedSlugs as $slug): ?>
                             <?php
-                            if (!isset($pageTitles[$slug])) { continue; }
-                            // CRAD Officer: hide Research Defense Scheduling from sidebar only.
-                            // The page, its files, database tables, and APIs are NOT removed.
-                            if ($roleKey === 'crad_officer' && $slug === 'research-defense-scheduling') { continue; }
                             $isPageActive = ($isModuleActive && $activePage === $slug);
                             $pageHref = BASE_URL . '/modules/' . $moduleFolder . '/pages/' . $slug . '.php';
                             if ($slug === 'security-settings') {
@@ -430,6 +439,7 @@ $researchDirectorNavGroups = [
                     <?php else: ?>
                         <?php foreach ($module['pages'] as $page): ?>
                             <?php
+                            if (isset($page['permission']) && !userCanAccessModule($page['permission'])) { continue; }
                             $isPageActive = ($isModuleActive && $activePage === $page['slug']);
                             $pageHref = BASE_URL . '/modules/' . $moduleFolder . '/pages/' . $page['slug'] . '.php';
                             // Module Security: keep CRAD/etc. focus when already inside a module.

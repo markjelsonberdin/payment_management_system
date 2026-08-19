@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/PaymentHistoryService.php';
 
 // I-enforce ang login at module access
 requireAuth();
-requireModuleAccess('payment');
+requirePaymentPermission('payment.ledger');
 
 try {
     $search = trim($_GET['search'] ?? '');

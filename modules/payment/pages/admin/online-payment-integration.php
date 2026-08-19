@@ -9,13 +9,7 @@ require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 
 requireAuth();
-requireModuleAccess('payment');
-
-$userRole = getCurrentUserRoleKey();
-if ($userRole !== 'admin' && $userRole !== 'finance') {
-    header('Location: ' . BASE_URL . '/dashboard/index.php');
-    exit();
-}
+requirePaymentPermission('payment.online_payment_config');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
