@@ -175,7 +175,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#billingTable" placeholder="Search student no...">
                 </div>
-                <?php if (getCurrentUserRoleKey() === 'admin' || getCurrentUserRoleKey() === 'finance'): ?>
+                <?php if (in_array(getCurrentUserRoleKey(), ['admin', 'superadmin', 'finance', 'cashier'])): ?>
                     <button type="button" class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#generateBillingModal">
                         <i class="fas fa-file-invoice me-1"></i> Generate Billing
                     </button>

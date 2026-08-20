@@ -118,6 +118,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <h5 class="fw-bold mb-4">2. Available Scholarships & Discounts</h5>
                     
                     <form action="" method="POST" id="discountForm">
+                        <?= csrfField(); ?>
                         <!-- Hidden Inputs for Submission -->
                         <input type="hidden" name="student_number" id="inputStudentNumber">
                         <input type="hidden" name="billing_id" id="inputBillingId">

@@ -26,8 +26,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <p class="text-muted mb-0">Real-time payment analytics and collection tracking.</p>
     </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-light shadow-sm" onclick="fetchDashboardData()">
-            <i class="fas fa-sync-alt me-2 text-primary"></i> Refresh
+        <button type="button" class="btn btn-sms-primary shadow-sm fw-bold px-4" onclick="fetchDashboardData()">
+            <i class="fas fa-sync-alt me-2"></i> Refresh
         </button>
     </div>
 </div>

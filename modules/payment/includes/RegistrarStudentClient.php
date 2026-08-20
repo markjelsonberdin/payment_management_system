@@ -31,57 +31,30 @@ class RegistrarStudentClient {
         $student_number = trim($student_number);
         if (empty($student_number)) return null;
 
-        // 1. Fetch from External API using cURL (UPGRADED)
-        $url = $this->apiUrl . "?student_number=" . urlencode($student_number);
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        
-        // Timeout handling: 5 seconds to connect, 10 seconds total execution
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
-        // (Optional) Kung nagte-test ka sa localhost na walang valid SSL certificate, i-uncomment ito:
-        // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        
-        curl_close($ch);
-
-        // Kapag nag-fail ang cURL request o hindi 200 OK (hal. 404 Not Found, 500 Server Error)
-        if ($response === false || $httpCode >= 400) {
-            $errorMsg = $response === false ? $curlError : "HTTP Status $httpCode";
-            file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' API Error: ' . $errorMsg . PHP_EOL, FILE_APPEND);
+        try {
+            // Direct database connection to sms2_db to avoid API/network issues
+            $sms2_pdo = new PDO("mysql:host=127.0.0.1;port=3307;dbname=sms2_db", "root", "");
+            $sms2_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
-            // FALLBACK TO LOCAL CACHE IF API IS OFFLINE
-            $stmt = $this->pdo->prepare("SELECT * FROM students WHERE student_number = :sn LIMIT 1");
+            $stmt = $sms2_pdo->prepare("
+                SELECT 
+                    id as student_id, 
+                    student_id as student_number, 
+                    full_name
+                FROM users 
+                WHERE role_key = 'student' AND student_id = :sn 
+                LIMIT 1
+            ");
             $stmt->execute([':sn' => $student_number]);
-            $localStudent = $stmt->fetch(PDO::FETCH_ASSOC);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($localStudent) {
-                // Return in the format expected by the system
-                return [
-                    'student_id' => $localStudent['student_id'],
-                    'student_number' => $localStudent['student_number'],
-                    'full_name' => $localStudent['full_name'],
-                    'course_id' => $localStudent['course'],
-                    'year_level' => $localStudent['year_level'],
-                    'status' => $localStudent['status']
-                ];
+            if (!$student) {
+                return null;
             }
-            
+        } catch (Exception $e) {
+            file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' DB Error: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
             return null;
         }
-
-        $data = json_decode($response, true);
-        if (!isset($data['success']) || $data['success'] !== true) {
-            return null;
-        }
-
-        $student = $data['data'];
         
         // 2. Sync to Local Reference Cache (payment_db.students)
         $this->syncLocalReference($student);

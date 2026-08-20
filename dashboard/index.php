@@ -529,8 +529,9 @@ if ($roleKey === 'admin') {
         ['icon'=>'fa-folder-open',   'label'=>'Document Requests',   'value'=>'28',    'type'=>'info',    'delta'=>'+9.2%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last week'],
         ['icon'=>'fa-check-circle',  'label'=>'Enrolled This Term',  'value'=>'1,204', 'type'=>'success', 'delta'=>'+6.1%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last term'],
     ];
-} elseif ($roleKey === 'finance') {
+} elseif ($roleKey === 'finance' || $roleKey === 'cashier') {
     require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
+    require_once __DIR__ . '/../includes/layout-end.php';
     return;
 } elseif ($roleKey === 'hr') {
     $statCards = [

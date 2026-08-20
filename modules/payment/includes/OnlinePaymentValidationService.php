@@ -80,6 +80,21 @@ class OnlinePaymentValidationService {
             ];
         }
 
+        // 6. Minimum Amount Validation (Partial Payments / Installments)
+        if ($categoryBalance >= 1000 && $requestedAmount < 1000) {
+            return [
+                'is_valid' => false,
+                'message' => 'The minimum payment amount is ₱1,000.00.'
+            ];
+        }
+
+        if ($categoryBalance < 1000 && $requestedAmount != $categoryBalance) {
+            return [
+                'is_valid' => false,
+                'message' => 'Since the balance is below ₱1,000.00, you must pay the exact remaining amount (₱' . number_format($categoryBalance, 2) . ').'
+            ];
+        }
+
         return ['is_valid' => true, 'message' => 'Payment request is valid.', 'eligible_balance' => $categoryBalance];
     }
 }

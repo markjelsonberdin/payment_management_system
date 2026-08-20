@@ -147,6 +147,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this account?');">
+                                        <?= csrfField(); ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-light text-danger">
@@ -168,6 +169,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <form method="POST">
+                <?= csrfField(); ?>
                 <div class="modal-header bg-light border-0">
                     <h5 class="modal-title" id="modalTitle">Add Account</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

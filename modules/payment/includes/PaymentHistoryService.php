@@ -19,6 +19,7 @@ class PaymentHistoryService {
                 SUM(CASE WHEN payment_status = 'Verified' THEN amount ELSE 0 END) as total_collections,
                 COUNT(payment_id) as total_transactions
             FROM payments
+            WHERE payment_status != 'Pending'
         ");
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -40,11 +41,12 @@ class PaymentHistoryService {
             FROM payments p
             JOIN students s ON p.student_id = s.student_id
             LEFT JOIN billing b ON p.billing_id = b.billing_id
+            WHERE p.payment_status != 'Pending'
         ";
 
         $params = [];
         if (!empty($search)) {
-            $query .= " WHERE s.student_number LIKE :search OR s.full_name LIKE :search OR p.reference_number LIKE :search";
+            $query .= " AND (s.student_number LIKE :search OR s.full_name LIKE :search OR p.reference_number LIKE :search)";
             $params[':search'] = "%$search%";
         }
 

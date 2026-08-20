@@ -38,6 +38,9 @@ if ($activeModule === 'reports-analytics') {
 <div class="row g-3 module-button-grid">
     <?php foreach ($moduleMeta['pages'] as $page): ?>
         <?php
+        if (isset($page['permission']) && !userCanAccessModule($page['permission'])) {
+            continue;
+        }
         $href = BASE_URL . '/modules/' . $activeModule . '/pages/' . $page['slug'] . '.php';
         $icon = smsNavPageIcon($page['slug']);
         ?>

@@ -57,10 +57,10 @@ try {
     // Dynamically build the base URL so it works in both localhost and production
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
     $host = $_SERVER['HTTP_HOST'];
-    $baseUrl = $protocol . "://" . $host . "/SMS2_system/modules/payment";
+    $baseUrl = $protocol . "://" . $host . "/SMS2_system/modules/student-portal";
     
-    $successUrl = $baseUrl . '/pages/student/payment-success.php?payment_id=' . $paymentId;
-    $cancelUrl = $baseUrl . '/pages/student/payment-cancelled.php?payment_id=' . $paymentId;
+    $successUrl = $baseUrl . '/pages/account-balance.php?payment=success&payment_id=' . $paymentId;
+    $cancelUrl = $baseUrl . '/pages/account-balance.php?payment=cancelled&payment_id=' . $paymentId;
     
     $description = "Payment for " . $catName;
     

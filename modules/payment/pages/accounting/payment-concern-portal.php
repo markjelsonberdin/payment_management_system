@@ -178,6 +178,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                             </div>
                                             <form action="" method="POST">
+                                                <?= csrfField(); ?>
                                                 <div class="modal-body bg-light text-start">
                                                     <input type="hidden" name="concern_id" value="<?= $row['concern_id'] ?>">
                                                     <input type="hidden" name="payment_id" value="<?= $row['payment_id'] ?>">

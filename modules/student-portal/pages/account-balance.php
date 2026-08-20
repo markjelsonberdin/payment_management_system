@@ -14,6 +14,11 @@ require_once __DIR__ . '/../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 
+if (isset($_GET['process']) && $_GET['process'] === 'soa') {
+    header('Location: statement-of-account.php');
+    exit;
+}
+
 // 2. Page Meta Setup for Header and Sidebar active states
 $pageTitle = 'Account Balance';
 $activeModule = 'student_portal';
@@ -126,6 +131,25 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     </div>
 
     <!-- Statistics Cards -->
+    
+    <?php if (isset($_GET['payment']) && $_GET['payment'] === 'success'): ?>
+        <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center">
+            <i class="fas fa-check-circle fs-4 me-3"></i>
+            <div>
+                <strong>Payment Successful!</strong><br>
+                Your transaction has been processed. It may take a few moments to reflect in your account balance below.
+            </div>
+        </div>
+    <?php elseif (isset($_GET['payment']) && $_GET['payment'] === 'cancelled'): ?>
+        <div class="alert alert-warning border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fs-4 me-3"></i>
+            <div>
+                <strong>Payment Cancelled</strong><br>
+                You cancelled the checkout process. No charges were made.
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #f59e0b !important;">
@@ -258,7 +282,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 </div>
                 
                 <label class="form-label fw-bold text-dark small mb-2">Select Fee to Pay:</label>
-                <select id="paymongoCategorySelect" class="form-select mb-3 shadow-sm">
+                <select id="paymongoCategorySelect" class="form-select mb-3 shadow-sm" onchange="updatePaymongoAmount()">
                     <?php if (empty($payableCategories)): ?>
                         <option value="">No eligible fees available to pay</option>
                     <?php else: ?>
@@ -269,6 +293,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
+
+                <label class="form-label fw-bold text-dark small mb-2">Amount to Pay (PHP):</label>
+                <input type="number" id="paymongoAmountInput" class="form-control mb-3 shadow-sm" step="0.01" placeholder="Enter amount to pay">
 
                 <label class="form-label fw-bold text-dark small mb-3">Choose Payment Method:</label>
                 <div class="d-grid gap-2">
@@ -319,6 +346,26 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 </div>
 
 <script>
+function updatePaymongoAmount() {
+    const selectEl = document.getElementById('paymongoCategorySelect');
+    if (selectEl && selectEl.selectedIndex >= 0) {
+        const option = selectEl.options[selectEl.selectedIndex];
+        const amount = option.getAttribute('data-amount');
+        if (amount) {
+            document.getElementById('paymongoAmountInput').value = parseFloat(amount).toFixed(2);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('paymongoModal');
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', function () {
+            updatePaymongoAmount();
+        });
+    }
+});
+
 function initiatePayMongoCheckout() {
     const selectEl = document.getElementById('paymongoCategorySelect');
     const categoryId = selectEl.value;
@@ -328,7 +375,30 @@ function initiatePayMongoCheckout() {
         return;
     }
     
-    const amount = parseFloat(selectEl.options[selectEl.selectedIndex].getAttribute('data-amount'));
+    const maxAmount = parseFloat(selectEl.options[selectEl.selectedIndex].getAttribute('data-amount'));
+    const amountInput = document.getElementById('paymongoAmountInput');
+    const inputAmount = parseFloat(amountInput.value);
+
+    if (isNaN(inputAmount) || inputAmount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+    }
+
+    if (inputAmount > maxAmount) {
+        alert("Amount cannot exceed the remaining balance for this category (PHP " + maxAmount.toFixed(2) + ").");
+        return;
+    }
+
+    if (maxAmount >= 1000 && inputAmount < 1000) {
+        alert("The minimum payment amount is PHP 1,000.00.");
+        return;
+    }
+
+    if (maxAmount < 1000 && inputAmount !== maxAmount) {
+        alert("Since the balance is below PHP 1,000.00, you must pay the exact remaining amount (PHP " + maxAmount.toFixed(2) + ").");
+        return;
+    }
+
     const studentId = "<?= addslashes($dbStudentId ?? '') ?>";
     const billingId = "<?= addslashes($billingDetails['billing_id'] ?? '') ?>";
 
@@ -351,7 +421,7 @@ function initiatePayMongoCheckout() {
             student_id: studentId,
             billing_id: billingId,
             category_id: categoryId,
-            amount: amount
+            amount: inputAmount
         })
     })
     .then(response => response.json())

@@ -204,6 +204,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <h5 class="fw-bold mb-3"><p class="fas fa-money-bill-wave text-success me-2"></p>2. Receive Payment & Issue OR</h5>
                     
                     <form action="" method="POST" id="paymentForm">
+                        <?= csrfField(); ?>
                         <input type="hidden" name="billing_id" id="inputBillingId">
                         <input type="hidden" name="student_id" id="inputStudentId">
 

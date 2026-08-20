@@ -302,7 +302,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             </tr>
 
                             <?php foreach ($group['items'] as $fee): ?>
-                                <tr class="collapse <?= $collapseId ?> show" style="background-color: rgba(0,0,0,0.02);">
+                                <tr class="collapse <?= $collapseId ?>" style="background-color: rgba(0,0,0,0.02);">
                                     <td class="ps-5">
                                         <div class="fw-bold text-dark"><?= htmlspecialchars($fee['fee_name']) ?></div>
                                     </td>
