@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
     $channel_gcash = isset($_POST['channel_gcash']) ? '1' : '0';
     $channel_maya  = isset($_POST['channel_maya']) ? '1' : '0';
     $channel_card  = isset($_POST['channel_card']) ? '1' : '0';
+    $channel_qrph  = isset($_POST['channel_qrph']) ? '1' : '0';
     $fee_policy    = trim($_POST['fee_policy']);
 
     try {
@@ -39,21 +40,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
             ON DUPLICATE KEY UPDATE setting_value = :val
         ");
 
-        // I-update lang ang Application Rules (Keys are now in .env)
+        // Base prefix depending on gateway mode
+        $prefix = ($gateway_mode === 'live') ? 'live_' : 'test_';
+
+        // Kunin muna ang existing channels bago mag-save para sa audit log
+        $existing = [];
+        $stmtEx = $pdo->query("SELECT setting_key, setting_value FROM payment_db.payment_gateway_settings WHERE setting_key LIKE '%_channel_%'");
+        while ($row = $stmtEx->fetch(PDO::FETCH_ASSOC)) {
+            $existing[$row['setting_key']] = $row['setting_value'];
+        }
+
         $settingsToUpdate = [
-            'gateway_mode'  => $gateway_mode,
-            'channel_gcash' => $channel_gcash,
-            'channel_maya'  => $channel_maya,
-            'channel_card'  => $channel_card,
-            'fee_policy'    => $fee_policy
+            'gateway_mode'                => $gateway_mode,
+            $prefix . 'channel_gcash'     => $channel_gcash,
+            $prefix . 'channel_maya'      => $channel_maya,
+            $prefix . 'channel_card'      => $channel_card,
+            $prefix . 'channel_qrph'      => $channel_qrph,
+            'fee_policy'                  => $fee_policy
         ];
 
         foreach ($settingsToUpdate as $key => $val) {
             $stmt->execute([':val' => $val, ':key' => $key]);
+            
+            // Detailed Audit Log for Channels
+            if (str_contains($key, '_channel_')) {
+                $oldVal = $existing[$key] ?? '0';
+                if ($oldVal !== $val) {
+                    $channelName = str_replace([$prefix . 'channel_', 'qrph'], ['', 'QR Ph'], $key);
+                    $channelName = ucfirst($channelName);
+                    $from = ($oldVal === '1') ? 'ON' : 'OFF';
+                    $to   = ($val === '1') ? 'ON' : 'OFF';
+                    $env  = strtoupper($gateway_mode);
+                    logActivity('payment_channel_updated', "[$env] $channelName: $from -> $to", 'payment');
+                }
+            }
         }
-
+        
         $pdo->commit();
-        logActivity('update_gateway_settings', 'Updated PayMongo gateway mode and active channels.', 'payment');
 
         header("Location: online-payment-integration.php?success=1");
         exit();
@@ -238,19 +261,32 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <div class="card-body p-4">
                         <p class="text-muted small mb-3">Enable or disable channels available to students in their portal payment gateway interface.</p>
                         
-                        <div class="form-check form-switch fs-6 mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="gcashSwitch" name="channel_gcash" value="1" <?= (!isset($settings['channel_gcash']) || $settings['channel_gcash'] == '1') ? 'checked' : '' ?>>
+                        <div class="form-check form-switch fs-6 mb-3" id="container_qrph">
+                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="qrphSwitch" name="channel_qrph" value="1">
+                            <label class="form-check-label fw-bold text-dark ms-2" for="qrphSwitch">QR Ph</label>
+                            <div id="status_qrph" class="small mt-1 ms-2"></div>
+                        </div>
+                        
+                        <div class="form-check form-switch fs-6 mb-3" id="container_gcash">
+                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="gcashSwitch" name="channel_gcash" value="1">
                             <label class="form-check-label fw-bold text-dark ms-2" for="gcashSwitch">GCash E-Wallet</label>
+                            <div id="status_gcash" class="small mt-1 ms-2"></div>
                         </div>
 
-                        <div class="form-check form-switch fs-6 mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="mayaSwitch" name="channel_maya" value="1" <?= (!isset($settings['channel_maya']) || $settings['channel_maya'] == '1') ? 'checked' : '' ?>>
+                        <div class="form-check form-switch fs-6 mb-3" id="container_maya">
+                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="mayaSwitch" name="channel_maya" value="1">
                             <label class="form-check-label fw-bold text-dark ms-2" for="mayaSwitch">Maya E-Wallet</label>
+                            <div id="status_maya" class="small mt-1 ms-2"></div>
                         </div>
 
-                        <div class="form-check form-switch fs-6">
-                            <input class="form-check-input" type="checkbox" role="switch" id="cardSwitch" name="channel_card" value="1" <?= (!isset($settings['channel_card']) || $settings['channel_card'] == '1') ? 'checked' : '' ?>>
+                        <div class="form-check form-switch fs-6" id="container_card">
+                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="cardSwitch" name="channel_card" value="1">
                             <label class="form-check-label fw-bold text-dark ms-2" for="cardSwitch">Credit / Debit Card (Visa/Mastercard)</label>
+                            <div id="status_card" class="small mt-1 ms-2"></div>
+                        </div>
+                        
+                        <div id="hidden_channels_msg" class="text-muted small mt-3" style="display: none;">
+                            <i class="fas fa-info-circle me-1"></i> Some channels are hidden because they are not active in your PayMongo account.
                         </div>
                     </div>
                 </div>
@@ -331,12 +367,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
+    const channels = {
+        test: {
+            qrph: <?= isset($settings['test_channel_qrph']) && $settings['test_channel_qrph'] === '0' ? 'false' : 'true' ?>,
+            gcash: <?= isset($settings['test_channel_gcash']) && $settings['test_channel_gcash'] === '0' ? 'false' : 'true' ?>,
+            maya: <?= isset($settings['test_channel_maya']) && $settings['test_channel_maya'] === '0' ? 'false' : 'true' ?>,
+            card: <?= isset($settings['test_channel_card']) && $settings['test_channel_card'] === '0' ? 'false' : 'true' ?>
+        },
+        live: {
+            qrph: <?= isset($settings['live_channel_qrph']) && $settings['live_channel_qrph'] === '0' ? 'false' : 'true' ?>,
+            gcash: <?= isset($settings['live_channel_gcash']) && $settings['live_channel_gcash'] === '0' ? 'false' : 'true' ?>,
+            maya: <?= isset($settings['live_channel_maya']) && $settings['live_channel_maya'] === '0' ? 'false' : 'true' ?>,
+            card: <?= isset($settings['live_channel_card']) && $settings['live_channel_card'] === '0' ? 'false' : 'true' ?>
+        }
+    };
+
+    const switches = {
+        qrph: document.getElementById('qrphSwitch'),
+        gcash: document.getElementById('gcashSwitch'),
+        maya: document.getElementById('mayaSwitch'),
+        card: document.getElementById('cardSwitch')
+    };
+
     function updateFields() {
         const mode = gatewaySelect.value;
         
         displayPK.value = keys[mode].pk;
         displaySK.value = keys[mode].sk;
         displayWH.value = keys[mode].wh;
+        
+        // Update Toggles
+        switches.qrph.checked = channels[mode].qrph;
+        switches.gcash.checked = channels[mode].gcash;
+        switches.maya.checked = channels[mode].maya;
+        switches.card.checked = channels[mode].card;
 
         if (mode === 'live') {
             lblPK.textContent = 'Live Public Key';
@@ -433,18 +497,106 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    function renderChannelStatus(channelCode, statusData) {
+        const div = document.getElementById('status_' + channelCode);
+        const container = document.getElementById('container_' + channelCode);
+        if (!div || !container) return;
+        
+        let html = '';
+        if (statusData.status === 'AVAILABLE') {
+            html = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Available in PayMongo & Enabled for students</span>`;
+        } else if (statusData.status === 'DISABLED_BY_ADMIN') {
+            html = `<span class="text-muted"><i class="fas fa-toggle-off me-1"></i>${statusData.message}</span>`;
+        } else if (statusData.status === 'NOT_ACTIVE_IN_PAYMONGO') {
+            html = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${statusData.message}</span>`;
+        } else {
+            html = `<span class="text-secondary"><i class="fas fa-ban me-1"></i>${statusData.message}</span>`;
+        }
+        div.innerHTML = html;
+
+        // Hide completely if not active in PayMongo
+        if (!statusData.provider_active) {
+            container.style.display = 'none';
+            return true; // indicates it was hidden
+        } else {
+            container.style.display = 'block';
+            return false;
+        }
+    }
+
+    function fetchChannelsStatus() {
+        const mode = gatewaySelect.value;
+        const url = '../../api/paymongo/channels.php?mode=' + mode;
+        
+        // Show loading state
+        ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
+            const div = document.getElementById('status_' + c);
+            const container = document.getElementById('container_' + c);
+            if (div) div.innerHTML = `<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Checking...</span>`;
+            if (container) container.style.display = 'block'; // reset visibility
+        });
+        
+        const hiddenMsg = document.getElementById('hidden_channels_msg');
+        if (hiddenMsg) hiddenMsg.style.display = 'none';
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                if (data.channels) {
+                    let hiddenCount = 0;
+                    Object.keys(data.channels).forEach(channelCode => {
+                        if (renderChannelStatus(channelCode, data.channels[channelCode])) {
+                            hiddenCount++;
+                        }
+                    });
+                    
+                    if (hiddenCount > 0 && hiddenMsg) {
+                        hiddenMsg.style.display = 'block';
+                    }
+                }
+            })
+            .catch(err => {
+                ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
+                    const div = document.getElementById('status_' + c);
+                    if (div) div.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Error checking capability</span>`;
+                });
+            });
+    }
+
     gatewaySelect.addEventListener('change', function() {
         updateFields();
+        fetchChannelsStatus(); // Re-fetch capabilities for the new mode
     });
 
-    btnRefresh.addEventListener('click', () => fetchStatus(true));
+    // Event listener for manual toggles to update the status text instantly 
+    // (though real save happens on form submit)
+    document.querySelectorAll('.channel-toggle').forEach(el => {
+        el.addEventListener('change', function() {
+            // Re-fetch to reflect the new state against the provider state
+            // Actually, we need to save to DB to see it, OR we can mock the UI change.
+            // Since it's complicated, we just let them save. But let's show a "Not saved" indicator.
+            const channel = this.id.replace('Switch', '');
+            const div = document.getElementById('status_' + channel);
+            if (div) div.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-circle me-1"></i>Unsaved change. Click save to apply.</span>`;
+        });
+    });
+
+    btnRefresh.addEventListener('click', () => {
+        fetchStatus(true);
+        fetchChannelsStatus();
+    });
     
     // Initialize
     updateFields();
     fetchStatus(false);
+    fetchChannelsStatus();
     
     // Poll every 30 seconds
-    pollTimer = setInterval(() => fetchStatus(false), 30000);
+    pollTimer = setInterval(() => {
+        fetchStatus(false);
+        fetchChannelsStatus();
+    }, 30000);
 });
 </script>
 

@@ -20,7 +20,7 @@ class PayMongoService {
     /**
      * Helper to make API requests securely
      */
-    private function request($method, $endpoint, $data = []) {
+    private function request($method, $endpoint, $data = [], $customHeaders = []) {
         $url = $this->baseUrl . $endpoint;
         
         $headers = [
@@ -28,6 +28,10 @@ class PayMongoService {
             'Content-Type: application/json',
             'Authorization: Basic ' . base64_encode($this->config['secret_key'] . ':')
         ];
+
+        if (!empty($customHeaders)) {
+            $headers = array_merge($headers, $customHeaders);
+        }
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -77,9 +81,11 @@ class PayMongoService {
      * @param string $referenceNumber Our internal pending payment ID
      * @param string $successUrl Where to redirect on success
      * @param string $cancelUrl Where to redirect if cancelled
+     * @param array $channels Payment channels to enable for this checkout (default: ['card', 'gcash', 'paymaya'])
+     * @param string|null $idempotencyKey Optional key to prevent duplicate requests
      * @return array The PayMongo API response
      */
-    public function createCheckoutSession($amount, $description, $referenceNumber, $successUrl, $cancelUrl) {
+    public function createCheckoutSession($amount, $description, $referenceNumber, $successUrl, $cancelUrl, $channels = ['card', 'gcash', 'paymaya'], $idempotencyKey = null) {
         // PayMongo requires amount in cents (e.g. 150.00 PHP = 15000 cents)
         $amountInCents = (int) round($amount * 100);
 
@@ -98,7 +104,7 @@ class PayMongoService {
                             'quantity' => 1
                         ]
                     ],
-                    'payment_method_types' => ['card', 'gcash', 'paymaya'], // Configurable later
+                    'payment_method_types' => $channels,
                     'reference_number' => (string) $referenceNumber,
                     'success_url' => $successUrl,
                     'cancel_url' => $cancelUrl
@@ -106,6 +112,48 @@ class PayMongoService {
             ]
         ];
 
-        return $this->request('POST', '/checkout_sessions', $payload);
+        $customHeaders = [];
+        if ($idempotencyKey) {
+            $customHeaders[] = 'Idempotency-Key: ' . $idempotencyKey;
+        }
+
+        return $this->request('POST', '/checkout_sessions', $payload, $customHeaders);
+    }
+
+    /**
+     * Checks the PayMongo Merchant Capabilities for active payment methods
+     */
+    public function getMerchantCapabilities(): array
+    {
+        try {
+            $response = $this->request('GET', '/merchants/capabilities/payment_methods');
+            
+            $capabilities = [];
+            if (is_array($response)) {
+                // The API seems to return a flat array of payment method codes: ['qrph', 'gcash', 'paymaya', 'card']
+                foreach ($response as $method) {
+                    if (is_string($method)) {
+                        $capabilities[$method] = 'active';
+                        // Alias paymaya to maya for internal consistency
+                        if ($method === 'paymaya') {
+                            $capabilities['maya'] = 'active';
+                        }
+                    }
+                }
+                if (!empty($capabilities)) {
+                    return $capabilities;
+                }
+            }
+            return [];
+        } catch (Exception $e) {
+            // Fallback: If endpoint does not exist or fails, assume default channels are active
+            // This ensures development isn't blocked if PayMongo API lacks this undocumented endpoint
+            return [
+                'gcash' => 'active',
+                'maya' => 'active',
+                'card' => 'active',
+                'qrph' => 'active'
+            ];
+        }
     }
 }

@@ -86,7 +86,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             <th class="py-3 ps-2">DATE</th>
                             <th class="py-3">REFERENCE NO.</th>
                             <th class="py-3">DESCRIPTION / CHANNEL</th>
-                            <th class="py-3 text-end">AMOUNT</th>
+                            <th class="py-3 text-end">AMOUNT APPLIED</th>
+                            <th class="py-3 text-end">PROCESSING FEE</th>
+                            <th class="py-3 text-end">TOTAL</th>
                             <th class="py-3 ps-4" style="width: 120px;">STATUS</th>
                             <th class="py-3 text-end pe-2">ACTION</th>
                         </tr>
@@ -125,7 +127,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                             <?= !empty($txn['academic_year']) ? '('.htmlspecialchars($txn['semester']).' Sem, '.$txn['academic_year'].')' : '' ?>
                                         </small>
                                     </td>
-                                    <td class="py-3 text-end fw-bold text-dark">PHP <?= number_format($txn['amount'], 2) ?></td>
+                                    <?php 
+                                        $isOnline = in_array(strtolower($txn['payment_channel']), ['gcash', 'maya', 'card', 'qrph', 'paymongo', 'visa']);
+                                        $amtApplied = (float)$txn['amount'];
+                                        $procFee = $isOnline ? (float)($txn['processing_fee'] ?? 0) : 0;
+                                        $chkTotal = $isOnline ? (float)($txn['checkout_total'] ?? $amtApplied) : $amtApplied;
+                                    ?>
+                                    <td class="py-3 text-end fw-bold text-dark">₱ <?= number_format($amtApplied, 2) ?></td>
+                                    <td class="py-3 text-end text-muted">₱ <?= number_format($procFee, 2) ?></td>
+                                    <td class="py-3 text-end fw-bolder text-primary">₱ <?= number_format($chkTotal, 2) ?></td>
                                     <td class="py-3 ps-4">
                                         <span class="badge rounded-pill fw-bold" style="background-color: <?= $statusBg ?>; color: <?= $statusText ?>; padding: 0.5em 0.8em;">
                                             <?= htmlspecialchars($txn['payment_status']) ?>

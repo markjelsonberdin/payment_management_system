@@ -13,6 +13,9 @@ require_once __DIR__ . '/../config/config.php';
 
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
+require_once ROOT_PATH . '/modules/payment/includes/PaymentChannelService.php';
+require_once ROOT_PATH . '/modules/payment/includes/ConvenienceFeeService.php';
+
 
 if (isset($_GET['process']) && $_GET['process'] === 'soa') {
     header('Location: statement-of-account.php');
@@ -105,10 +108,28 @@ try {
         }
     }
 } catch (PDOException $e) {
+} catch (PDOException $e) {
     // Silently handle errors para hindi masira ang UI
 }
 
-// 4. Load the UI Header (Sidebar, Topbar, CSS)
+// 4. Fetch Available Payment Channels
+$activeChannels = [];
+try {
+    // We need the payment DB connection for PaymentChannelService
+    require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+    global $pdo; // Override to the payment DB one
+    
+    require_once ROOT_PATH . '/modules/payment/includes/PayMongoService.php';
+    $paymongo = new PayMongoService();
+    
+    $channelService = new PaymentChannelService($pdo);
+    $env = $channelService->getActiveEnvironment();
+    $activeChannels = $channelService->getChannelStatuses($paymongo, $env);
+} catch (Exception $e) {
+    // Fallback if error
+}
+
+// 5. Load the UI Header (Sidebar, Topbar, CSS)
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 
@@ -299,8 +320,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                 <label class="form-label fw-bold text-dark small mb-3">Choose Payment Method:</label>
                 <div class="d-grid gap-2">
+                    <?php if (isset($activeChannels['gcash']) && $activeChannels['gcash']['status'] === 'AVAILABLE'): ?>
                     <!-- GCash -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout()">
+                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('gcash')">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">G</div>
                             <div>
@@ -310,8 +332,11 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         </div>
                         <i class="fas fa-chevron-right text-muted"></i>
                     </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($activeChannels['maya']) && $activeChannels['maya']['status'] === 'AVAILABLE'): ?>
                     <!-- Maya -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout()">
+                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('maya')">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">M</div>
                             <div>
@@ -321,8 +346,25 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         </div>
                         <i class="fas fa-chevron-right text-muted"></i>
                     </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($activeChannels['qrph']) && $activeChannels['qrph']['status'] === 'AVAILABLE'): ?>
+                    <!-- QR Ph -->
+                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('qrph')">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-qrcode"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark mb-0">QR Ph</div>
+                                <small class="text-muted">Scan to pay via any supported app</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($activeChannels['card']) && $activeChannels['card']['status'] === 'AVAILABLE'): ?>
                     <!-- Card -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout()">
+                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('card')">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-credit-card"></i></div>
                             <div>
@@ -332,6 +374,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         </div>
                         <i class="fas fa-chevron-right text-muted"></i>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -366,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function initiatePayMongoCheckout() {
+function initiatePayMongoCheckout(channel) {
     const selectEl = document.getElementById('paymongoCategorySelect');
     const categoryId = selectEl.value;
     
@@ -412,7 +455,7 @@ function initiatePayMongoCheckout() {
     document.querySelectorAll('.paymongo-btn').forEach(btn => btn.style.pointerEvents = 'none');
 
     // Call our Phase 5 API endpoint
-    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/create-checkout-session.php", {
+    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/create-checkout.php", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -421,12 +464,13 @@ function initiatePayMongoCheckout() {
             student_id: studentId,
             billing_id: billingId,
             category_id: categoryId,
-            amount: inputAmount
+            amount: inputAmount,
+            channel: channel
         })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.status === 'success' && data.checkout_url) {
+        if (data.success && data.checkout_url) {
             // Redirect the student to PayMongo secure checkout page
             window.location.href = data.checkout_url;
         } else {

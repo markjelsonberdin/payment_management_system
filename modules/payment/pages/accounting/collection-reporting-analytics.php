@@ -165,7 +165,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     <th class="ps-4">OR / Ref</th>
                                     <th>Student</th>
                                     <th>Channel</th>
-                                    <th class="text-end pe-4">Amount</th>
+                                    <th class="text-end pe-4">Applied</th>
                                 </tr>
                             </thead>
                             <tbody>

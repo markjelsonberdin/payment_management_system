@@ -245,6 +245,10 @@ $MODULES = [
                 'admin/online-payment-integration',
                 'admin/payment-users',
             ],
+            'ADMIN REPORTING' => [
+                'admin/transaction-history',
+                'admin/collection-analytics',
+            ],
         ],
         'pages' => [
             // Accounting / Cashier Pages
@@ -259,6 +263,10 @@ $MODULES = [
             ['slug' => 'admin/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
             ['slug' => 'admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
             ['slug' => 'admin/payment-users', 'title' => 'Cashier Accounts', 'permission' => 'payment.user_management'],
+            
+            // Admin Reporting Pages
+            ['slug' => 'admin/transaction-history', 'title' => 'Transaction History', 'permission' => 'payment.transaction_history_view'],
+            ['slug' => 'admin/collection-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.collection_analytics_view'],
         ],
     ],
     'faculty' => [

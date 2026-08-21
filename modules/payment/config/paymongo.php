@@ -12,19 +12,11 @@ payment_load_env(__DIR__ . '/../.env');
 $gatewayMode = 'test'; // Default
 
 try {
-    $dbHost = getenv('DB_HOST') ?: '127.0.0.1';
-    $dbPort = getenv('DB_PORT') ?: '3306';
-    $dbName = getenv('DB_DATABASE') ?: 'payment_db';
-    $dbUser = getenv('DB_USERNAME') ?: 'root';
-    $dbPass = getenv('DB_PASSWORD') ?: '';
-
-    $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4";
-    $pdoConfig = new PDO($dsn, $dbUser, $dbPass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    // Use central database connection to ensure correct port (e.g. 3307) and credentials
+    require_once __DIR__ . '/../database/db_connect.php';
+    global $pdo;
     
-    $stmt = $pdoConfig->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+    $stmt = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
     if ($row = $stmt->fetch()) {
         $gatewayMode = $row['setting_value'] === 'live' ? 'live' : 'test';
     }

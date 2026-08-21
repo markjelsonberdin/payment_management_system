@@ -1,132 +1,154 @@
 <?php
 /**
- * PayMongo Webhook Endpoint (Phase 6)
+ * SMS 2 - PayMongo Webhook Endpoint
  * 
- * Receives asynchronous payment event notifications from PayMongo.
+ * Handles incoming webhooks from PayMongo (e.g., checkout_session.payment.paid)
+ * and processes the automated payment verification and allocation securely.
  */
 
-require_once __DIR__ . '/../../includes/PayMongoWebhookSecurityService.php';
-require_once __DIR__ . '/../../includes/OnlinePaymentVerificationService.php';
-require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
+require_once __DIR__ . '/../../../config/config.php';
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+require_once ROOT_PATH . '/modules/payment/includes/PayMongoWebhookSecurityService.php';
+require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
 
-// FIX A: Gumamit ng centralized database connection
-// Siguraduhing tama ang path ng iyong db_connect.php file dito.
-// Assuming na ang db_connect.php mo ay nag-i-initialize ng $pdo variable.
+// We don't want PHP to display errors back to the caller in HTML format.
+// Log them instead so PayMongo gets a clean HTTP response.
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+header('Content-Type: application/json');
+
 try {
-    // Kung wala ka pang db_connect.php, i-uncomment mo pansamantala yung lumang PDO mo dito
-    // pero mas maganda kung i-require mo na lang 'yung config mo.
-    require_once __DIR__ . '/../database/db_connect.php'; 
-    
-    // Kung ang db_connect.php mo ay walang error mode, siguraduhing naka-set ito:
-    if (isset($pdo)) {
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    } else {
-        throw new PDOException("Database connection not established.");
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception("Invalid request method");
     }
-} catch (PDOException $e) {
-    http_response_code(500);
-    exit('Database connection failed: ' . $e->getMessage());
-}
 
-$rawPayload = file_get_contents('php://input');
-$signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'] ?? '';
+    // 1. Read raw body + headers
+    $rawPayload = file_get_contents('php://input');
+    $signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'] ?? '';
 
-if (!$rawPayload) {
-    http_response_code(400);
-    exit('No payload');
-}
+    // 2. Determine environment based on our DB settings
+    $stmtMode = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+    $activeMode = $stmtMode->fetchColumn() ?: 'test';
 
-try {
-    $securityService = new PayMongoWebhookSecurityService($pdo);
-    
-    // 1. Verify Signature (Phase 7)
+    // 3. Verify HMAC signature & Validate timestamp / replay window
+    // The security service automatically pulls the correct secret key and verifies 'te' or 'li' based on activeMode
+    $securityService = new PayMongoWebhookSecurityService($pdo, $activeMode);
     $securityService->verifySignature($signatureHeader, $rawPayload);
 
-    $event = json_decode($rawPayload, true);
-
-    if (!isset($event['data']['type']) || $event['data']['type'] !== 'event') {
-        throw new Exception("Invalid event payload type.");
+    // 4. Parse JSON
+    $payload = json_decode($rawPayload, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Invalid JSON payload");
     }
 
-    $eventType = $event['data']['attributes']['type'];
-
-    // 2. Event Type Validation
-    if ($eventType === 'checkout_session.payment.paid') {
-        $checkoutSessionData = $event['data']['attributes']['data'];
-        $sessionId = $checkoutSessionData['id'];
-        
-        // Find internal payment by sessionId
-        $stmt = $pdo->prepare("SELECT payment_id, student_id, billing_id, amount FROM payments WHERE reference_number = :ref");
-        $stmt->execute([':ref' => $sessionId]);
-        $internalPayment = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($internalPayment) {
-            $paymentId = $internalPayment['payment_id'];
-            
-            // 3. Duplicate/Idempotency Validation (Phase 7)
-            if ($securityService->isDuplicate($paymentId)) {
-                error_log("Webhook Error: Duplicate or already processed payment for Session ID: " . $sessionId);
-            } else {
-                // 4. Verification of Amount against Internal Records (Phase 8)
-                $verificationService = new OnlinePaymentVerificationService($pdo);
-                
-                // FIX B: Naka-apply na 'yung error throwing mo dito imbes na fallback amount. Solid!
-                $paymongoAmountPaid = $checkoutSessionData['attributes']['payments'][0]['attributes']['amount'] ?? null;
-                if ($paymongoAmountPaid === null) {
-                    throw new Exception("Amount missing from PayMongo payload.");
-                }
-
-                $verificationResult = $verificationService->verifyPayment($sessionId, $paymongoAmountPaid);
-                
-                error_log("Phase 8 Verified! Internal Payment ID: " . $paymentId . " is authentic and exact amount matches.");
-                
-                // 5. Database Execution & Allocation (Phase 9)
-                $remarksData = json_decode($verificationResult['remarks'], true);
-                $categoryId = $remarksData['category_id'] ?? null;
-                $studentId = $internalPayment['student_id'];
-                $billingId = $internalPayment['billing_id'];
-                $amountPaid = (float) $internalPayment['amount'];
-
-                if (!$categoryId) {
-                    throw new Exception("Missing category_id context in internal payment.");
-                }
-
-                // FIX C: Binalot na natin sa iisang Parent Transaction ang Status Update at Allocation!
-                try {
-                    $pdo->beginTransaction();
-
-                    // Update internal payment status to Verified
-                    $updateStmt = $pdo->prepare("
-                        UPDATE payments 
-                        SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP 
-                        WHERE payment_id = :pid
-                    ");
-                    $updateStmt->execute([':pid' => $paymentId]);
-
-                    // Execute Allocation Engine
-                    $allocationService = new PaymentAllocationService($pdo);
-                    $allocationService->allocatePayment($paymentId, $studentId, $billingId, $amountPaid, 'DesignatedCategory', $categoryId);
-                    
-                    // Kapag walang pumalya sa update at allocation, i-commit natin!
-                    $pdo->commit();
-                    error_log("Phase 9 Success! Payment Allocation completed for Payment ID: " . $paymentId);
-
-                } catch (Exception $e) {
-                    // Kapag may pumalya (halimbawa nagka-error sa allocation logic), i-rollback pati yung 'Verified' status
-                    $pdo->rollBack();
-                    throw new Exception("Allocation Failed: " . $e->getMessage());
-                }
-            }
-        } else {
-            error_log("Webhook Error: No matching internal payment found for Session ID: " . $sessionId);
-        }
+    // 5. Validate event = checkout_session.payment.paid
+    $eventType = $payload['data']['attributes']['type'] ?? '';
+    if ($eventType !== 'checkout_session.payment.paid') {
+        // Ignored event, but still return 200 OK so PayMongo knows we received it
+        echo json_encode(['success' => true, 'message' => 'Event ignored']);
+        exit;
     }
 
-    http_response_code(200);
-    echo "Webhook received and verified";
+    $eventData = $payload['data']['attributes']['data'] ?? [];
+    $checkoutSessionId = $eventData['id'] ?? '';
+    $referenceNumber = $eventData['attributes']['reference_number'] ?? '';
+    $paymongoCheckoutAmount = $eventData['attributes']['line_items'][0]['amount'] ?? 0;
+    
+    // PayMongo amount is in cents
+    $paymongoCheckoutAmountDec = $paymongoCheckoutAmount / 100;
+
+    // 6. Validate environment (Test mode should not process live payloads, and vice versa)
+    $payloadEnv = $eventData['attributes']['livemode'] ? 'live' : 'test';
+    if ($payloadEnv !== $activeMode) {
+        // Log anomaly but don't fail, maybe just ignore
+        throw new Exception("Environment mismatch: Webhook is $payloadEnv but system is $activeMode");
+    }
+
+    if (empty($checkoutSessionId)) {
+        throw new Exception("Missing checkout_session_id in payload");
+    }
+
+    // 7. Find internal payment by checkout_session_id
+    $stmt = $pdo->prepare("
+        SELECT payment_id, student_id, billing_id, category_id, amount, processing_fee, checkout_total, payment_status 
+        FROM payment_db.payments 
+        WHERE checkout_session_id = :session_id
+    ");
+    $stmt->execute([':session_id' => $checkoutSessionId]);
+    $internalPayment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$internalPayment) {
+        throw new Exception("No internal payment record found for checkout_session_id: $checkoutSessionId");
+    }
+
+    // 8. Idempotency/state check
+    if ($internalPayment['payment_status'] === 'Verified') {
+        // Already processed, return 200 OK no-op
+        echo json_encode(['success' => true, 'message' => 'Already verified']);
+        exit;
+    }
+
+    if ($internalPayment['payment_status'] !== 'Pending') {
+        throw new Exception("Payment record is in an unexpected state: " . $internalPayment['payment_status']);
+    }
+
+    // 9. Validate expected checkout_total against actual PayMongo amount
+    $expectedTotal = (float) $internalPayment['checkout_total'];
+    if (abs($expectedTotal - $paymongoCheckoutAmountDec) > 0.01) {
+        throw new Exception("Amount mismatch. Expected: $expectedTotal, Actual: $paymongoCheckoutAmountDec");
+    }
+
+    // 10. BEGIN DB TRANSACTION
+    $pdo->beginTransaction();
+
+    // 11. Mark payment Verified
+    $stmtUpdate = $pdo->prepare("
+        UPDATE payment_db.payments 
+        SET payment_status = 'Verified', updated_at = CURRENT_TIMESTAMP 
+        WHERE payment_id = :pid
+    ");
+    $stmtUpdate->execute([':pid' => $internalPayment['payment_id']]);
+
+    // 12. PaymentAllocationService
+    $allocationService = new PaymentAllocationService($pdo);
+    
+    $studentId = $internalPayment['student_id'];
+    $billingId = $internalPayment['billing_id'];
+    $categoryId = $internalPayment['category_id'];
+    $amountApplied = (float) $internalPayment['amount']; // Only allocate the tuition applied
+
+    $context = $categoryId ? 'DesignatedCategory' : 'Enrollment';
+
+    // 13. Update billing/billing_items (Handled inside PaymentAllocationService)
+    $allocationService->allocatePayment(
+        $internalPayment['payment_id'],
+        $studentId,
+        $billingId,
+        $amountApplied,
+        $context,
+        $categoryId
+    );
+
+    // 14. Update ledger/history (Assuming it's handled by PaymentAllocationService or we can add it later if separate)
+    // The allocation service handles billing_items and parent billing balance recalculation.
+    // If a separate Ledger table exists, we would insert here.
+
+    // 15. COMMIT
+    $pdo->commit();
+
+    // HTTP 200 OK
+    echo json_encode(['success' => true, 'message' => 'Payment successfully verified and allocated']);
 
 } catch (Exception $e) {
-    error_log("Webhook Security Failed: " . $e->getMessage());
-    http_response_code(400);
-    echo "Webhook Security Failed: " . $e->getMessage();
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    
+    // Log error to a file for debugging
+    error_log("[" . date('Y-m-d H:i:s') . "] Webhook Error: " . $e->getMessage() . "\n", 3, __DIR__ . '/webhook_error.log');
+    
+    http_response_code(400); // Bad Request to signal PayMongo that something failed
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

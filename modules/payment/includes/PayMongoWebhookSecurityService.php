@@ -8,11 +8,14 @@ class PayMongoWebhookSecurityService {
     private $pdo;
     private $webhookSecret;
 
-    public function __construct($pdo) {
+    public function __construct($pdo, $env = 'test') {
         $this->pdo = $pdo;
-        // Load secret from config (assuming paymongo config is loaded)
-        $config = require __DIR__ . '/../config/paymongo.php';
-        $this->webhookSecret = $config['webhook_secret'];
+        
+        $settingKey = ($env === 'live') ? 'webhook_secret_live' : 'webhook_secret_test';
+        $stmt = $this->pdo->prepare("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = :key");
+        $stmt->execute([':key' => $settingKey]);
+        
+        $this->webhookSecret = $stmt->fetchColumn() ?: '';
     }
 
     /**

@@ -99,8 +99,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <th class="ps-4 py-3">OR / Ref No.</th>
                             <th class="py-3">Student Details</th>
                             <th class="py-3">Payment Channel</th>
-                            <th class="py-3">Amount Paid</th>
-                            <th class="py-3">Remaining Balance</th>
+                            <th class="py-3 text-end">Amount Applied</th>
+                            <th class="py-3 text-end">Processing Fee</th>
+                            <th class="py-3 text-end">Total</th>
                             <th class="py-3 text-center">Status</th>
                             <th class="py-3">Date & Time</th>
                             <th class="text-end pe-4 py-3">Actions</th>
@@ -116,10 +117,17 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <small class="text-muted"><?= htmlspecialchars($pay['student_number']) ?> (<?= htmlspecialchars($pay['course']) ?>)</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-dark border px-2 py-1"><?= htmlspecialchars($pay['payment_channel']) ?></span>
+                                        <span class="badge bg-light text-dark border px-2 py-1"><?= htmlspecialchars($pay['payment_channel'] ?? $pay['payment_method']) ?></span>
                                     </td>
-                                    <td class="fw-bold text-success">₱ <?= number_format($pay['amount'], 2) ?></td>
-                                    <td class="fw-bold text-danger">₱ <?= number_format($pay['remaining_balance'], 2) ?></td>
+                                    <?php 
+                                        $isOnline = in_array(strtolower($pay['payment_channel'] ?? $pay['payment_method']), ['gcash', 'maya', 'card', 'qrph', 'paymongo', 'visa']);
+                                        $amtApplied = (float)$pay['amount'];
+                                        $procFee = $isOnline ? (float)($pay['processing_fee'] ?? 0) : 0;
+                                        $chkTotal = $isOnline ? (float)($pay['checkout_total'] ?? $amtApplied) : $amtApplied;
+                                    ?>
+                                    <td class="fw-bold text-success text-end">₱ <?= number_format($amtApplied, 2) ?></td>
+                                    <td class="text-muted text-end">₱ <?= number_format($procFee, 2) ?></td>
+                                    <td class="fw-bold text-primary text-end">₱ <?= number_format($chkTotal, 2) ?></td>
                                     <td class="text-center">
                                         <?php 
                                         $statusClass = match($pay['payment_status']) {

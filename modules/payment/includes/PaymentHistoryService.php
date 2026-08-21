@@ -35,7 +35,7 @@ class PaymentHistoryService {
         // No cross-database joins to sms2_db.users to prevent schema coupling issues.
         $query = "
             SELECT 
-                p.payment_id, p.reference_number, p.amount, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel,
+                p.payment_id, p.reference_number, p.amount, p.processing_fee, p.checkout_total, p.category_id, p.checkout_session_id, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel,
                 s.student_number, s.full_name, s.course,
                 b.total_amount, b.remaining_balance, b.billing_status
             FROM payments p
@@ -67,7 +67,7 @@ class PaymentHistoryService {
         // 1. Fetch Payment Header
         $stmtHeader = $this->pdo->prepare("
             SELECT 
-                p.payment_id, p.reference_number, p.amount, p.payment_method, p.payment_status, p.created_at, p.remarks,
+                p.payment_id, p.reference_number, p.amount, p.processing_fee, p.checkout_total, p.category_id, p.checkout_session_id, p.payment_method, p.payment_status, p.created_at, p.remarks, p.payment_channel,
                 s.student_number, s.full_name,
                 b.billing_type, b.academic_year, b.semester
             FROM payments p
