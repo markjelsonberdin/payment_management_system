@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PayMongoService.php';
 require_once __DIR__ . '/../../includes/PaymentValidationService.php';
 require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
@@ -51,6 +52,21 @@ try {
         throw new Exception($validation['error']);
     }
 
+    // 2.5. Backend Enforcement: Verify channel is actually available
+    $payMongo = new PayMongoService();
+    $channelService = new PaymentChannelService($pdo);
+    $env = $channelService->getActiveEnvironment();
+    
+    if (!$channelService->isChannelAvailable($payMongo, $env, $channel)) {
+        echo json_encode([
+            'success' => false, 
+            'error' => 'PAYMENT_METHOD_UNAVAILABLE', 
+            'message' => 'This payment method is currently unavailable.'
+        ]);
+        http_response_code(400);
+        exit;
+    }
+
     // 3. Get Fee Policy
     $stmtFee = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'fee_policy'");
     $feePolicyRow = $stmtFee->fetch(PDO::FETCH_ASSOC);
@@ -71,11 +87,18 @@ try {
     ];
     $dbChannel = $dbChannelMap[$channel] ?? 'PayMongo';
 
-    // Generate Unique Reference Number
     $referenceNumber = 'PM-' . time() . '-' . rand(1000, 9999);
 
+    // Map internal channel to exact PayMongo type identifier
+    $payMongoTypeMap = [
+        'gcash' => 'gcash',
+        'maya'  => 'paymaya',
+        'card'  => 'card',
+        'qrph'  => 'qrph'
+    ];
+    $pmType = $payMongoTypeMap[$channel] ?? $channel;
+
     // 5. Create PayMongo Checkout Session FIRST to get the session ID
-    $payMongo = new PayMongoService();
     $description = "Payment for Billing ID #$billingId";
     
     // Note: The URLs must be absolute.
@@ -92,7 +115,7 @@ try {
         $referenceNumber,
         $successUrl,
         $cancelUrl,
-        [$channel], // Force only the selected channel
+        [$pmType], // Force only the mapped selected channel
         $referenceNumber // Use reference number as idempotency key
     );
 

@@ -73,11 +73,26 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h6 class="fw-bold m-0 text-dark">Official Payment Transactions</h6>
-               <!-- Dating code: <a href="payment-concern-portal.php" ...> -->
-<a href="student-concern-portal.php" class="btn btn-sm btn-outline-danger fw-semibold rounded-3 shadow-sm">
-    <i class="fas fa-exclamation-circle me-1"></i> Report an Issue
-</a>
+                <a href="student-concern-portal.php" class="btn btn-sm btn-outline-danger fw-semibold rounded-3 shadow-sm">
+                    <i class="fas fa-exclamation-circle me-1"></i> Report an Issue
+                </a>
             </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-pills nav-fill bg-light rounded-3 p-1 border shadow-sm mb-4" id="paymentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold text-dark rounded-3" id="tab-all" data-bs-toggle="pill" type="button" role="tab" onclick="filterTransactions('All')">All Transactions</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-success rounded-3" id="tab-verified" data-bs-toggle="pill" type="button" role="tab" onclick="filterTransactions('Verified')">Successful</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-warning rounded-3" id="tab-pending" data-bs-toggle="pill" type="button" role="tab" onclick="filterTransactions('Pending')">Pending</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-danger rounded-3" id="tab-failed" data-bs-toggle="pill" type="button" role="tab" onclick="filterTransactions('Failed')">Failed</button>
+                </li>
+            </ul>
             
             <div class="table-responsive mb-2">
                 <table class="table table-hover table-borderless align-middle mb-0">
@@ -112,7 +127,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                         default => '#b91c1c'
                                     };
                                 ?>
-                                <tr class="border-bottom">
+                                <tr class="border-bottom transaction-row" data-status="<?= htmlspecialchars($txn['payment_status']) ?>">
                                     <td class="py-3 ps-2 text-dark">
                                         <div class="fw-bold"><?= $dateFormatted ?></div>
                                         <small class="text-muted" style="font-size: 0.75rem;"><?= date('h:i A', strtotime($txn['created_at'])) ?></small>
@@ -146,6 +161,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                             <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Download Receipt">
                                                 <i class="fas fa-download"></i>
                                             </button>
+                                        <?php elseif ($txn['payment_status'] === 'Pending'): ?>
+                                            <a href="<?= BASE_URL ?>/modules/student-portal/api/resume-payment.php?id=<?= $txn['payment_id'] ?>" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                                                <i class="fas fa-credit-card me-1"></i> Resume
+                                            </a>
                                         <?php else: ?>
                                             <button class="btn btn-sm btn-light border text-muted shadow-sm" disabled title="Receipt not yet available">
                                                 <i class="fas fa-download"></i>
@@ -155,8 +174,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="py-5 text-center text-muted">
+                            <tr id="empty-state-row">
+                                <td colspan="8" class="py-5 text-center text-muted">
                                     <i class="fas fa-folder-open fs-2 mb-3 text-light-gray d-block"></i>
                                     No payment history found yet.
                                 </td>
@@ -181,6 +200,35 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     </div>
 
 </div> <!-- End of student-portal -->
+
+<script>
+function filterTransactions(status) {
+    const rows = document.querySelectorAll('.transaction-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        if (status === 'All' || rowStatus === status) {
+            row.style.display = '';
+            visibleCount++;
+        } else if (status === 'Failed' && (rowStatus === 'Rejected' || rowStatus === 'Failed')) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const emptyState = document.getElementById('empty-state-row');
+    if (emptyState) {
+        if (visibleCount === 0) {
+            emptyState.style.display = '';
+        } else {
+            emptyState.style.display = 'none';
+        }
+    }
+}
+</script>
 
 <!-- 5. Load the UI Footer (Scripts, closing tags) -->
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

@@ -121,6 +121,16 @@ class PayMongoService {
     }
 
     /**
+     * Retrieves an existing PayMongo Checkout Session
+     * 
+     * @param string $sessionId The PayMongo checkout session ID (cs_...)
+     * @return array The PayMongo API response
+     */
+    public function getCheckoutSession($sessionId) {
+        return $this->request('GET', '/checkout_sessions/' . $sessionId);
+    }
+
+    /**
      * Checks the PayMongo Merchant Capabilities for active payment methods
      */
     public function getMerchantCapabilities(): array

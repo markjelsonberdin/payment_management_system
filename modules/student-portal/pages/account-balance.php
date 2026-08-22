@@ -112,22 +112,7 @@ try {
     // Silently handle errors para hindi masira ang UI
 }
 
-// 4. Fetch Available Payment Channels
-$activeChannels = [];
-try {
-    // We need the payment DB connection for PaymentChannelService
-    require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
-    global $pdo; // Override to the payment DB one
-    
-    require_once ROOT_PATH . '/modules/payment/includes/PayMongoService.php';
-    $paymongo = new PayMongoService();
-    
-    $channelService = new PaymentChannelService($pdo);
-    $env = $channelService->getActiveEnvironment();
-    $activeChannels = $channelService->getChannelStatuses($paymongo, $env);
-} catch (Exception $e) {
-    // Fallback if error
-}
+// 4. Removed synchronous fetch of PaymentChannels here. Now handled via AJAX.
 
 // 5. Load the UI Header (Sidebar, Topbar, CSS)
 require_once ROOT_PATH . '/includes/layout-start.php';
@@ -317,64 +302,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                 <label class="form-label fw-bold text-dark small mb-2">Amount to Pay (PHP):</label>
                 <input type="number" id="paymongoAmountInput" class="form-control mb-3 shadow-sm" step="0.01" placeholder="Enter amount to pay">
-
                 <label class="form-label fw-bold text-dark small mb-3">Choose Payment Method:</label>
-                <div class="d-grid gap-2">
-                    <?php if (isset($activeChannels['gcash']) && $activeChannels['gcash']['status'] === 'AVAILABLE'): ?>
-                    <!-- GCash -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('gcash')">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">G</div>
-                            <div>
-                                <div class="fw-bold text-dark mb-0">GCash</div>
-                                <small class="text-muted">Fast & secure e-wallet payment</small>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
+                
+                <!-- Container for dynamically loaded payment buttons -->
+                <div id="payment-methods-container" class="d-grid gap-2">
+                    <div class="text-center py-3 text-muted" id="payment-methods-loading">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                        <small>Loading available payment options...</small>
                     </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($activeChannels['maya']) && $activeChannels['maya']['status'] === 'AVAILABLE'): ?>
-                    <!-- Maya -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('maya')">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">M</div>
-                            <div>
-                                <div class="fw-bold text-dark mb-0">Maya</div>
-                                <small class="text-muted">Pay using your Maya account</small>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($activeChannels['qrph']) && $activeChannels['qrph']['status'] === 'AVAILABLE'): ?>
-                    <!-- QR Ph -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('qrph')">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-qrcode"></i></div>
-                            <div>
-                                <div class="fw-bold text-dark mb-0">QR Ph</div>
-                                <small class="text-muted">Scan to pay via any supported app</small>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (isset($activeChannels['card']) && $activeChannels['card']['status'] === 'AVAILABLE'): ?>
-                    <!-- Card -->
-                    <div class="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn" style="cursor: pointer;" onclick="initiatePayMongoCheckout('card')">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-credit-card"></i></div>
-                            <div>
-                                <div class="fw-bold text-dark mb-0">Credit / Debit Card</div>
-                                <small class="text-muted">Visa, Mastercard, JCB</small>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-muted"></i>
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
             
@@ -479,11 +414,67 @@ function initiatePayMongoCheckout(channel) {
         }
     })
     .catch(error => {
-        console.error("Error:", error);
+        console.error('Error:', error);
         alert("A network error occurred while generating the checkout link.");
         resetCheckoutUI();
     });
 }
+
+// Fetch available payment channels dynamically when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/available-channels.php")
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('payment-methods-container');
+            container.innerHTML = ''; // Clear loading
+            
+            if (data.success && data.channels && data.channels.length > 0) {
+                const channelData = {
+                    'gcash': { bg: 'bg-primary', color: 'text-white', icon: 'G', name: 'GCash', desc: 'Fast & secure e-wallet payment' },
+                    'maya': { bg: 'bg-success', color: 'text-white', icon: 'M', name: 'Maya', desc: 'Pay using your Maya account' },
+                    'qrph': { bg: 'bg-warning', color: 'text-dark', icon: '<i class="fas fa-qrcode"></i>', name: 'QR Ph', desc: 'Scan to pay via any supported app' },
+                    'card': { bg: 'bg-dark', color: 'text-white', icon: '<i class="fas fa-credit-card"></i>', name: 'Credit / Debit Card', desc: 'Visa, Mastercard, JCB' }
+                };
+
+                data.channels.forEach(ch => {
+                    const info = channelData[ch.code];
+                    if (info) {
+                        const btn = document.createElement('div');
+                        btn.className = 'p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center paymongo-btn';
+                        btn.style.cursor = 'pointer';
+                        btn.onclick = () => initiatePayMongoCheckout(ch.code);
+                        btn.innerHTML = `
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="${info.bg} ${info.color} rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">${info.icon}</div>
+                                <div>
+                                    <div class="fw-bold text-dark mb-0">${info.name}</div>
+                                    <small class="text-muted">${info.desc}</small>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right text-muted"></i>
+                        `;
+                        container.appendChild(btn);
+                    }
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted border rounded-3 bg-light">
+                        <i class="fas fa-times-circle fs-3 mb-2 text-secondary"></i>
+                        <div class="fw-bold">No Channels Available</div>
+                        <small>Online payment is currently unavailable.</small>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load payment channels', err);
+            document.getElementById('payment-methods-container').innerHTML = `
+                <div class="text-center py-3 text-danger border rounded-3 bg-light">
+                    <small>Failed to load payment options. Please refresh the page.</small>
+                </div>
+            `;
+        });
+});
 
 function resetCheckoutUI() {
     document.getElementById('checkoutLoading').classList.add('d-none');
