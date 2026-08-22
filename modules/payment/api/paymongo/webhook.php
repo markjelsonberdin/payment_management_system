@@ -6,7 +6,7 @@
  * and processes the automated payment verification and allocation securely.
  */
 
-require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/PayMongoWebhookSecurityService.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
@@ -106,7 +106,7 @@ try {
     // 11. Mark payment Verified
     $stmtUpdate = $pdo->prepare("
         UPDATE payment_db.payments 
-        SET payment_status = 'Verified', updated_at = CURRENT_TIMESTAMP 
+        SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP 
         WHERE payment_id = :pid
     ");
     $stmtUpdate->execute([':pid' => $internalPayment['payment_id']]);

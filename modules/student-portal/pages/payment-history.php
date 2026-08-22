@@ -35,10 +35,11 @@ try {
         // Kunin ang lahat ng payment records ng naka-login na student mula sa payment_db
         // Naka-join tayo sa billing para makuha ang description (hal. Enrollment for 1st Sem)
         $stmtPayments = $pdo->prepare("
-            SELECT p.*, b.academic_year, b.semester, b.billing_type
+            SELECT p.*, b.academic_year, b.semester, b.billing_type, fc.category_name
             FROM payment_db.payments p
             JOIN payment_db.students s ON p.student_id = s.student_id
             LEFT JOIN payment_db.billing b ON p.billing_id = b.billing_id
+            LEFT JOIN payment_db.fee_categories fc ON p.category_id = fc.category_id
             WHERE s.student_number = :student_number
             ORDER BY p.created_at DESC
         ");
@@ -136,7 +137,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                         <?= htmlspecialchars($txn['reference_number'] ?? $txn['receipt_number'] ?? 'N/A') ?>
                                     </td>
                                     <td class="py-3">
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($txn['billing_type'] ?? 'Payment') ?></div>
+                                        <div class="fw-bold text-dark"><?= htmlspecialchars($txn['category_name'] ?? $txn['billing_type'] ?? 'Payment') ?></div>
                                         <small class="text-muted" style="font-size: 0.8rem;">
                                             Via <?= htmlspecialchars($txn['payment_channel']) ?> 
                                             <?= !empty($txn['academic_year']) ? '('.htmlspecialchars($txn['semester']).' Sem, '.$txn['academic_year'].')' : '' ?>
