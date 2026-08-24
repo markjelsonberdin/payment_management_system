@@ -48,43 +48,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_billing'])) 
         $stmtCheck = $pdo->prepare("
             SELECT billing_id FROM payment_db.billing 
             WHERE student_id = :student_id 
-            AND billing_type = :type 
             AND academic_year = :ay 
             AND semester = :sem
         ");
         $stmtCheck->execute([
             ':student_id' => $student_id,
-            ':type'       => $billing_type,
             ':ay'         => $academic_year,
             ':sem'        => $semester
         ]);
 
-        if ($stmtCheck->fetch()) {
-            throw new Exception("Duplicate Error: This student already has an existing $billing_type for $semester Semester, A.Y. $academic_year.");
-        }
-
-        // ==========================================
-        // CALL BILLING SERVICE
-        // ==========================================
-        // Tinanggal na natin ang manual $pdo->beginTransaction() dito dahil 
-        // mismong BillingService na ang naghahandle ng database locking.
+        $existingBilling = $stmtCheck->fetch(PDO::FETCH_ASSOC);
         $billingService = new BillingService($pdo);
-        $discountAmount = 0.00; // Will be implemented in the next phase
-        
-        $billing_id = $billingService->generateBilling(
-            $student_id, 
-            $academic_year, 
-            $semester, 
-            $billing_type, 
-            $selected_fees, 
-            $discountAmount, 
-            $generated_by
-        );
 
-        logActivity('generate_billing', "Generated $billing_type SOA for Student: $student_number", 'payment');
+        if ($existingBilling) {
+            // Append to existing SOA
+            $billing_id = $existingBilling['billing_id'];
+            $appendResult = $billingService->appendFeesToBilling(
+                $billing_id, 
+                $selected_fees, 
+                $billing_type, 
+                $generated_by
+            );
+            
+            $_SESSION['append_result'] = $appendResult;
+            logActivity('append_billing', "Appended $billing_type fees to existing SOA for Student: $student_number", 'payment');
+            header("Location: $redirect_url?success=append");
+            exit();
+        } else {
+            // Generate new SOA
+            $discountAmount = 0.00; // Will be implemented in the next phase
+            
+            $billing_id = $billingService->generateBilling(
+                $student_id, 
+                $academic_year, 
+                $semester, 
+                $billing_type, 
+                $selected_fees, 
+                $discountAmount, 
+                $generated_by
+            );
 
-        header("Location: $redirect_url?success=1");
-        exit();
+            logActivity('generate_billing', "Generated $billing_type SOA for Student: $student_number", 'payment');
+            header("Location: $redirect_url?success=1");
+            exit();
+        }
 
     } catch (Exception $e) {
         // Tinanggal na natin ang $pdo->rollBack() dahil hawak na ito ng BillingService
@@ -187,6 +194,44 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Alerts -->
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
         <div class="alert alert-success shadow-sm"><i class="fas fa-check-circle me-2"></i> Billing generated successfully!</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['success']) && $_GET['success'] == 'append' && isset($_SESSION['append_result'])): ?>
+        <?php $res = $_SESSION['append_result']; ?>
+        <div class="alert alert-success shadow-sm">
+            <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-check-circle me-2"></i> Billing Updated Successfully</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Added:</strong>
+                    <?php if(empty($res['added'])): ?>
+                        <div class="text-muted small">No new fees added.</div>
+                    <?php else: ?>
+                        <ul class="mb-2 small">
+                            <?php foreach($res['added'] as $add): ?>
+                                <li><i class="fas fa-check text-success me-1"></i> <?= htmlspecialchars($add['fee_name']) ?> — ₱ <?= number_format($add['amount'], 2) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+                <div class="col-md-6">
+                    <strong>Skipped:</strong>
+                    <?php if(empty($res['skipped'])): ?>
+                        <div class="text-muted small">None.</div>
+                    <?php else: ?>
+                        <ul class="mb-2 small text-danger">
+                            <?php foreach($res['skipped'] as $feeName => $reason): ?>
+                                <li><i class="fas fa-exclamation-triangle me-1"></i> <?= htmlspecialchars($feeName) ?> — <span class="text-muted"><?= htmlspecialchars($reason) ?></span></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <hr class="my-2 opacity-25">
+            <div class="d-flex gap-3 small fw-bold">
+                <span>New Total: ₱ <?= number_format($res['new_total'], 2) ?></span>
+                <span class="text-primary">Remaining: ₱ <?= number_format($res['new_remaining'], 2) ?></span>
+            </div>
+        </div>
+        <?php unset($_SESSION['append_result']); ?>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($_GET['error']) ?></div>

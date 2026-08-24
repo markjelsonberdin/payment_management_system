@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 21, 2026 at 08:57 AM
+-- Generation Time: Aug 24, 2026 at 03:11 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -47,7 +47,9 @@ CREATE TABLE `billing` (
 --
 
 INSERT INTO `billing` (`billing_id`, `student_id`, `generated_by`, `billing_type`, `academic_year`, `semester`, `total_amount`, `discount_amount`, `remaining_balance`, `billing_status`, `created_at`, `updated_at`) VALUES
-(1, 850, 784, 'Enrollment', '2026-2027', '1st', 4975.00, 0.00, 4975.00, 'Unpaid', '2026-08-20 02:59:18', '2026-08-20 02:59:18');
+(1, 850, 784, 'Enrollment', '2026-2027', '1st', 9175.00, 0.00, 6675.00, 'Partial', '2026-08-20 02:59:18', '2026-08-24 13:04:59'),
+(2, 850, 784, 'Assessment', '2026-2027', '1st', 950.00, 0.00, 950.00, 'Unpaid', '2026-08-22 07:54:11', '2026-08-22 07:54:11'),
+(3, 884, 784, 'Enrollment', '2026-2027', '1st', 5925.00, 0.00, 3925.00, 'Partial', '2026-08-24 10:35:47', '2026-08-24 10:54:53');
 
 --
 -- Triggers `billing`
@@ -77,6 +79,9 @@ CREATE TABLE `billing_items` (
   `billing_id` int(10) UNSIGNED NOT NULL,
   `fee_id` int(10) UNSIGNED NOT NULL,
   `fee_name` varchar(100) NOT NULL,
+  `source_context` varchar(50) NOT NULL,
+  `added_by` int(10) UNSIGNED DEFAULT NULL,
+  `added_at` datetime DEFAULT current_timestamp(),
   `amount` decimal(10,2) NOT NULL,
   `paid_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `remaining_amount` decimal(10,2) NOT NULL,
@@ -87,17 +92,35 @@ CREATE TABLE `billing_items` (
 -- Dumping data for table `billing_items`
 --
 
-INSERT INTO `billing_items` (`billing_item_id`, `billing_id`, `fee_id`, `fee_name`, `amount`, `paid_amount`, `remaining_amount`, `status`) VALUES
-(1, 1, 31, 'Registration', 400.00, 0.00, 400.00, 'Unpaid'),
-(2, 1, 33, 'Library', 650.00, 0.00, 650.00, 'Unpaid'),
-(3, 1, 34, 'Athletics & Sports Dev. Fee', 500.00, 0.00, 500.00, 'Unpaid'),
-(4, 1, 35, 'Cultural Fee', 400.00, 0.00, 400.00, 'Unpaid'),
-(5, 1, 36, 'Guidance & Counseling', 400.00, 0.00, 400.00, 'Unpaid'),
-(6, 1, 37, 'Energy Fee', 1000.00, 0.00, 1000.00, 'Unpaid'),
-(7, 1, 38, 'Laboratory Fee', 600.00, 0.00, 600.00, 'Unpaid'),
-(8, 1, 39, 'Community & Student Dev. Fee', 600.00, 0.00, 600.00, 'Unpaid'),
-(9, 1, 40, 'Insurance', 25.00, 0.00, 25.00, 'Unpaid'),
-(10, 1, 41, 'Medical and Dental', 400.00, 0.00, 400.00, 'Unpaid');
+INSERT INTO `billing_items` (`billing_item_id`, `billing_id`, `fee_id`, `fee_name`, `source_context`, `added_by`, `added_at`, `amount`, `paid_amount`, `remaining_amount`, `status`) VALUES
+(1, 1, 31, 'Registration', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
+(2, 1, 33, 'Library', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 650.00, 650.00, 0.00, 'Paid'),
+(3, 1, 34, 'Athletics & Sports Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 500.00, 500.00, 0.00, 'Paid'),
+(4, 1, 35, 'Cultural Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
+(5, 1, 36, 'Guidance & Counseling', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
+(6, 1, 37, 'Energy Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 1000.00, 150.00, 850.00, 'Partial'),
+(7, 1, 38, 'Laboratory Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 0.00, 600.00, 'Unpaid'),
+(8, 1, 39, 'Community & Student Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 0.00, 600.00, 'Unpaid'),
+(9, 1, 40, 'Insurance', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 25.00, 0.00, 25.00, 'Unpaid'),
+(10, 1, 41, 'Medical and Dental', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 0.00, 400.00, 'Unpaid'),
+(11, 2, 42, 'Student Handbook', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 250.00, 0.00, 250.00, 'Unpaid'),
+(12, 2, 43, 'RFID', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 500.00, 0.00, 500.00, 'Unpaid'),
+(13, 2, 45, 'Research Forum 2026', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 200.00, 0.00, 200.00, 'Unpaid'),
+(14, 3, 31, 'Registration', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
+(15, 3, 33, 'Library', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 650.00, 650.00, 0.00, 'Paid'),
+(16, 3, 34, 'Athletics & Sports Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 500.00, 450.00, 50.00, 'Partial'),
+(17, 3, 35, 'Cultural Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 0.00, 400.00, 'Unpaid'),
+(18, 3, 36, 'Guidance & Counseling', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 0.00, 400.00, 'Unpaid'),
+(19, 3, 37, 'Energy Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 1000.00, 0.00, 1000.00, 'Unpaid'),
+(20, 3, 38, 'Laboratory Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 0.00, 600.00, 'Unpaid'),
+(21, 3, 39, 'Community & Student Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 0.00, 600.00, 'Unpaid'),
+(22, 3, 40, 'Insurance', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 25.00, 0.00, 25.00, 'Unpaid'),
+(23, 3, 41, 'Medical and Dental', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 0.00, 400.00, 'Unpaid'),
+(24, 3, 42, 'Student Handbook', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 250.00, 0.00, 250.00, 'Unpaid'),
+(25, 3, 43, 'RFID', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 500.00, 500.00, 0.00, 'Paid'),
+(26, 3, 45, 'Research Forum 2026', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 200.00, 0.00, 200.00, 'Unpaid'),
+(27, 1, 46, 'Pre Oral Defense', 'Assessment', 784, '2026-08-24 21:04:59', 2100.00, 0.00, 2100.00, 'Unpaid'),
+(28, 1, 47, 'Final Defense', 'Assessment', 784, '2026-08-24 21:04:59', 2100.00, 0.00, 2100.00, 'Unpaid');
 
 --
 -- Triggers `billing_items`
@@ -180,7 +203,9 @@ INSERT INTO `fees` (`fee_id`, `category_id`, `fee_name`, `default_amount`, `is_r
 (41, 2, 'Medical and Dental', 400.00, 1, 'Active', NULL, '2026-08-12 12:49:45', '2026-08-12 12:49:45'),
 (42, 5, 'Student Handbook', 250.00, 1, 'Active', NULL, '2026-08-12 12:49:45', '2026-08-12 12:49:45'),
 (43, 5, 'RFID', 500.00, 1, 'Active', NULL, '2026-08-12 12:49:45', '2026-08-12 12:49:45'),
-(45, 5, 'Research Forum 2026', 200.00, 1, 'Active', NULL, '2026-08-12 12:49:45', '2026-08-12 12:49:45');
+(45, 5, 'Research Forum 2026', 200.00, 1, 'Active', NULL, '2026-08-12 12:49:45', '2026-08-12 12:49:45'),
+(46, 5, 'Pre Oral Defense', 2100.00, 1, 'Active', NULL, '2026-08-24 11:48:22', '2026-08-24 11:48:22'),
+(47, 5, 'Final Defense', 2100.00, 1, 'Active', NULL, '2026-08-24 11:48:49', '2026-08-24 11:48:49');
 
 -- --------------------------------------------------------
 
@@ -260,11 +285,10 @@ CREATE TABLE `payments` (
 --
 
 INSERT INTO `payments` (`payment_id`, `student_id`, `billing_id`, `verified_by`, `transaction_type`, `payment_method`, `amount`, `processing_fee`, `checkout_total`, `category_id`, `checkout_session_id`, `cash_received`, `change_amount`, `payment_channel`, `reference_number`, `payment_status`, `payment_date`, `remarks`, `receipt_number`, `verified_at`, `created_at`) VALUES
-(1, 850, 1, NULL, 'Online', 'Online', 4975.00, NULL, NULL, NULL, NULL, NULL, NULL, 'PayMongo', 'cs_2dacbdbc128f5d0554eb7f8d', 'Pending', '2026-08-20', '{\"category_id\":\"2\",\"source\":\"PayMongo Checkout\"}', NULL, NULL, '2026-08-20 03:18:40'),
-(2, 850, 1, NULL, 'Online', 'Online', 4975.00, NULL, NULL, NULL, NULL, NULL, NULL, 'PayMongo', 'cs_c043903b4ebe585747f9ca92', 'Pending', '2026-08-20', '{\"category_id\":\"2\",\"source\":\"PayMongo Checkout\"}', NULL, NULL, '2026-08-20 03:27:25'),
-(3, 850, 1, NULL, 'Online', 'Online', 1000.00, NULL, NULL, NULL, NULL, NULL, NULL, 'PayMongo', 'cs_0ba747e4d56db0de028f71a8', 'Pending', '2026-08-20', '{\"category_id\":\"2\",\"source\":\"PayMongo Checkout\"}', NULL, NULL, '2026-08-20 05:00:18'),
-(4, 850, 1, NULL, 'Online', 'Online', 1000.00, NULL, NULL, NULL, NULL, NULL, NULL, 'PayMongo', 'cs_d465ba67497409b4abb60042', 'Pending', '2026-08-20', '{\"category_id\":\"2\",\"source\":\"PayMongo Checkout\"}', NULL, NULL, '2026-08-20 05:03:30'),
-(5, 850, 1, NULL, 'Online', 'Online', 4975.00, NULL, NULL, NULL, NULL, NULL, NULL, 'PayMongo', 'cs_e91018d3280681c23399db3a', 'Pending', '2026-08-21', '{\"category_id\":\"2\",\"source\":\"PayMongo Checkout\"}', NULL, NULL, '2026-08-21 04:38:50');
+(12, 850, 1, NULL, 'Online', 'Online', 1000.00, 22.81, 1022.81, 2, 'cs_2eb30434f6825c9309040f19', NULL, NULL, 'GCash', 'PM-1787379546-4016', 'Pending', '2026-08-22', NULL, NULL, NULL, '2026-08-22 06:19:06'),
+(13, 850, 1, NULL, 'Online', 'Online', 1500.00, 34.21, 1534.21, 2, 'cs_a8801b7a87c3b46b20d304a6', NULL, NULL, 'GCash', 'PM-1787380122-7217', 'Verified', '2026-08-22', NULL, NULL, '2026-08-22 06:29:14', '2026-08-22 06:28:43'),
+(14, 850, 1, NULL, 'Online', 'Online', 1000.00, 22.81, 1022.81, 2, 'cs_6862bbdfb3a3a850dfc354b1', NULL, NULL, 'GCash', 'PM-1787382635-5135', 'Verified', '2026-08-22', NULL, NULL, '2026-08-22 07:11:04', '2026-08-22 07:10:36'),
+(17, 884, 3, 784, 'Walk-in', 'Walk-in', 2000.00, NULL, NULL, NULL, NULL, 2000.00, 0.00, 'Cash', 'OR-20260824-2431', 'Verified', '2026-08-24', '', 'OR-20260824-2431', '2026-08-24 10:54:53', '2026-08-24 10:54:53');
 
 -- --------------------------------------------------------
 
@@ -279,6 +303,23 @@ CREATE TABLE `payment_allocations` (
   `allocated_amount` decimal(10,2) NOT NULL,
   `allocated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ;
+
+--
+-- Dumping data for table `payment_allocations`
+--
+
+INSERT INTO `payment_allocations` (`allocation_id`, `payment_id`, `billing_item_id`, `allocated_amount`, `allocated_at`) VALUES
+(1, 13, 1, 400.00, '2026-08-22 06:29:14'),
+(2, 13, 2, 650.00, '2026-08-22 06:29:14'),
+(3, 13, 3, 450.00, '2026-08-22 06:29:14'),
+(4, 14, 3, 50.00, '2026-08-22 07:11:04'),
+(5, 14, 4, 400.00, '2026-08-22 07:11:04'),
+(6, 14, 5, 400.00, '2026-08-22 07:11:04'),
+(7, 14, 6, 150.00, '2026-08-22 07:11:04'),
+(16, 17, 25, 500.00, '2026-08-24 10:54:53'),
+(17, 17, 14, 400.00, '2026-08-24 10:54:53'),
+(18, 17, 15, 650.00, '2026-08-24 10:54:53'),
+(19, 17, 16, 450.00, '2026-08-24 10:54:53');
 
 --
 -- Triggers `payment_allocations`
@@ -332,7 +373,7 @@ CREATE TABLE `payment_gateway_settings` (
 
 INSERT INTO `payment_gateway_settings` (`setting_key`, `setting_value`, `description`, `updated_at`) VALUES
 ('fee_policy', 'pass_to_student', 'pass_to_student or absorb_by_school', '2026-08-12 12:49:45'),
-('gateway_mode', 'test', 'Set to live or test mode', '2026-08-21 04:31:51'),
+('gateway_mode', 'test', 'Set to live or test mode', '2026-08-22 06:50:13'),
 ('live_channel_card', '0', '1 to Enable, 0 to Disable Credit/Debit Cards (Live)', '2026-08-21 03:51:32'),
 ('live_channel_gcash', '0', '1 to Enable, 0 to Disable GCash (Live)', '2026-08-21 03:51:32'),
 ('live_channel_maya', '0', '1 to Enable, 0 to Disable Maya (Live)', '2026-08-21 03:51:32'),
@@ -340,12 +381,12 @@ INSERT INTO `payment_gateway_settings` (`setting_key`, `setting_value`, `descrip
 ('paymongo_public_key', '', 'PayMongo Public Key (Stored in .env)', '2026-08-12 12:49:45'),
 ('paymongo_secret_key', '', 'PayMongo Secret Key (Stored in .env)', '2026-08-12 12:49:45'),
 ('paymongo_webhook_secret', '', 'Webhook Secret (Stored in .env)', '2026-08-12 12:49:45'),
-('test_channel_card', '1', '1 to Enable, 0 to Disable Credit/Debit Cards', '2026-08-21 03:51:32'),
-('test_channel_gcash', '1', '1 to Enable, 0 to Disable GCash', '2026-08-21 03:51:32'),
+('test_channel_card', '1', '1 to Enable, 0 to Disable Credit/Debit Cards', '2026-08-22 04:39:18'),
+('test_channel_gcash', '1', '1 to Enable, 0 to Disable GCash', '2026-08-22 04:39:18'),
 ('test_channel_maya', '1', '1 to Enable, 0 to Disable Maya', '2026-08-21 03:51:32'),
-('test_channel_qrph', '1', '1 to Enable, 0 to Disable QR Ph (Test)', '2026-08-21 03:51:32'),
+('test_channel_qrph', '0', '1 to Enable, 0 to Disable QR Ph (Test)', '2026-08-22 04:21:33'),
 ('webhook_secret_live', '', NULL, '2026-08-21 06:05:13'),
-('webhook_secret_test', '', NULL, '2026-08-21 06:05:13');
+('webhook_secret_test', 'whsk_o5adgJEYQ8HTZBYQftSVYay9', NULL, '2026-08-22 06:06:17');
 
 -- --------------------------------------------------------
 
@@ -436,7 +477,8 @@ CREATE TABLE `students` (
 
 INSERT INTO `students` (`student_id`, `user_id`, `student_number`, `full_name`, `course`, `year_level`, `section`, `contact_number`, `status`, `created_at`, `last_sync_at`) VALUES
 (9, 9, 'S230000001', 'Student User', 'Unknown', '1', NULL, NULL, '', '2026-08-18 09:57:26', '2026-08-18 09:57:26'),
-(850, 850, 'S230115569', 'Lebron James', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-20 02:59:11', '2026-08-20 12:31:59');
+(850, 850, 'S230115569', 'Lebron James', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-20 02:59:11', '2026-08-24 13:04:59'),
+(884, 884, 's230115570', 'Kevin Durant', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-24 10:35:37', '2026-08-24 10:54:45');
 
 --
 -- Indexes for dumped tables
@@ -569,7 +611,7 @@ ALTER TABLE `billing_items`
 -- AUTO_INCREMENT for table `fees`
 --
 ALTER TABLE `fees`
-  MODIFY `fee_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `fee_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `fee_categories`
@@ -623,7 +665,7 @@ ALTER TABLE `scholarships`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `student_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=851;
+  MODIFY `student_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=885;
 
 --
 -- Constraints for dumped tables

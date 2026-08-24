@@ -79,7 +79,7 @@ try {
 
                 // Kunin ang breakdown ng fees naka-join sa fees table at fee_categories
                 $stmtItems = $pdo->prepare("
-                    SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name 
+                    SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name, bi.source_context 
                     FROM payment_db.billing_items bi 
                     JOIN payment_db.fees f ON bi.fee_id = f.fee_id 
                     LEFT JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
@@ -87,6 +87,35 @@ try {
                 ");
                 $stmtItems->execute([':billing_id' => $billingDetails['billing_id']]);
                 $assessmentBreakdown = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+                // Group assessment by category for accordion UI
+                $groupedAssessment = [];
+                foreach ($assessmentBreakdown as $item) {
+                    $catName = $item['category_name'] ?: 'Other Fees';
+                    if (!isset($groupedAssessment[$catName])) {
+                        $groupedAssessment[$catName] = [
+                            'total_amount' => 0,
+                            'paid_amount' => 0,
+                            'status' => 'Unpaid',
+                            'items' => []
+                        ];
+                    }
+                    $groupedAssessment[$catName]['items'][] = $item;
+                    $groupedAssessment[$catName]['total_amount'] += $item['amount'];
+                    $groupedAssessment[$catName]['paid_amount'] += ($item['amount'] - $item['remaining_amount']);
+                }
+                
+                // Evaluate category status
+                foreach ($groupedAssessment as $catName => &$catData) {
+                    if ($catData['paid_amount'] >= $catData['total_amount'] && $catData['total_amount'] > 0) {
+                        $catData['status'] = 'Paid';
+                    } elseif ($catData['paid_amount'] > 0) {
+                        $catData['status'] = 'Partial';
+                    } else {
+                        $catData['status'] = 'Unpaid';
+                    }
+                }
+                unset($catData);
 
                 // Phase 11: Compute Payable Categories (Excluding Tuition category_id = 1)
                 $payableCategories = [];
@@ -191,53 +220,77 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <span class="badge bg-light text-dark border px-3 py-2">S.Y. <?= htmlspecialchars($academicYear) ?> • <?= htmlspecialchars($semester) ?> Semester</span>
             </div>
             
-            <div class="table-responsive mb-4">
-                <table class="table table-borderless border-bottom align-middle mb-0">
-                    <thead class="border-bottom text-muted" style="font-size: 0.75rem;">
-                        <tr>
-                            <th class="py-3 ps-2">FEE</th>
-                            <th class="py-3 text-end">AMOUNT</th>
-                            <th class="py-3 ps-4" style="width: 120px;">STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (count($assessmentBreakdown) > 0): ?>
-                            <?php foreach ($assessmentBreakdown as $item): ?>
-                                <?php
-                                    // Set Badge Colors Based on Status
-                                    $statusBg = match($item['status']) {
-                                        'Paid' => '#bbf7d0',
-                                        'Partial' => '#fef08a',
-                                        default => '#fecaca' // Unpaid
-                                    };
-                                    $statusText = match($item['status']) {
-                                        'Paid' => '#15803d',
-                                        'Partial' => '#b45309',
-                                        default => '#b91c1c'
-                                    };
-                                ?>
-                                <tr class="border-bottom">
-                                    <td class="py-3 ps-2">
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($item['fee_name']) ?></div>
-                                        <?php if (!empty($item['description'])): ?>
-                                            <small class="text-muted" style="font-size: 0.8rem;"><?= htmlspecialchars($item['description']) ?></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="py-3 text-end text-dark">PHP <?= number_format($item['amount'], 2) ?></td>
-                                    <td class="py-3 ps-4">
-                                        <span class="badge rounded-pill" style="background-color: <?= $statusBg ?>; color: <?= $statusText ?>; padding: 0.5em 0.8em;">
-                                            <?= htmlspecialchars($item['status']) ?>
+            <div class="accordion mb-4" id="breakdownAccordion">
+                <?php if (count($groupedAssessment) > 0): ?>
+                    <?php $accIndex = 0; foreach ($groupedAssessment as $catName => $catData): $accIndex++; ?>
+                        <?php
+                            $catStatusBg = match($catData['status']) {
+                                'Paid' => '#bbf7d0',
+                                'Partial' => '#fef08a',
+                                default => '#fecaca'
+                            };
+                            $catStatusText = match($catData['status']) {
+                                'Paid' => '#15803d',
+                                'Partial' => '#b45309',
+                                default => '#b91c1c'
+                            };
+                        ?>
+                        <div class="accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden">
+                            <h2 class="accordion-header" id="heading<?= $accIndex ?>">
+                                <button class="accordion-button <?= $accIndex === 1 ? '' : 'collapsed' ?> bg-white fw-bold d-flex align-items-center justify-content-between p-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $accIndex ?>" aria-expanded="<?= $accIndex === 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $accIndex ?>" style="box-shadow: none;">
+                                    <div class="d-flex w-100 align-items-center me-3">
+                                        <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
+                                            <i class="fas fa-layer-group text-primary me-2 opacity-75"></i><?= htmlspecialchars($catName) ?>
+                                            <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
+                                                PHP <?= number_format($catData['paid_amount'], 2) ?> of PHP <?= number_format($catData['total_amount'], 2) ?> Paid
+                                            </div>
+                                        </div>
+                                        <span class="badge rounded-pill ms-auto" style="background-color: <?= $catStatusBg ?>; color: <?= $catStatusText ?>; font-size: 0.75rem;">
+                                            <?= htmlspecialchars($catData['status']) ?>
                                         </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No assessment records found. You currently have no active billing.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse<?= $accIndex ?>" class="accordion-collapse collapse <?= $accIndex === 1 ? 'show' : '' ?>" aria-labelledby="heading<?= $accIndex ?>" data-bs-parent="#breakdownAccordion">
+                                <div class="accordion-body p-0 bg-light border-top">
+                                    <table class="table table-borderless table-hover align-middle mb-0 m-0">
+                                        <thead class="text-muted border-bottom" style="font-size: 0.70rem;">
+                                            <tr>
+                                                <th class="py-3 ps-4 w-50">FEE DETAILS</th>
+                                                <th class="py-3 text-end">ASSESSMENT</th>
+                                                <th class="py-3 text-end pe-4">PAID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($catData['items'] as $item): ?>
+                                                <tr class="border-bottom">
+                                                    <td class="py-3 ps-4">
+                                                        <div class="fw-semibold text-dark d-flex align-items-center gap-2" style="font-size: 0.9rem;">
+                                                            <?= htmlspecialchars($item['fee_name']) ?>
+                                                            <?php if (!empty($item['source_context'])): ?>
+                                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 fw-normal" style="font-size: 0.65rem; padding: 0.2rem 0.5rem;"><?= htmlspecialchars($item['source_context']) ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <?php if (!empty($item['description'])): ?>
+                                                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;"><?= htmlspecialchars($item['description']) ?></small>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td class="py-3 text-end text-dark">PHP <?= number_format($item['amount'], 2) ?></td>
+                                                    <td class="py-3 text-end pe-4 text-success fw-bold">PHP <?= number_format($item['amount'] - $item['remaining_amount'], 2) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="alert alert-light text-center text-muted mb-0 border shadow-sm rounded-4">
+                        <i class="fas fa-folder-open fs-4 d-block mb-2 text-secondary"></i>
+                        No assessment records found. You currently have no active billing.
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div>

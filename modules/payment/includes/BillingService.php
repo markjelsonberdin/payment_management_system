@@ -94,9 +94,9 @@ class BillingService {
             // 7. Create Historical Snapshot (billing_items)
             $stmtItems = $this->pdo->prepare("
                 INSERT INTO billing_items 
-                (billing_id, fee_id, fee_name, amount, paid_amount, remaining_amount, status)
+                (billing_id, fee_id, fee_name, amount, paid_amount, remaining_amount, status, source_context, added_by, added_at)
                 VALUES 
-                (:bid, :fid, :fname, :amt, 0.00, :rem, 'Unpaid')
+                (:bid, :fid, :fname, :amt, 0.00, :rem, 'Unpaid', :ctx, :addedby, NOW())
             ");
 
             foreach ($activeFees as $fee) {
@@ -105,12 +105,142 @@ class BillingService {
                     ':fid' => $fee['fee_id'],
                     ':fname' => $fee['fee_name'], // Historical Snapshot!
                     ':amt' => $fee['default_amount'],
-                    ':rem' => $fee['default_amount']
+                    ':rem' => $fee['default_amount'],
+                    ':ctx' => $billingType,
+                    ':addedby' => $generatedBy
                 ]);
             }
 
             $this->pdo->commit();
             return $billingId;
+
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Appends new fees to an existing billing/SOA and recalculates totals.
+     * 
+     * @param int $billingId
+     * @param array $feeIds
+     * @param string $context The reason/source for appending (e.g., 'Adjustment')
+     * @param int $addedBy
+     * @return array Summary of added and skipped fees, plus new balance
+     * @throws Exception
+     */
+    public function appendFeesToBilling($billingId, $feeIds, $context, $addedBy = null) {
+        if (empty($feeIds)) {
+            return ['added' => [], 'skipped' => [], 'new_total' => 0, 'new_remaining' => 0];
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Validate billing exists
+            $stmt = $this->pdo->prepare("SELECT billing_id, discount_amount FROM billing WHERE billing_id = :bid FOR UPDATE");
+            $stmt->execute([':bid' => $billingId]);
+            $billingHeader = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$billingHeader) {
+                throw new Exception("Billing record not found.");
+            }
+
+            // 2. Fetch active fees
+            $placeholders = str_repeat('?,', count($feeIds) - 1) . '?';
+            $stmtFees = $this->pdo->prepare("
+                SELECT fee_id, fee_name, default_amount 
+                FROM fees 
+                WHERE fee_id IN ($placeholders) AND status = 'Active'
+            ");
+            $stmtFees->execute($feeIds);
+            $activeFees = $stmtFees->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($activeFees)) {
+                throw new Exception("None of the selected fees are active or exist.");
+            }
+
+            // 3. Find existing fees in this billing to prevent duplicates
+            $stmtExisting = $this->pdo->prepare("SELECT fee_id FROM billing_items WHERE billing_id = :bid");
+            $stmtExisting->execute([':bid' => $billingId]);
+            $existingFeeIds = $stmtExisting->fetchAll(PDO::FETCH_COLUMN);
+
+            $added = [];
+            $skipped = [];
+
+            // 4. Insert new items
+            $stmtInsert = $this->pdo->prepare("
+                INSERT INTO billing_items 
+                (billing_id, fee_id, fee_name, amount, paid_amount, remaining_amount, status, source_context, added_by, added_at)
+                VALUES 
+                (:bid, :fid, :fname, :amt, 0.00, :rem, 'Unpaid', :ctx, :addedby, NOW())
+            ");
+
+            foreach ($activeFees as $fee) {
+                if (in_array($fee['fee_id'], $existingFeeIds)) {
+                    $skipped[$fee['fee_name']] = "Fee already exists in this SOA";
+                    continue;
+                }
+
+                $stmtInsert->execute([
+                    ':bid' => $billingId,
+                    ':fid' => $fee['fee_id'],
+                    ':fname' => $fee['fee_name'],
+                    ':amt' => $fee['default_amount'],
+                    ':rem' => $fee['default_amount'],
+                    ':ctx' => $context,
+                    ':addedby' => $addedBy
+                ]);
+                
+                $added[] = ['fee_name' => $fee['fee_name'], 'amount' => $fee['default_amount']];
+            }
+
+            // 5. Recalculate totals based on items
+            $stmtRecalc = $this->pdo->prepare("
+                SELECT COALESCE(SUM(amount), 0) as total_amount, COALESCE(SUM(paid_amount), 0) as total_paid
+                FROM billing_items 
+                WHERE billing_id = :bid
+            ");
+            $stmtRecalc->execute([':bid' => $billingId]);
+            $totals = $stmtRecalc->fetch(PDO::FETCH_ASSOC);
+
+            $newTotalAmount = (float)$totals['total_amount'];
+            $newTotalPaid = (float)$totals['total_paid'];
+            $discount = (float)$billingHeader['discount_amount'];
+
+            // remaining = (total - discount) - paid
+            // Ensure remaining doesn't drop below 0 if paid > (total - discount)
+            $newRemaining = max(0, ($newTotalAmount - $discount) - $newTotalPaid);
+            
+            if ($newRemaining <= 0) {
+                $status = 'Paid';
+            } elseif ($newTotalPaid > 0) {
+                $status = 'Partial';
+            } else {
+                $status = 'Unpaid';
+            }
+
+            // 6. Update Header
+            $stmtUpdate = $this->pdo->prepare("
+                UPDATE billing 
+                SET total_amount = :total, remaining_balance = :rem, billing_status = :status 
+                WHERE billing_id = :bid
+            ");
+            $stmtUpdate->execute([
+                ':total' => $newTotalAmount,
+                ':rem' => $newRemaining,
+                ':status' => $status,
+                ':bid' => $billingId
+            ]);
+
+            $this->pdo->commit();
+
+            return [
+                'added' => $added,
+                'skipped' => $skipped,
+                'new_total' => $newTotalAmount,
+                'new_remaining' => $newRemaining
+            ];
 
         } catch (Exception $e) {
             $this->pdo->rollBack();

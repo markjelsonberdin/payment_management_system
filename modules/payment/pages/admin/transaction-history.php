@@ -117,33 +117,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <i class="fas fa-list me-1"></i> Details
                                         </button>
                                         
-                                        <!-- Modal for Auditing Details -->
-                                        <div class="modal fade text-start" id="detailsModal<?= $pay['payment_id'] ?>" tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content border-0 shadow-lg rounded-4">
-                                                    <div class="modal-header border-bottom-0 pb-0">
-                                                        <h5 class="modal-title fw-bolder">Payment Details (Audit)</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <table class="table table-sm table-borderless">
-                                                            <tbody>
-                                                                <tr><td class="text-muted">Payment ID</td><td class="fw-bold"><?= htmlspecialchars($pay['payment_id']) ?></td></tr>
-                                                                <tr><td class="text-muted">Student</td><td class="fw-bold"><?= htmlspecialchars($pay['student_number'] . ' - ' . $pay['full_name']) ?></td></tr>
-                                                                <tr><td class="text-muted">Amount Applied</td><td class="fw-bold text-success">₱ <?= number_format($amtApplied, 2) ?></td></tr>
-                                                                <tr><td class="text-muted">Processing Fee</td><td class="fw-bold text-muted">₱ <?= number_format($procFee, 2) ?></td></tr>
-                                                                <tr><td class="text-muted">Checkout Total</td><td class="fw-bold text-primary">₱ <?= number_format($chkTotal, 2) ?></td></tr>
-                                                                <tr><td class="text-muted">Reference Number</td><td class="fw-bold"><?= htmlspecialchars($pay['reference_number'] ?? 'N/A') ?></td></tr>
-                                                                <tr><td class="text-muted">Checkout Session ID</td><td class="fw-bold text-secondary font-monospace" style="font-size: 0.85rem;"><?= htmlspecialchars($pay['checkout_session_id'] ?? 'N/A') ?></td></tr>
-                                                                <tr><td class="text-muted">Category ID</td><td class="fw-bold"><?= htmlspecialchars($pay['category_id'] ?? 'N/A') ?></td></tr>
-                                                                <tr><td class="text-muted">Payment Channel</td><td class="fw-bold"><?= htmlspecialchars($pay['payment_channel'] ?? $pay['payment_method']) ?></td></tr>
-                                                                <tr><td class="text-muted">Created At</td><td class="fw-bold"><?= htmlspecialchars($pay['created_at']) ?></td></tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+
                                         
                                     </td>
                                 </tr>
@@ -163,5 +137,98 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- MODALS PLACED OUTSIDE OF OVERFLOW CONTAINER -->
+<!-- ========================================== -->
+<?php if (count($paymentList) > 0): ?>
+    <?php foreach ($paymentList as $pay): ?>
+        <?php 
+            $isOnline = in_array(strtolower($pay['payment_channel'] ?? $pay['payment_method']), ['gcash', 'maya', 'card', 'qrph', 'paymongo', 'visa']);
+            $amtApplied = (float)$pay['amount'];
+            $procFee = $isOnline ? (float)($pay['processing_fee'] ?? 0) : 0;
+            $chkTotal = $isOnline ? (float)($pay['checkout_total'] ?? $amtApplied) : $amtApplied;
+            $statusClass = match($pay['payment_status']) {
+                'Verified' => 'bg-success',
+                'Pending' => 'bg-warning text-dark',
+                default => 'bg-danger'
+            };
+        ?>
+        <!-- Premium Modal for Auditing Details -->
+        <div class="modal fade" id="detailsModal<?= $pay['payment_id'] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 1rem;">
+                    <div class="modal-header bg-primary text-white border-bottom-0 p-4">
+                        <h5 class="modal-title fw-bolder mb-0">
+                            <i class="fas fa-receipt me-2 opacity-75"></i>Transaction Details
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    
+                    <!-- Modal Header Summary -->
+                    <div class="bg-light p-4 text-center border-bottom">
+                        <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">Total Amount Paid</div>
+                        <h2 class="fw-bolder text-primary mb-2">₱ <?= number_format($chkTotal, 2) ?></h2>
+                        <span class="badge rounded-pill <?= $statusClass ?> px-3 py-2 fs-6 shadow-sm">
+                            <i class="fas <?= $pay['payment_status'] === 'Verified' ? 'fa-check-circle' : 'fa-clock' ?> me-1"></i>
+                            <?= htmlspecialchars($pay['payment_status']) ?>
+                        </span>
+                    </div>
+
+                    <div class="modal-body p-4 bg-white">
+                        <!-- Student Info -->
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-user-circle me-2"></i>Student Information</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted"><i class="fas fa-id-card me-2 opacity-50"></i>Student No.</span>
+                            <span class="fw-bold text-dark"><?= htmlspecialchars($pay['student_number']) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                            <span class="text-muted"><i class="fas fa-user me-2 opacity-50"></i>Full Name</span>
+                            <span class="fw-bold text-dark text-end"><?= htmlspecialchars($pay['full_name']) ?></span>
+                        </div>
+
+                        <!-- Payment Breakdown -->
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-file-invoice-dollar me-2"></i>Payment Breakdown</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Amount Applied</span>
+                            <span class="fw-bold text-dark">₱ <?= number_format($amtApplied, 2) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Processing Fee</span>
+                            <span class="fw-bold text-danger">+ ₱ <?= number_format($procFee, 2) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                            <span class="text-muted fw-bold">Checkout Total</span>
+                            <span class="fw-bold text-primary fs-5">₱ <?= number_format($chkTotal, 2) ?></span>
+                        </div>
+
+                        <!-- Audit Info -->
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-shield-alt me-2"></i>Audit Information</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Reference No.</span>
+                            <span class="fw-bold text-dark font-monospace"><?= htmlspecialchars($pay['reference_number'] ?? 'N/A') ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Channel / Method</span>
+                            <span class="fw-bold text-dark"><?= htmlspecialchars($pay['payment_channel'] ?? $pay['payment_method']) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Payment ID</span>
+                            <span class="fw-bold text-secondary">#<?= htmlspecialchars($pay['payment_id']) ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span class="text-muted">Session ID</span>
+                            <span class="fw-bold text-secondary font-monospace" style="font-size: 0.75rem; text-truncate max-width-50" title="<?= htmlspecialchars($pay['checkout_session_id'] ?? 'N/A') ?>"><?= htmlspecialchars($pay['checkout_session_id'] ?? 'N/A') ?></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Timestamp</span>
+                            <span class="fw-bold text-secondary"><?= htmlspecialchars($pay['created_at']) ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
