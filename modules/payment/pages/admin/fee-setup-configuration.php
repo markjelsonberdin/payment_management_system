@@ -225,7 +225,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <div class="d-flex justify-content-md-end gap-2">
                 <div class="input-group w-auto shadow-sm">
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#feesTable" placeholder="Search fee name...">
+                    <input type="text" class="form-control border-start-0 ps-0 custom-accordion-search" placeholder="Search fee name...">
                 </div>
                 <button class="btn btn-light border shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#archivedFeesModal">
                     <i class="fas fa-box-archive me-1"></i> View Archived
@@ -266,95 +266,93 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
     <?php endif; ?>
 
-    <!-- Data Table Card -->
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 text-nowrap" id="feesTable">
-                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                        <tr>
-                            <th class="ps-4 py-3">Fee Name</th>
-                            <th class="py-3">Category</th>
-                            <th class="py-3">Amount</th>
-                            <th class="py-3 text-center">Required</th>
-                            <th class="py-3 text-center">Status</th>
-                            <th class="text-end pe-4 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="border-top-0">
-                    <?php if (count($groupedFees) > 0): ?>
-                        <?php foreach ($groupedFees as $catName => $group): ?>
-                            <?php $collapseId = 'collapse-' . preg_replace('/[^a-zA-Z0-9]/', '', $catName); ?>
-                            
-                            <tr class="table-active shadow-sm fee-group-row" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target=".<?= $collapseId ?>">
-                                <td colspan="2" class="ps-4 fw-bolder text-uppercase">
-                                    <i class="fas fa-chevron-down text-muted me-2 fee-group-chevron"></i> 
-                                    <?= htmlspecialchars($catName) ?>
-                                    <span class="badge bg-secondary ms-2 rounded-pill" style="font-size: 0.65rem;"><?= count($group['items']) ?> items</span>
-                                </td>
-                                <td class="fw-bolder text-success">₱ <?= number_format($group['total_amount'], 2) ?></td>
-                                <td colspan="2" class="text-muted small text-center">Group Total</td>
-                                <td class="text-end pe-4" onclick="event.stopPropagation();">
-                                    <button type="button" class="btn btn-sm btn-light text-danger shadow-sm btn-archive-category-trigger" data-bs-toggle="modal" data-bs-target="#archiveCategoryModal" data-category-id="<?= $group['category_id'] ?>" data-category-name="<?= htmlspecialchars($catName) ?>" data-item-count="<?= count($group['items']) ?>" title="Archive all fees in this category">
-                                        <i class="fas fa-box-archive"></i>
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <?php foreach ($group['items'] as $fee): ?>
-                                <tr class="collapse <?= $collapseId ?>" style="background-color: rgba(0,0,0,0.02);">
-                                    <td class="ps-5">
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($fee['fee_name']) ?></div>
-                                    </td>
-                                    <td>
-                                        <span class="badge rounded-pill bg-light border text-dark px-3 py-2">
-                                            <?= htmlspecialchars($fee['category_name'] ?? 'Unknown') ?>
-                                        </span>
-                                    </td>
-                                    <td class="fw-bold text-success">₱ <?= number_format($fee['default_amount'], 2) ?></td>
-                                    <td class="text-center">
-                                        <?php if ($fee['is_required']): ?>
-                                            <i class="fas fa-check-circle text-success fs-5" data-bs-toggle="tooltip" title="Required"></i>
-                                        <?php else: ?>
-                                            <i class="fas fa-minus-circle text-muted fs-5" data-bs-toggle="tooltip" title="Optional"></i>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge rounded-pill bg-success px-3 py-2">Active</span>
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <!-- EDIT BUTTON -->
-                                        <button type="button" class="btn btn-sm btn-light text-primary shadow-sm me-1 btn-edit-trigger" 
-                                            data-bs-toggle="modal" data-bs-target="#editFeeModal" 
-                                            data-id="<?= $fee['fee_id'] ?>" 
-                                            data-name="<?= htmlspecialchars($fee['fee_name']) ?>" 
-                                            data-category="<?= $fee['category_id'] ?>" 
-                                            data-amount="<?= $fee['default_amount'] ?>" 
-                                            data-required="<?= $fee['is_required'] ?>" title="Edit Configuration">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <!-- ARCHIVE BUTTON -->
-                                        <button type="button" class="btn btn-sm btn-light text-danger shadow-sm btn-archive-trigger" 
-                                            data-bs-toggle="modal" data-bs-target="#deleteFeeModal" 
-                                            data-fee-id="<?= $fee['fee_id'] ?>" data-fee-name="<?= htmlspecialchars($fee['fee_name']) ?>" title="Archive">
-                                            <i class="fas fa-box-archive"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
-                                <i class="fas fa-folder-open fs-3 mb-2 d-block"></i>
-                                No fee configurations found. Click "Add Fee" to create one.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+    <!-- Accordion Card -->
+    <div class="accordion mb-4" id="feesAccordion">
+        <?php if (count($groupedFees) > 0): ?>
+            <?php $accIndex = 0; foreach ($groupedFees as $catName => $group): $accIndex++; ?>
+                <div class="accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden fee-accordion-item position-relative">
+                    <h2 class="accordion-header" id="heading<?= $accIndex ?>">
+                        <button class="accordion-button <?= $accIndex === 1 ? '' : 'collapsed' ?> bg-white fw-bold d-flex align-items-center p-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $accIndex ?>" aria-expanded="<?= $accIndex === 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $accIndex ?>" style="box-shadow: none;">
+                            <div class="d-flex w-100 align-items-center pe-5">
+                                <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
+                                    <i class="fas fa-layer-group text-primary me-2 opacity-75"></i><span class="category-name"><?= htmlspecialchars($catName) ?></span>
+                                    <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
+                                        PHP <?= number_format($group['total_amount'], 2) ?> Total &bull; <?= count($group['items']) ?> Items
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    
+                    <!-- Archive Category Button Moved to Actions Column Header -->
+                    <div id="collapse<?= $accIndex ?>" class="accordion-collapse collapse <?= $accIndex === 1 ? 'show' : '' ?>" aria-labelledby="heading<?= $accIndex ?>" data-bs-parent="#feesAccordion">
+                        <div class="accordion-body p-0 bg-light border-top">
+                            <table class="table table-borderless table-hover align-middle mb-0 m-0 fee-items-table">
+                                <thead class="text-muted border-bottom" style="font-size: 0.70rem;">
+                                    <tr>
+                                        <th class="py-3 ps-4 w-50">FEE NAME</th>
+                                        <th class="py-3 text-center">REQUIRED</th>
+                                        <th class="py-3 text-center">STATUS</th>
+                                        <th class="py-3 text-end">AMOUNT</th>
+                                        <th class="py-3 text-center pe-4" style="width: 110px;">
+                                            <div class="d-flex flex-column align-items-center justify-content-center gap-1">
+                                                <span class="mb-1">ACTIONS</span>
+                                                <button type="button" class="btn btn-sm btn-light text-danger shadow-sm border btn-archive-category-trigger px-3" data-bs-toggle="modal" data-bs-target="#archiveCategoryModal" data-category-id="<?= $group['category_id'] ?>" data-category-name="<?= htmlspecialchars($catName) ?>" data-item-count="<?= count($group['items']) ?>" title="Archive all fees in this category">
+                                                    <i class="fas fa-box-archive me-1"></i> All
+                                                </button>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($group['items'] as $fee): ?>
+                                        <tr class="border-bottom fee-item-row">
+                                            <td class="py-3 ps-4">
+                                                <div class="fw-semibold text-dark fee-name-text" style="font-size: 0.9rem;"><?= htmlspecialchars($fee['fee_name']) ?></div>
+                                            </td>
+                                            <td class="py-3 text-center">
+                                                <?php if ($fee['is_required']): ?>
+                                                    <i class="fas fa-check-circle text-success fs-5" data-bs-toggle="tooltip" title="Required"></i>
+                                                <?php else: ?>
+                                                    <i class="fas fa-minus-circle text-muted fs-5" data-bs-toggle="tooltip" title="Optional"></i>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="py-3 text-center">
+                                                <span class="badge rounded-pill bg-success px-3 py-2">Active</span>
+                                            </td>
+                                            <td class="py-3 text-end text-success fw-bold">PHP <?= number_format($fee['default_amount'], 2) ?></td>
+                                            <td class="py-3 text-center pe-4">
+                                                <!-- EDIT BUTTON -->
+                                                <button type="button" class="btn btn-sm btn-light text-primary shadow-sm me-1 btn-edit-trigger" 
+                                                    data-bs-toggle="modal" data-bs-target="#editFeeModal" 
+                                                    data-id="<?= $fee['fee_id'] ?>" 
+                                                    data-name="<?= htmlspecialchars($fee['fee_name']) ?>" 
+                                                    data-category="<?= $fee['category_id'] ?>" 
+                                                    data-amount="<?= $fee['default_amount'] ?>" 
+                                                    data-required="<?= $fee['is_required'] ?>" title="Edit Configuration">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <!-- ARCHIVE BUTTON -->
+                                                <button type="button" class="btn btn-sm btn-light text-danger shadow-sm btn-archive-trigger" 
+                                                    data-bs-toggle="modal" data-bs-target="#deleteFeeModal" 
+                                                    data-fee-id="<?= $fee['fee_id'] ?>" data-fee-name="<?= htmlspecialchars($fee['fee_name']) ?>" title="Archive">
+                                                    <i class="fas fa-box-archive"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="alert alert-light text-center text-muted mb-0 border shadow-sm rounded-4">
+                <i class="fas fa-folder-open fs-4 d-block mb-2 text-secondary"></i>
+                No fee configurations found. Click "Add Fee" to create one.
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -562,5 +560,41 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.custom-accordion-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const accordions = document.querySelectorAll('.fee-accordion-item');
+            
+            accordions.forEach(acc => {
+                let hasVisibleItem = false;
+                const rows = acc.querySelectorAll('.fee-item-row');
+                
+                rows.forEach(row => {
+                    const feeName = row.querySelector('.fee-name-text').textContent.toLowerCase();
+                    if (feeName.includes(term)) {
+                        row.style.display = '';
+                        hasVisibleItem = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                const catName = acc.querySelector('.category-name').textContent.toLowerCase();
+                if (catName.includes(term)) {
+                    rows.forEach(row => row.style.display = '');
+                    acc.style.display = '';
+                } else if (hasVisibleItem) {
+                    acc.style.display = '';
+                } else {
+                    acc.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
 <script src="../../assets/js/fee-master-setup.js"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

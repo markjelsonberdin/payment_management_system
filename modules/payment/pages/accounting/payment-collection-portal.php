@@ -94,13 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         // 4. Immutable Audit Log (SMS2 centralized activity_logs)
         $stmtLog = $pdo->prepare("
-            INSERT INTO activity_logs (user_id, action, module, description, ip_address)
-            VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip)
+            INSERT INTO sms2_db.activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
+            VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip, :ua)
         ");
         $stmtLog->execute([
             ':uid' => $cashier_id,
             ':desc' => "Processed walk-in payment of ₱" . number_format($amount_paid, 2) . " (Context: {$payment_context}) for Billing ID #{$billing_id} with OR No: {$reference_number}",
-            ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+            ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+            ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
         ]);
 
         $pdo->commit();
@@ -256,8 +257,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold small text-muted">Official Receipt (OR) / Ref No.</label>
-                                <input type="text" class="form-control" name="reference_number" placeholder="e.g. OR-2026-98765">
-                                <small class="text-muted" style="font-size: 0.75rem;">Auto-generated if left blank.</small>
+                                <input type="text" class="form-control bg-light text-muted" name="reference_number" placeholder="System Auto-Generated" readonly>
+                                <small class="text-primary fw-bold" style="font-size: 0.75rem;"><i class="fas fa-magic me-1"></i>Automatically generated upon save.</small>
                             </div>
 
                             <div class="col-md-6 mb-3">
