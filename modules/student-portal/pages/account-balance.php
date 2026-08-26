@@ -117,21 +117,44 @@ try {
                 }
                 unset($catData);
 
-                // Phase 11: Compute Payable Categories (Excluding Tuition category_id = 1)
-                $payableCategories = [];
+                // Phase 11: Compute Context-Aware Payable Options
+                $payableOptions = [];
+                
+                // Group A: Enrollment Assessment Total
+                $enrollmentTotal = 0;
                 foreach ($assessmentBreakdown as $item) {
                     if ($item['category_id'] == 1) continue; // Skip Tuition
                     if ($item['remaining_amount'] <= 0) continue;
+                    
+                    if ($item['source_context'] === 'Enrollment Assessment') {
+                        $enrollmentTotal += (float)$item['remaining_amount'];
+                    }
+                }
+                
+                if ($enrollmentTotal > 0) {
+                    $payableOptions[] = [
+                        'value_id' => 'enrollment_priority',
+                        'allocation_context' => 'ENROLLMENT_PRIORITY',
+                        'billing_item_id' => null,
+                        'name' => 'Enrollment Fees (Priority Allocation)',
+                        'amount' => $enrollmentTotal
+                    ];
+                }
 
-                    $catId = $item['category_id'];
-                    if (!isset($payableCategories[$catId])) {
-                        $payableCategories[$catId] = [
-                            'id' => $catId,
-                            'name' => $item['category_name'] ?: 'Other Fees',
-                            'amount' => 0.00
+                // Group B & C: Specific Items (Standard / Adjustment)
+                foreach ($assessmentBreakdown as $item) {
+                    if ($item['category_id'] == 1) continue; // Skip Tuition
+                    if ($item['remaining_amount'] <= 0) continue;
+                    
+                    if ($item['source_context'] !== 'Enrollment Assessment') {
+                        $payableOptions[] = [
+                            'value_id' => $item['billing_item_id'],
+                            'allocation_context' => 'SPECIFIC_ITEM',
+                            'billing_item_id' => $item['billing_item_id'],
+                            'name' => $item['fee_name'] . ' (' . $item['source_context'] . ')',
+                            'amount' => (float)$item['remaining_amount']
                         ];
                     }
-                    $payableCategories[$catId]['amount'] += (float)$item['remaining_amount'];
                 }
             }
         }
@@ -342,12 +365,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 
                 <label class="form-label fw-bold text-dark small mb-2">Select Fee to Pay:</label>
                 <select id="paymongoCategorySelect" class="form-select mb-3 shadow-sm" onchange="updatePaymongoAmount()">
-                    <?php if (empty($payableCategories)): ?>
+                    <?php if (empty($payableOptions)): ?>
                         <option value="">No eligible fees available to pay</option>
                     <?php else: ?>
-                        <?php foreach ($payableCategories as $cat): ?>
-                            <option value="<?= $cat['id'] ?>" data-amount="<?= $cat['amount'] ?>">
-                                <?= htmlspecialchars($cat['name']) ?> (PHP <?= number_format($cat['amount'], 2) ?>)
+                        <?php foreach ($payableOptions as $opt): ?>
+                            <option value="<?= $opt['value_id'] ?>" 
+                                    data-context="<?= $opt['allocation_context'] ?>" 
+                                    data-item-id="<?= $opt['billing_item_id'] ?>" 
+                                    data-amount="<?= $opt['amount'] ?>">
+                                <?= htmlspecialchars($opt['name']) ?> (PHP <?= number_format($opt['amount'], 2) ?>)
                             </option>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -399,14 +425,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initiatePayMongoCheckout(channel) {
     const selectEl = document.getElementById('paymongoCategorySelect');
-    const categoryId = selectEl.value;
     
-    if (!categoryId) {
-        alert("Please select a fee category to pay.");
+    if (selectEl.selectedIndex < 0 || !selectEl.value) {
+        alert("Please select a fee to pay.");
         return;
     }
     
-    const maxAmount = parseFloat(selectEl.options[selectEl.selectedIndex].getAttribute('data-amount'));
+    const option = selectEl.options[selectEl.selectedIndex];
+    const allocationContext = option.getAttribute('data-context');
+    const billingItemId = option.getAttribute('data-item-id');
+    const maxAmount = parseFloat(option.getAttribute('data-amount'));
     const amountInput = document.getElementById('paymongoAmountInput');
     const inputAmount = parseFloat(amountInput.value);
 
@@ -451,7 +479,8 @@ function initiatePayMongoCheckout(channel) {
         body: JSON.stringify({
             student_id: studentId,
             billing_id: billingId,
-            category_id: categoryId,
+            allocation_context: allocationContext,
+            billing_item_id: billingItemId ? parseInt(billingItemId) : null,
             amount: inputAmount,
             channel: channel
         })
@@ -462,7 +491,7 @@ function initiatePayMongoCheckout(channel) {
             // Redirect the student to PayMongo secure checkout page
             window.location.href = data.checkout_url;
         } else {
-            alert("Checkout Failed: " + (data.message || "Unknown error occurred."));
+            alert("Checkout Failed: " + (data.error || "Unknown error occurred."));
             resetCheckoutUI();
         }
     })
