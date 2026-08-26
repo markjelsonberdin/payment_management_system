@@ -10,6 +10,7 @@
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../payment/config/paymongo.php';
 require_once __DIR__ . '/../../payment/includes/PayMongoService.php';
+require_once __DIR__ . '/../../payment/includes/PaymentValidationService.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 // Force student login
@@ -91,6 +92,22 @@ try {
             'PayMongo' => 'qrph' // Defaulting PayMongo to qrph
         ];
         $internalCode = $reverseDbChannelMap[$payment['payment_channel']] ?? 'gcash';
+
+        // Revalidate the Payment against Current DB Rules (Phase 12 logic)
+        $validationService = new PaymentValidationService($pdo);
+        $validation = $validationService->validatePaymentRequest(
+            $payment['student_id'], 
+            $payment['billing_id'], 
+            $amount, 
+            $internalCode, 
+            $payment['allocation_context'], 
+            $payment['billing_item_id']
+        );
+
+        if (!$validation['valid']) {
+            echo "<script>alert('Unable to resume this payment: " . addslashes($validation['error']) . "'); window.location.href='../pages/payment-history.php';</script>";
+            exit;
+        }
 
         // Enforce Server-Side Availability
         require_once __DIR__ . '/../../payment/includes/PaymentChannelService.php';

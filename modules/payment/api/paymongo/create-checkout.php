@@ -34,6 +34,13 @@ $billingId = $input['billing_id'] ?? null;
 $categoryId = $input['category_id'] ?? null;
 $amount = $input['amount'] ?? 0;
 $channel = $input['channel'] ?? '';
+$allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
+$billingItemId = $input['billing_item_id'] ?? null;
+
+// Normalize target_id to billing_item_id to prevent confusion
+if ($allocationContext === 'SPECIFIC_ITEM' && empty($billingItemId) && !empty($input['target_id'])) {
+    $billingItemId = $input['target_id'];
+}
 
 if (!$studentId || !$billingId || !$amount || !$channel) {
     echo json_encode(['success' => false, 'error' => 'Missing required fields']);
@@ -46,7 +53,7 @@ try {
 
     // 2. Validate Payment Request (Phase 6 & 7)
     $validationService = new PaymentValidationService($pdo);
-    $validation = $validationService->validatePaymentRequest($studentId, $billingId, $amount, $channel);
+    $validation = $validationService->validatePaymentRequest($studentId, $billingId, $amount, $channel, $allocationContext, $billingItemId);
 
     if (!$validation['valid']) {
         throw new Exception($validation['error']);
@@ -129,14 +136,16 @@ try {
     // 6. Create Pending Payment Record with full transaction context (Phase 8 Revised)
     $stmtInsert = $pdo->prepare("
         INSERT INTO payment_db.payments 
-        (student_id, billing_id, category_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, checkout_session_id, payment_status, payment_date)
+        (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, checkout_session_id, payment_status, payment_date)
         VALUES 
-        (:student_id, :billing_id, :category_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, :payment_channel, :reference_number, :checkout_session_id, 'Pending', CURDATE())
+        (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, :payment_channel, :reference_number, :checkout_session_id, 'Pending', CURDATE())
     ");
     $stmtInsert->execute([
         ':student_id' => $studentId,
         ':billing_id' => $billingId,
         ':category_id' => $categoryId ?: null,
+        ':allocation_context' => $allocationContext,
+        ':billing_item_id' => $billingItemId ?: null,
         ':amount' => $feeData['amount_applied'],
         ':processing_fee' => $feeData['processing_fee'],
         ':checkout_total' => $feeData['checkout_total'],

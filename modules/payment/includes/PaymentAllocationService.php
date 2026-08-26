@@ -21,11 +21,11 @@ class PaymentAllocationService {
      * @param int $studentId
      * @param int $billingId
      * @param float $amountPaid The exact amount to allocate
-     * @param string $context 'Enrollment' or 'DesignatedCategory'
-     * @param int|null $categoryId Required if context is 'DesignatedCategory'
+     * @param string $allocationContext 'ENROLLMENT_PRIORITY' or 'SPECIFIC_ITEM'
+     * @param int|null $billingItemId Required if context is 'SPECIFIC_ITEM'
      * @throws Exception if validation fails or allocation rules are violated
      */
-    public function allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context = 'Enrollment', $categoryId = null) {
+    public function allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $allocationContext = 'ENROLLMENT_PRIORITY', $billingItemId = null) {
         $ownsTransaction = false;
         try {
             if (!$this->pdo->inTransaction()) {
@@ -51,24 +51,21 @@ class PaymentAllocationService {
             }
 
             // 3. Determine eligible billing items and lock them for concurrency
-            if ($context === 'Enrollment') {
-                // Priority: RFID -> Miscellaneous -> Laboratory/Medical
+            if ($allocationContext === 'ENROLLMENT_PRIORITY') {
+                // Rely on existing configured fee priority (fc.priority_order)
                 // Exclude Tuition entirely
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM billing_items bi
-                    JOIN fees f ON bi.fee_id = f.fee_id
-                    JOIN fee_categories fc ON f.category_id = fc.category_id
+                    FROM payment_db.billing_items bi
+                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id 
+                      AND bi.source_context = 'Enrollment Assessment'
                       AND bi.status != 'Paid'
                       AND bi.remaining_amount > 0
                       AND fc.category_id != :tuition_cat
                     ORDER BY 
-                        CASE WHEN f.fee_name = 'RFID' THEN 1
-                             WHEN fc.category_name = 'Miscellaneous' THEN 2
-                             WHEN fc.category_name = 'Laboratory & Computer' THEN 3
-                             ELSE 4
-                        END ASC,
+                        fc.priority_order ASC,
                         bi.billing_item_id ASC
                     FOR UPDATE
                 ");
@@ -76,34 +73,28 @@ class PaymentAllocationService {
                     ':billing_id' => $billingId,
                     ':tuition_cat' => self::TUITION_CATEGORY_ID
                 ]);
-            } elseif ($context === 'DesignatedCategory') {
-                if (!$categoryId) {
-                    throw new Exception("Category ID is required for Designated Category payments.");
-                }
-                if ($categoryId == self::TUITION_CATEGORY_ID) {
-                    throw new Exception("Tuition is not student-payable.");
+            } elseif ($allocationContext === 'SPECIFIC_ITEM') {
+                if (!$billingItemId) {
+                    throw new Exception("Billing item ID is required for SPECIFIC_ITEM allocation.");
                 }
                 
-                // Strict allocation only within the selected category
+                // Strict allocation only to the exact billing item
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM billing_items bi
-                    JOIN fees f ON bi.fee_id = f.fee_id
+                    FROM payment_db.billing_items bi
+                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
                     WHERE bi.billing_id = :billing_id 
-                      AND f.category_id = :cat_id 
+                      AND bi.billing_item_id = :item_id
                       AND bi.status != 'Paid'
                       AND bi.remaining_amount > 0
-                      AND f.category_id != :tuition_cat
-                    ORDER BY bi.billing_item_id ASC
                     FOR UPDATE
                 ");
                 $stmt->execute([
                     ':billing_id' => $billingId, 
-                    ':cat_id' => $categoryId,
-                    ':tuition_cat' => self::TUITION_CATEGORY_ID
+                    ':item_id' => $billingItemId
                 ]);
             } else {
-                throw new Exception("Invalid payment context specified.");
+                throw new Exception("Invalid payment allocation context specified.");
             }
 
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);

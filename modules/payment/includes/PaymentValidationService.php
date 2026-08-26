@@ -25,9 +25,11 @@ class PaymentValidationService {
      * @param int $billingId The ID of the billing to pay
      * @param float $amount The requested payment amount
      * @param string $channel The selected payment channel (e.g. gcash, card)
+     * @param string $allocationContext The allocation strategy (ENROLLMENT_PRIORITY or SPECIFIC_ITEM)
+     * @param int|null $billingItemId Optional specific item ID if SPECIFIC_ITEM
      * @return array Contains 'valid' => bool, and 'error' => string if invalid.
      */
-    public function validatePaymentRequest($studentId, $billingId, $amount, $channel): array {
+    public function validatePaymentRequest($studentId, $billingId, $amount, $channel, $allocationContext = 'ENROLLMENT_PRIORITY', $billingItemId = null): array {
         try {
             // 1. Amount basic validation
             if ($amount <= 0) {
@@ -51,20 +53,80 @@ class PaymentValidationService {
                 return ['valid' => false, 'error' => 'This billing is already fully paid.'];
             }
 
-            $remainingBalance = (float)$billing['remaining_balance'];
+            // 3. CONTEXT-AWARE TARGET BALANCE CALCULATION
+            $targetBalance = 0;
 
-            // 3. Amount validation against remaining balance & Phase 7 Partial Payment Rules
-            if ($amount > $remainingBalance) {
-                return ['valid' => false, 'error' => 'Payment amount cannot exceed the remaining balance of ₱' . number_format($remainingBalance, 2)];
+            if ($allocationContext === 'SPECIFIC_ITEM') {
+                if (!$billingItemId) {
+                    return ['valid' => false, 'error' => 'Billing item ID is required for specific item payments.'];
+                }
+
+                // Verify exact billing item belongs to this billing and is unpaid
+                $stmtItem = $this->pdo->prepare("
+                    SELECT remaining_amount 
+                    FROM payment_db.billing_items 
+                    WHERE billing_item_id = :item_id AND billing_id = :billing_id
+                ");
+                $stmtItem->execute([
+                    ':item_id' => $billingItemId, 
+                    ':billing_id' => $billingId
+                ]);
+                
+                $item = $stmtItem->fetch(PDO::FETCH_ASSOC);
+
+                if (!$item) {
+                    return ['valid' => false, 'error' => 'Specific billing item not found in this SOA.'];
+                }
+
+                if ((float)$item['remaining_amount'] <= 0) {
+                    return ['valid' => false, 'error' => 'This specific fee is already fully paid.'];
+                }
+
+                $targetBalance = (float)$item['remaining_amount'];
+
+            } else if ($allocationContext === 'ENROLLMENT_PRIORITY') {
+                if ($billingItemId !== null) {
+                    return ['valid' => false, 'error' => 'Billing item ID must be empty for enrollment priority payments.'];
+                }
+
+                // Sum all eligible enrollment assessment items (exclude tuition = 1)
+                $stmtEnrollment = $this->pdo->prepare("
+                    SELECT SUM(bi.remaining_amount) 
+                    FROM payment_db.billing_items bi
+                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    WHERE bi.billing_id = :billing_id 
+                      AND bi.source_context = 'Enrollment Assessment'
+                      AND f.category_id != 1
+                      AND bi.remaining_amount > 0
+                ");
+                $stmtEnrollment->execute([':billing_id' => $billingId]);
+                $enrollmentBalance = (float)$stmtEnrollment->fetchColumn();
+
+                if ($enrollmentBalance <= 0) {
+                    return ['valid' => false, 'error' => 'No outstanding enrollment assessment fees available to pay online.'];
+                }
+
+                $targetBalance = $enrollmentBalance;
+            } else {
+                return ['valid' => false, 'error' => 'Invalid payment allocation context.'];
             }
 
-            if ($remainingBalance >= 1000) {
-                if ($amount < 1000) {
-                    return ['valid' => false, 'error' => 'The minimum payment amount is ₱1,000.00 since your balance is ₱1,000.00 or more.'];
+            // 4. Validate Amount Against Target Balance & Universal Minimum Rule
+            if ($amount > $targetBalance) {
+                // Floating point safe comparison
+                if (abs($amount - $targetBalance) > 0.01) {
+                    return ['valid' => false, 'error' => 'Payment amount cannot exceed the target balance of ₱' . number_format($targetBalance, 2)];
                 }
-            } else {
-                if (abs($amount - $remainingBalance) > 0.01) { // Floating point safe comparison
-                    return ['valid' => false, 'error' => 'For balances below ₱1,000.00, you must pay the exact remaining balance of ₱' . number_format($remainingBalance, 2)];
+            }
+
+            $minimumAllowed = min(1000.00, $targetBalance);
+
+            // Floating point safe less-than comparison
+            if ($amount < ($minimumAllowed - 0.01)) {
+                if ($targetBalance >= 1000) {
+                    return ['valid' => false, 'error' => 'The minimum payment amount is ₱1,000.00 since your payable balance is ₱1,000.00 or more.'];
+                } else {
+                    return ['valid' => false, 'error' => 'For balances below ₱1,000.00, you must pay the exact remaining balance of ₱' . number_format($targetBalance, 2)];
                 }
             }
 

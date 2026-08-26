@@ -72,7 +72,7 @@ try {
 
     // 7. Find internal payment by checkout_session_id
     $stmt = $pdo->prepare("
-        SELECT payment_id, student_id, billing_id, category_id, amount, processing_fee, checkout_total, payment_status 
+        SELECT payment_id, student_id, billing_id, category_id, allocation_context, billing_item_id, amount, processing_fee, checkout_total, payment_status 
         FROM payment_db.payments 
         WHERE checkout_session_id = :session_id
     ");
@@ -116,10 +116,9 @@ try {
     
     $studentId = $internalPayment['student_id'];
     $billingId = $internalPayment['billing_id'];
-    $categoryId = $internalPayment['category_id'];
+    $allocationContext = $internalPayment['allocation_context'];
+    $billingItemId = $internalPayment['billing_item_id'];
     $amountApplied = (float) $internalPayment['amount']; // Only allocate the tuition applied
-
-    $context = $categoryId ? 'DesignatedCategory' : 'Enrollment';
 
     // 13. Update billing/billing_items (Handled inside PaymentAllocationService)
     $allocationService->allocatePayment(
@@ -127,8 +126,8 @@ try {
         $studentId,
         $billingId,
         $amountApplied,
-        $context,
-        $categoryId
+        $allocationContext,
+        $billingItemId
     );
 
     // 14. Update ledger/history (Assuming it's handled by PaymentAllocationService or we can add it later if separate)
