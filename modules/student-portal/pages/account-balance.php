@@ -392,17 +392,82 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 </div>
             </div>
             
-            <div class="modal-footer border-0 bg-light py-3 d-flex justify-content-between align-items-center">
+            <div class="modal-footer border-0 bg-light py-3 d-flex justify-content-between align-items-center" id="paymongoModalFooter">
                 <div id="checkoutLoading" class="d-none text-primary fw-bold small">
-                    <i class="fas fa-spinner fa-spin me-2"></i>Generating Secure Link...
+                    <i class="fas fa-spinner fa-spin me-2"></i>Processing...
                 </div>
                 <button type="button" class="btn btn-light border shadow-sm px-4" data-bs-dismiss="modal">Cancel</button>
+            </div>
+            
+            <!-- QR Display Container (Hidden by default) -->
+            <div id="qrDisplayContainer" class="d-none p-4 text-center">
+                <h6 class="fw-bold text-dark mb-3">Scan QR to Pay</h6>
+                <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-3">
+                    <img id="qrImage" src="" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
+                </div>
+                <p class="text-muted small mb-2">Scan this QR using GCash, Maya, or any supported QR Ph banking app.</p>
+                <div class="fw-bold text-dark fs-5 mb-3" id="qrAmountDisplay"></div>
+                <div class="alert alert-warning py-2 mb-4 d-inline-block shadow-sm">
+                    <i class="fas fa-spinner fa-spin me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
+                </div>
+                <br>
+                <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="cancelQrPayment()">Cancel Payment</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+let qrPollingInterval = null;
+let currentQrPaymentIntentId = null;
+
+function cancelQrPayment() {
+    if (qrPollingInterval) clearInterval(qrPollingInterval);
+    // Reload page to reset state or redirect to history
+    window.location.href = '?payment=cancelled';
+}
+
+function startQrPolling(paymentIntentId) {
+    if (qrPollingInterval) clearInterval(qrPollingInterval);
+    currentQrPaymentIntentId = paymentIntentId;
+    
+    qrPollingInterval = setInterval(() => {
+        fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.status === 'Verified') {
+                        clearInterval(qrPollingInterval);
+                        document.getElementById('qrStatusText').innerHTML = "Payment Successful!";
+                        document.getElementById('qrStatusText').classList.replace('text-warning', 'text-success');
+                        setTimeout(() => {
+                            window.location.href = '?payment=success';
+                        }, 2000);
+                    } else if (data.status === 'Failed' || data.status === 'Rejected') {
+                        clearInterval(qrPollingInterval);
+                        document.getElementById('qrStatusText').innerHTML = "Payment Failed/Expired.";
+                        document.getElementById('qrStatusText').classList.replace('text-warning', 'text-danger');
+                    }
+                }
+            })
+            .catch(err => console.error(err));
+    }, 4000); // 4-second polling
+}
+
+function displayQrPayment(qrImage, amount, paymentIntentId) {
+    // Hide channel selection UI
+    document.querySelector('.modal-header').classList.add('d-none');
+    document.querySelector('.modal-body').classList.add('d-none');
+    document.getElementById('paymongoModalFooter').classList.add('d-none');
+    
+    // Show QR UI
+    document.getElementById('qrDisplayContainer').classList.remove('d-none');
+    document.getElementById('qrImage').src = qrImage;
+    document.getElementById('qrAmountDisplay').innerHTML = 'PHP ' + parseFloat(amount).toFixed(2);
+    
+    startQrPolling(paymentIntentId);
+}
+
 function updatePaymongoAmount() {
     const selectEl = document.getElementById('paymongoCategorySelect');
     if (selectEl && selectEl.selectedIndex >= 0) {
@@ -470,8 +535,11 @@ function initiatePayMongoCheckout(channel) {
     document.getElementById('checkoutLoading').classList.remove('d-none');
     document.querySelectorAll('.paymongo-btn').forEach(btn => btn.style.pointerEvents = 'none');
 
-    // Call our Phase 5 API endpoint
-    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/create-checkout.php", {
+    const apiEndpoint = channel === 'qrph' 
+        ? "<?= BASE_URL ?>/modules/payment/api/paymongo/create-qr-payment.php"
+        : "<?= BASE_URL ?>/modules/payment/api/paymongo/create-checkout.php";
+
+    fetch(apiEndpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -487,17 +555,20 @@ function initiatePayMongoCheckout(channel) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success && data.checkout_url) {
-            // Redirect the student to PayMongo secure checkout page
-            window.location.href = data.checkout_url;
+        if (data.success) {
+            if (channel === 'qrph' && data.qr_image) {
+                displayQrPayment(data.qr_image, data.amount, data.payment_intent_id);
+            } else if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            }
         } else {
-            alert("Checkout Failed: " + (data.error || "Unknown error occurred."));
+            alert("Payment Initialization Failed: " + (data.error || data.message || "Unknown error occurred."));
             resetCheckoutUI();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert("A network error occurred while generating the checkout link.");
+        alert("A network error occurred while generating the payment link.");
         resetCheckoutUI();
     });
 }

@@ -239,14 +239,12 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <label class="form-label fw-bold text-dark" id="lblSecretKey">Secret Key</label>
                                 <div class="input-group shadow-sm">
                                     <input type="password" class="form-control font-monospace bg-white text-muted" id="displaySecretKey" readonly>
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleSecretKey"><i class="fas fa-eye"></i></button>
                                 </div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label fw-bold text-dark" id="lblWebhookKey">Webhook Secret</label>
                                 <div class="input-group shadow-sm">
                                     <input type="password" class="form-control font-monospace bg-white" id="displayWebhookKey" readonly>
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleWebhookKey"><i class="fas fa-eye"></i></button>
                                 </div>
                             </div>
 
@@ -258,19 +256,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             </style>
                             <script>
                                 document.addEventListener('DOMContentLoaded', function() {
-                                    function setupToggle(inputId, btnId) {
-                                        const input = document.getElementById(inputId);
-                                        const btn = document.getElementById(btnId);
-                                        if (input && btn) {
-                                            btn.addEventListener('click', function() {
-                                                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                                                input.setAttribute('type', type);
-                                                btn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-                                            });
-                                        }
-                                    }
-                                    setupToggle('displaySecretKey', 'toggleSecretKey');
-                                    setupToggle('displayWebhookKey', 'toggleWebhookKey');
+                                    // Password toggles are automatically handled by sms-security-ui.js
                                 });
                             </script>
                             <small class="d-block mt-3" id="keyHintText"><i class="fas fa-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.</small>

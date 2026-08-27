@@ -57,6 +57,46 @@ try {
         exit;
     }
 
+    if ($payment['payment_channel'] === 'QRPh') {
+        $paymentIntentId = $payment['payment_intent_id'];
+        if (!$paymentIntentId) {
+            die("Invalid payment record: Missing payment intent reference.");
+        }
+
+        $payMongo = new PayMongoService();
+        $intentData = $payMongo->getPaymentIntent($paymentIntentId);
+        $payMongoStatus = $intentData['data']['attributes']['status'] ?? 'unknown';
+
+        if ($payMongoStatus === 'succeeded') {
+            echo "<script>alert('This payment is already paid.'); window.location.href='../pages/payment-history.php';</script>";
+            exit;
+        }
+
+        $clientKey = $intentData['data']['attributes']['client_key'] ?? null;
+        if (!$clientKey) {
+            die("Unable to resume QR payment: Missing client_key from Payment Intent.");
+        }
+
+        // We can just recreate a new QR payment method and attach it to the same Payment Intent!
+        $methodRes = $payMongo->createQrPaymentMethod();
+        $paymentMethodId = $methodRes['data']['id'] ?? null;
+
+        if (!$paymentMethodId) {
+            die("Failed to create a new QR Ph Payment Method.");
+        }
+
+        $attachRes = $payMongo->attachPaymentIntent($paymentIntentId, $paymentMethodId, $clientKey);
+        $qrImage = $attachRes['data']['attributes']['next_action']['code']['image_url'] ?? null;
+
+        if (!$qrImage) {
+            die("Failed to retrieve QR image from PayMongo attachment response.");
+        }
+
+        // Redirect to the dedicated UI page for QR display
+        header("Location: ../pages/resume-qr.php?id=" . urlencode($paymentId));
+        exit;
+    }
+
     $checkoutSessionId = $payment['checkout_session_id'];
     if (!$checkoutSessionId) {
         die("Invalid payment record: Missing checkout session reference.");
