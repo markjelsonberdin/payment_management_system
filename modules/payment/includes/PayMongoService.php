@@ -20,13 +20,14 @@ class PayMongoService {
     /**
      * Helper to make API requests securely
      */
-    private function request($method, $endpoint, $data = [], $customHeaders = []) {
+    private function request($method, $endpoint, $data = [], $customHeaders = [], $usePublicKey = false) {
         $url = $this->baseUrl . $endpoint;
         
+        $keyToUse = $usePublicKey ? $this->config['public_key'] : $this->config['secret_key'];
         $headers = [
             'Accept: application/json',
             'Content-Type: application/json',
-            'Authorization: Basic ' . base64_encode($this->config['secret_key'] . ':')
+            'Authorization: Basic ' . base64_encode($keyToUse . ':')
         ];
 
         if (!empty($customHeaders)) {
@@ -128,6 +129,65 @@ class PayMongoService {
      */
     public function getCheckoutSession($sessionId) {
         return $this->request('GET', '/checkout_sessions/' . $sessionId);
+    }
+
+    /**
+     * Retrieves an existing Payment Intent (Uses Secret Key)
+     */
+    public function getPaymentIntent($paymentIntentId) {
+        return $this->request('GET', '/payment_intents/' . $paymentIntentId);
+    }
+
+    /**
+     * Creates a Payment Intent (Server-side, uses Secret Key)
+     */
+    public function createPaymentIntent($amount, $description, $metadata = []) {
+        $amountInCents = (int) round($amount * 100);
+        
+        $payload = [
+            'data' => [
+                'attributes' => [
+                    'amount' => $amountInCents,
+                    'payment_method_allowed' => ['qrph'],
+                    'currency' => 'PHP',
+                    'description' => $description,
+                    'metadata' => $metadata
+                ]
+            ]
+        ];
+
+        return $this->request('POST', '/payment_intents', $payload);
+    }
+
+    /**
+     * Creates a QR Ph Payment Method (Uses Public Key)
+     */
+    public function createQrPaymentMethod() {
+        $payload = [
+            'data' => [
+                'attributes' => [
+                    'type' => 'qrph'
+                ]
+            ]
+        ];
+
+        return $this->request('POST', '/payment_methods', $payload, [], true); // true = use public key
+    }
+
+    /**
+     * Attaches a Payment Method to a Payment Intent (Uses Public Key and Client Key)
+     */
+    public function attachPaymentIntent($paymentIntentId, $paymentMethodId, $clientKey) {
+        $payload = [
+            'data' => [
+                'attributes' => [
+                    'payment_method' => $paymentMethodId,
+                    'client_key' => $clientKey
+                ]
+            ]
+        ];
+
+        return $this->request('POST', '/payment_intents/' . $paymentIntentId . '/attach', $payload, [], true); // true = use public key
     }
 
     /**

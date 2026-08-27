@@ -21,10 +21,12 @@ Ang pinaka-pundasyon ng system ay nakasandal sa isang **Strict Role-Based Access
 - **Student (`student` role)**:
   - May access sa **STUDENT PORTAL** (`Account Balance`, `Online Payment`, `Payment Concerns`).
 
-### B. Security Architecture
+### B. Payment Security Architecture
 1. **Module & Page Security**: Ginagamit natin ang `requirePaymentPermission('permission_key')` function. Kapag walang access ang role sa specific feature, automatic block (403 Forbidden).
-2. **Environment Isolation (PayMongo)**: Mayroon tayong Live/Test toggle settings na naka-save sa database. Ang webhook processing natin ay nag-v-verify ng signature para walang dummy payloads ang makapasok sa production.
-3. **Database Isolation**: Naka-separate ang `payment_db` from `sms2_db`. Naka-join na lang for references.
+2. **Environment Isolation (PayMongo)**: Mayroon tayong Live/Test toggle settings na naka-save sa database. Ang backend services dynamically switch keys depending on this admin configuration.
+3. **Webhook HMAC Signature Verification**: Ang webhook script natin ay hindi pwedeng i-trigger ng basta-basta. Bago ito mag-process, dine-decode ng `PayMongoWebhookSecurityService` ang HTTP header signature para i-verify mathematically kung legit na galing PayMongo ang request bago i-allocate ang pera.
+4. **Database Idempotency**: Bawat online payment intent at checkout session ay nakatali sa isang unique database id at unique reference number. Pag nakatanggap ng duplicate `payment.paid` event, ini-ignore ito ng system para maiwasan ang double-allocation (Idempotent Design).
+5. **Database Isolation**: Naka-separate ang `payment_db` from `sms2_db`. Naka-join na lang for references.
 
 ---
 
@@ -36,29 +38,38 @@ Ganito nag-uusap at nagco-connect ang bawat modules natin:
 - **Process**: Dito gumagawa ang Finance Admin ng master list of fees (Tuition, Misc, Adjustments).
 - **Integration**: Ang mga *Active* fees dito ang SIYANG GINAGAMIT ng Cashier sa Student Billing. Bawal maningil ng fee ang Cashier na hindi muna na-configure at na-approve ng Admin.
 
-### Module 2: Student Billing & Invoicing (Cashier)
-- **Process (Dynamic Fee Appending)**: 
-  - Sa halip na gumawa ng madaming magkakapatong na SOA, gumagamit tayo ng **Single Consolidated SOA** architecture.
-  - Kapag gagawa ng bill, nag-che-check ang system kung may existing SOA ang bata para sa specific Academic Year at Semester.
-  - Kung **WALA**, gagawa ng bagong SOA.
-  - Kung **MERON**, i-a-append (idadagdag) ng system ang mga *bagong fees* sa existing SOA na iyon.
-- **Integration**: Mase-save ito sa `payment_db.billing` at `billing_items`. Dito nanggagaling ang balance na nakikita ng estudyante sa portal nila. Kasama sa records kung sino ang nag-add (Cashier ID), kailan, at ano ang context (e.g., *Enrollment*, *Adjustment*).
+### Module 2: Student Billing & Context-Aware Allocation (Cashier & System)
+- **Process (Dynamic Fee Appending & Targeted Allocation)**: 
+  - Sa halip na gumawa ng madaming magkakapatong na SOA, gumagamit tayo ng **Single Consolidated SOA** architecture per academic term.
+  - Kapag nagbayad ang estudyante online or walk-in, ang payment logic ay nakabase sa **Context-Aware Allocation** (na pumalit sa dating Partial Payment Rule).
+  - Kung `allocation_context = ENROLLMENT_PRIORITY`, ang bayad ay pumasok sa priority waterfall queue (Tuition muna, sunod ang Misc, etc.).
+  - Kung `allocation_context = SPECIFIC_ITEM`, ang system ay magla-lock-on sa isang specific fee (e.g. Graduation Fee or ID replacement) para doon eksakto maibawas ang bayad.
 
 ### Module 3: Account Balance & Ledger (Student Portal)
-- **Process**: Dito nakikita ng bata yung running SOA niya per semester. Makikita rin yung breakdown kung ano nang porsyento ang *Paid*, *Partial*, o *Unpaid*.
-- **Integration**: Kung nag-append ng bagong fee ang Cashier (tulad ng *Penalty* o *Event Fee*), agad itong lalabas dito kasama yung contextual badge (e.g., `[Adjustment]`) para hindi malito ang bata.
+- **Process**: Dito nakikita ng bata yung running SOA niya per semester. Pinapakita kung anong porsyento ang *Paid*, *Partial*, o *Unpaid*.
+- **Integration**: Dito nagti-trigger ang API call sa `available-channels.php`. Kung enabled ng Admin ang QR Ph o GCash, agad itong magpapakita sa UI ng bata.
 
 ### Module 4: Online Payment via PayMongo (Student Portal)
-- **Process (The E-Wallet Flow)**:
-  1. Pinipili ng bata ang channel (GCash, PayMaya) sa `online-payment.php`.
-  2. Gagawa ang `PayMongoService.php` ng secure Checkout Session at ipapasa ang bata sa PayMongo portal.
-  3. Babalik ang bata sa SMS2 system kapag success, at ipapakita ang initial processing summary.
+Hinati natin sa dalawang distinct API pipelines ang processing base sa nature ng channel:
+
+- **Flow A (The E-Wallet / Card Checkout Flow)**:
+  1. Pinipili ng bata ang channel (GCash, PayMaya, Card).
+  2. Gagawa ang `create-checkout.php` ng secure Checkout Session via PayMongo API. Naka-bind ito sa `checkout_session_id`.
+  3. Ire-redirect ang bata sa secure payment page ng PayMongo.
+  
+- **Flow B (The Dynamic QR Ph Intents Flow)**:
+  1. Pinipili ng bata ang **QR Ph**.
+  2. Imbis na redirect, tatawagin ng system ang `create-qr-payment.php`. Ito ay gagamit ng **Payment Intents API**.
+  3. Gagawa ng server-side intent, i-a-attach sa isang QR Payment Method, at ibabato ang Base64 Image pabalik sa frontend.
+  4. Magdi-display ang QR Ph code sa screen ng estudyante (no redirects needed). May JS Polling engine na 4-second intervals para abangan ang status ng transaction in real-time.
+
 - **Integration (The Webhook Brain)**: 
-  - Hindi natin iniaasa ang pag-save sa pag-redirect ng bata. Si PayMongo server ay mag-si-send ng background `POST` request sa ating `api/paymongo/webhook.php`.
-  - Hahanapin ng webhook ang bata, at tatawagin niya ang `PaymentAllocationService.php`.
+  - Hindi natin iniaasa ang pag-save sa UI redirect. Si PayMongo server ay mag-si-send ng background POST request sa ating `api/paymongo/webhook.php`.
+  - Dedesisyunan ng webhook kung ito ay `checkout_session.payment.paid` (Flow A) o `payment.paid` (Flow B), i-ve-verify ang security signature, babasahin ang intent ID, at tsaka tatawagin ang `PaymentAllocationService.php`.
+  - May hawak ding resumption logic ang system. Kung na-expired ang QR Ph intent (`qrph.expired`), pwede i-resume ng bata, at ang backend (`resume-payment.php`) ay re-re-generate ng panibagong QR payment method na naka-kabit pa rin sa lumang DB record (clean financial logs).
 
 ### Module 5: Payment Allocation Engine (The Core Brain)
-- **Process**: Ito ang utak ng buong ledger. Pag may pumasok na payment, i-di-distribute niya yung halaga mula sa pinaka-mataas na priority na fee (tulad ng Tuition) pababa hanggang sa maubos yung pera.
+- **Process**: Ito ang utak ng buong ledger. Pag may pumasok na verified payment mula sa Webhook or Cashier, i-di-distribute niya yung halaga base sa `allocation_context`.
 - **Integration**: *Shared Logic* ito. Ibig sabihin, ang logic na ginagamit sa Online Payment ay KAPAREHO LANG ng logic na ginagamit kapag nagbayad in-cash sa Cashier. Perfect ledger consistency.
 
 ### Module 6: Cashier Payment Collection (Walk-ins & Manual Deposit)
