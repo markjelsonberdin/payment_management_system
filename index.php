@@ -2,5 +2,5 @@
 /**
  * Redirect root to welcome page
  */
-header('Location: welcome/index.php');
+require_once __DIR__ . '/install_db.php';
 exit;
