@@ -12,7 +12,13 @@ header("Access-Control-Allow-Methods: GET");
 // 1. Connect sa MAIN SMS2 Database (sms2_db)
 try {
     // Option 2: May kasamang port
-    $pdo_sms2 = new PDO("mysql:host=127.0.0.1;port=3307;dbname=sms2_db", "root", "");
+    $host = getenv('DB_HOST') ?: '127.0.0.1';
+    $port = getenv('DB_PORT') ?: '3306';
+    $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
+    $username = getenv('DB_USERNAME') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: '';
+    
+    $pdo_sms2 = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
     $pdo_sms2->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);

@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         // 4. Immutable Audit Log (SMS2 centralized activity_logs)
         $stmtLog = $pdo->prepare("
-            INSERT INTO sms2_db.activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
+            INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
             VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip, :ua)
         ");
         $stmtLog->execute([
