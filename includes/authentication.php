@@ -798,8 +798,8 @@ function smsForceLoginThrottleLock(string $loginInput = '', ?int $lockSeconds = 
 
     $stmt = $pdo->prepare('SELECT locked_until FROM login_throttles WHERE throttle_key = ? LIMIT 1');
     $stmt->execute([$key]);
-    $until = $stmt->fetchColumn();
-    return $until ? (string) $until : null;
+    $lockedUntil = $stmt->fetchColumn() ?: null;
+    return is_string($lockedUntil) && $lockedUntil !== '' ? (string) $lockedUntil : null;
 }
 
 function smsLoginGateSet(?string $lockedUntil, string $message, string $alert = 'warning', ?int $lockSeconds = null): void

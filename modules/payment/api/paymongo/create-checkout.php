@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
+require_once __DIR__ . '/../../../../includes/security.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PayMongoService.php';
 require_once __DIR__ . '/../../includes/PaymentValidationService.php';
@@ -15,20 +16,31 @@ header('Content-Type: application/json');
 
 // 1. Security Check
 if (!isAuthenticated()) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'AUTHENTICATION_REQUIRED']);
     exit;
 }
-// Optionally check if user is a student:
-// if ($_SESSION['user_role'] !== 'Student') { ... }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'error' => 'Invalid request method']);
     http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Invalid request method']);
     exit;
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
+
+// 1.5 CSRF Validation
+requireCsrfJson($input);
+
+// 1.6 Rate Limiting (5 requests per minute)
+require_once __DIR__ . '/../../includes/PaymentRateLimiter.php';
+$throttleKey = 'checkout:user:' . (getCurrentUserId() ?? 'anon');
+if (!PaymentRateLimiter::throttle($throttleKey, 5, 60)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'error' => 'TOO_MANY_REQUESTS', 'message' => 'Too many requests. Please try again later.']);
+    exit;
+}
+
 $studentId = $input['student_id'] ?? null;
 $billingId = $input['billing_id'] ?? null;
 $categoryId = $input['category_id'] ?? null;
@@ -37,14 +49,21 @@ $channel = $input['channel'] ?? '';
 $allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
 $billingItemId = $input['billing_item_id'] ?? null;
 
+// Object-Level Authorization: Students can only checkout for themselves
+if (getCurrentUserRoleKey() === 'student' && (empty($_SESSION['student_id']) || $_SESSION['student_id'] !== $studentId)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'Unauthorized object access.']);
+    exit;
+}
+
 // Normalize target_id to billing_item_id to prevent confusion
 if ($allocationContext === 'SPECIFIC_ITEM' && empty($billingItemId) && !empty($input['target_id'])) {
     $billingItemId = $input['target_id'];
 }
 
 if (!$studentId || !$billingId || !$amount || !$channel) {
-    echo json_encode(['success' => false, 'error' => 'Missing required fields']);
     http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Missing required fields']);
     exit;
 }
 
@@ -65,12 +84,12 @@ try {
     $env = $channelService->getActiveEnvironment();
     
     if (!$channelService->isChannelAvailable($payMongo, $env, $channel)) {
+        http_response_code(400);
         echo json_encode([
             'success' => false, 
             'error' => 'PAYMENT_METHOD_UNAVAILABLE', 
             'message' => 'This payment method is currently unavailable.'
         ]);
-        http_response_code(400);
         exit;
     }
 
@@ -163,6 +182,16 @@ try {
         'fee_data' => $feeData
     ]);
 
+} catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'INTERNAL_SERVER_ERROR',
+        'message' => 'Database error.'
+    ]);
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
