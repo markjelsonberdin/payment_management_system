@@ -33,7 +33,13 @@ class RegistrarStudentClient {
 
         try {
             // Direct database connection to sms2_db to avoid API/network issues
-            $sms2_pdo = new PDO("mysql:host=127.0.0.1;port=3307;dbname=sms2_db", "root", "");
+            $host = getenv('DB_HOST') ?: '127.0.0.1';
+            $port = getenv('DB_PORT') ?: '3306';
+            $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
+            $username = getenv('DB_USERNAME') ?: 'root';
+            $password = getenv('DB_PASSWORD') ?: '';
+            
+            $sms2_pdo = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
             $sms2_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
             $stmt = $sms2_pdo->prepare("

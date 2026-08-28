@@ -19,10 +19,17 @@ if (!in_array($roleKey, ['admin', 'superadmin', 'finance', 'cashier'])) {
 $paymentDb = null;
 $smsDb = null;
 try {
-    $paymentDb = new PDO('mysql:host=127.0.0.1;port=3307;dbname=payment_db;charset=utf8mb4', 'root', '');
+    $host = getenv('DB_HOST') ?: '127.0.0.1';
+    $port = getenv('DB_PORT') ?: '3306';
+    $paymentDbName = getenv('DB_DATABASE') ?: 'payment_db';
+    $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
+    $username = getenv('DB_USERNAME') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: '';
+
+    $paymentDb = new PDO("mysql:host=$host;port=$port;dbname=$paymentDbName;charset=utf8mb4", $username, $password);
     $paymentDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    $smsDb = new PDO('mysql:host=127.0.0.1;port=3307;dbname=sms2_db;charset=utf8mb4', 'root', '');
+
+    $smsDb = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
     $smsDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (Exception $e) {
     http_response_code(500);
