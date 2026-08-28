@@ -8,16 +8,19 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 if (!defined('DB_HOST')) {
-    define('DB_HOST', sms2_env('SMS2_DB_HOST', '127.0.0.1;port=3307'));
+    define('DB_HOST', sms2_env('DB_HOST', sms2_env('SMS2_DB_HOST', '127.0.0.1')));
+}
+if (!defined('DB_PORT')) {
+    define('DB_PORT', sms2_env('DB_PORT', '3306'));
 }
 if (!defined('DB_NAME')) {
-    define('DB_NAME', sms2_env('SMS2_DB_NAME', 'sms2_db'));
+    define('DB_NAME', sms2_env('SMS2_DB_DATABASE', sms2_env('DB_DATABASE', sms2_env('SMS2_DB_NAME', 'sms2_db'))));
 }
 if (!defined('DB_USER')) {
-    define('DB_USER', sms2_env('SMS2_DB_USER', 'root'));
+    define('DB_USER', sms2_env('DB_USERNAME', sms2_env('SMS2_DB_USER', 'root')));
 }
 if (!defined('DB_PASS')) {
-    define('DB_PASS', sms2_env('SMS2_DB_PASS', ''));
+    define('DB_PASS', sms2_env('DB_PASSWORD', sms2_env('SMS2_DB_PASS', '')));
 }
 if (!defined('DB_CHARSET')) {
     define('DB_CHARSET', sms2_env('SMS2_DB_CHARSET', 'utf8mb4'));
@@ -36,7 +39,7 @@ function getDatabaseConnection(): PDO
         return $pdo;
     }
 
-    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
 
     try {
         $pdo = new PDO($dsn, DB_USER, DB_PASS, [
