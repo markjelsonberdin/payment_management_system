@@ -1,10 +1,23 @@
 <?php
-error_reporting(0);
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/authentication.php';
 require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
 header('Content-Type: application/json');
+
+if (!isAuthenticated()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'AUTHENTICATION_REQUIRED', 'message' => 'Please log in.']);
+    exit;
+}
+
+if (!userCanAccessModule('payment')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'Unauthorized access.']);
+    exit;
+}
+
 $student_number = $_GET['student_number'] ?? '';
 
 if(empty($student_number)) {
@@ -47,6 +60,7 @@ try {
         echo json_encode(['success' => false, 'message' => 'No unpaid billing found.']);
     }
 } catch (Exception $e) {
-    echo json_encode(['success' => false]);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'INTERNAL_SERVER_ERROR', 'message' => 'An unexpected error occurred.']);
 }
 ?>
