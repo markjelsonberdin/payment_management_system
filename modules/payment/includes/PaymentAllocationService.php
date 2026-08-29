@@ -51,7 +51,22 @@ class PaymentAllocationService {
             }
 
             // 3. Determine eligible billing items and lock them for concurrency
-            if ($allocationContext === 'ENROLLMENT_PRIORITY') {
+            if ($allocationContext === 'GENERAL_PRIORITY') {
+                $stmt = $this->pdo->prepare("
+                    SELECT bi.billing_item_id, bi.remaining_amount
+                    FROM payment_db.billing_items bi
+                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+                    WHERE bi.billing_id = :billing_id 
+                      AND bi.status != 'Paid'
+                      AND bi.remaining_amount > 0
+                    ORDER BY 
+                        fc.priority_order ASC,
+                        bi.billing_item_id ASC
+                    FOR UPDATE
+                ");
+                $stmt->execute([':billing_id' => $billingId]);
+            } elseif ($allocationContext === 'ENROLLMENT_PRIORITY') {
                 // Rely on existing configured fee priority (fc.priority_order)
                 // Exclude Tuition entirely
                 $stmt = $this->pdo->prepare("

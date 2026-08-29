@@ -31,6 +31,72 @@ document.addEventListener("DOMContentLoaded", function () {
                     document.getElementById('inputStudentId').value = data.student_id;
                     activeBalance = data.balance;
 
+                    // Unpaid Fees Breakdown Logic
+                    const breakdownContainer = document.getElementById('unpaidFeesContainer');
+                    const breakdownList = document.getElementById('unpaidFeesList');
+                    breakdownList.innerHTML = '';
+
+                    if (data.breakdown) {
+                        if (data.breakdown.has_error) {
+                            // Show consistency error
+                            breakdownList.innerHTML = `
+                                <div class="alert alert-danger p-2 small mb-0">
+                                    <i class="fas fa-exclamation-triangle me-1"></i> ${data.breakdown.error_message}
+                                </div>
+                            `;
+                            breakdownContainer.classList.remove('d-none');
+                            
+                            // Prevent payment processing because of inconsistency
+                            paymentPanel.style.pointerEvents = 'none';
+                            paymentPanel.classList.add('opacity-50');
+                            alert(data.breakdown.error_message);
+                            return;
+                        } else if (data.breakdown.categories && data.breakdown.categories.length > 0) {
+                            let html = '';
+                            let grandTotal = 0;
+                            
+                            data.breakdown.categories.forEach(cat => {
+                                html += `<div class="mb-3">
+                                            <div class="fw-bold text-dark mb-1 border-bottom pb-1" style="font-size: 0.85rem;">${cat.category_name}</div>`;
+                                
+                                cat.fees.forEach(fee => {
+                                    let sourceBadge = '';
+                                    if (fee.source_context) {
+                                        let badgeColor = fee.source_context === 'Enrollment Assessment' ? 'bg-info' : 'bg-secondary';
+                                        sourceBadge = `<span class="badge ${badgeColor} text-white ms-2" style="font-size: 0.65rem;">${fee.source_context}</span>`;
+                                    }
+                                    
+                                    html += `<div class="d-flex justify-content-between align-items-center mb-1 text-muted" style="font-size: 0.8rem;">
+                                                <div>
+                                                    <span class="fw-medium">${fee.fee_name}</span>
+                                                    ${sourceBadge}
+                                                </div>
+                                                <span class="fw-bold text-dark">₱ ${parseFloat(fee.remaining_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                             </div>`;
+                                });
+                                
+                                html += `<div class="d-flex justify-content-between align-items-center mt-1 text-dark">
+                                            <span class="small fst-italic">Category Total</span>
+                                            <span class="fw-bold small">₱ ${parseFloat(cat.category_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                         </div>
+                                       </div>`;
+                                grandTotal += cat.category_total;
+                            });
+                            
+                            html += `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-dark">
+                                        <span class="fw-bolder">BREAKDOWN TOTAL</span>
+                                        <span class="fw-bolder text-danger">₱ ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                     </div>`;
+                                     
+                            breakdownList.innerHTML = html;
+                            breakdownContainer.classList.remove('d-none');
+                        } else {
+                            breakdownContainer.classList.add('d-none');
+                        }
+                    } else {
+                        breakdownContainer.classList.add('d-none');
+                    }
+
                     // Unlock right panel
                     billingInfoBox.classList.remove('d-none');
                     paymentPanel.style.pointerEvents = 'auto';

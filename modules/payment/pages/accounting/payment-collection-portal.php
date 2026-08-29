@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     
     $amount_paid      = (float) $_POST['amount_paid'];
     $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
-    $payment_context  = $_POST['payment_context'] ?? 'ENROLLMENT_PRIORITY';
+    $payment_context  = $_POST['payment_context'] ?? 'GENERAL_PRIORITY';
     $category_id      = isset($_POST['category_id']) ? (int)$_POST['category_id'] : null;
     $payment_channel  = $_POST['payment_channel']; // Cash, GCash, etc.
     $reference_number = trim($_POST['reference_number']) ?: 'OR-' . date('Ymd') . '-' . rand(1000, 9999);
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         // 4. Immutable Audit Log (SMS2 centralized activity_logs)
         $stmtLog = $pdo->prepare("
-            INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
+            INSERT INTO sms2_db.activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
             VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip, :ua)
         ");
         $stmtLog->execute([
@@ -193,6 +193,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <span class="text-muted">Current Balance Due:</span>
                             <span class="fw-bold text-danger fs-5" id="lblRemainingBalance">₱ 0.00</span>
                         </div>
+
+                        <!-- Unpaid Fees Breakdown Container -->
+                        <div id="unpaidFeesContainer" class="d-none mt-2">
+                            <h6 class="text-muted fw-bolder small text-uppercase mb-3 mt-3"><i class="fas fa-list-ul me-2"></i>Unpaid Fees Breakdown</h6>
+                            <div id="unpaidFeesList" class="small">
+                                <!-- Dynamic breakdown will be injected here by JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -212,8 +220,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label fw-bold small text-muted">Payment Context <span class="text-danger">*</span></label>
-                                <select class="form-select" name="payment_context" id="inputPaymentContext" required onchange="document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value !== 'CATEGORY_PRIORITY')">
-                                    <option value="ENROLLMENT_PRIORITY" selected>Enrollment Priority (RFID &rarr; Misc &rarr; Lab)</option>
+                                <select class="form-select" name="payment_context" id="inputPaymentContext" required onchange="document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value === 'CATEGORY_PRIORITY') ? false : true; document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value !== 'CATEGORY_PRIORITY')">
+                                    <option value="GENERAL_PRIORITY" selected>General / Full Payment (Covers All Fees Including Tuition)</option>
+                                    <option value="ENROLLMENT_PRIORITY">Enrollment Priority (RFID &rarr; Misc &rarr; Lab)</option>
                                     <option value="CATEGORY_PRIORITY">Designated Category (Specific Fee Only)</option>
                                 </select>
                             </div>

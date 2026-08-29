@@ -39,7 +39,7 @@ try {
         SELECT p.*, s.student_number, u.full_name 
         FROM payments p
         JOIN students s ON p.student_id = s.student_id
-        JOIN users u ON s.user_id = u.id
+        JOIN sms2_db.users u ON s.user_id = u.id
         WHERE p.payment_status = 'Verified'
         ORDER BY p.created_at DESC 
         LIMIT 10
