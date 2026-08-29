@@ -33,11 +33,11 @@ class RegistrarStudentClient {
 
         try {
             // Direct database connection to sms2_db to avoid API/network issues
-            $host = getenv('DB_HOST') ?: '127.0.0.1';
-            $port = getenv('DB_PORT') ?: '3306';
+            $host = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: '127.0.0.1');
+            $port = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3307');
             $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
-            $username = getenv('DB_USERNAME') ?: 'root';
-            $password = getenv('DB_PASSWORD') ?: '';
+            $username = defined('DB_USER') ? DB_USER : (getenv('DB_USERNAME') ?: 'root');
+            $password = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASSWORD') ?: '');
             
             $sms2_pdo = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
             $sms2_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

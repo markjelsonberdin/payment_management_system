@@ -12,5 +12,8 @@
         "cocurricular": false,
         "lms": false,
         "crad": false
+    },
+    "it_office": {
+        "enrollment": false
     }
 }

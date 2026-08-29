@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     
     $amount_paid      = (float) $_POST['amount_paid'];
     $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
-    $payment_context  = $_POST['payment_context'] ?? 'Enrollment';
+    $payment_context  = $_POST['payment_context'] ?? 'ENROLLMENT_PRIORITY';
     $category_id      = isset($_POST['category_id']) ? (int)$_POST['category_id'] : null;
     $payment_channel  = $_POST['payment_channel']; // Cash, GCash, etc.
     $reference_number = trim($_POST['reference_number']) ?: 'OR-' . date('Ymd') . '-' . rand(1000, 9999);
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         }
 
         // Validate backend Context
-        if ($payment_context === 'Enrollment' && $bill['billing_type'] !== 'Enrollment') {
+        if ($payment_context === 'ENROLLMENT_PRIORITY' && $bill['billing_type'] !== 'Enrollment') {
             throw new Exception("Invalid Context: Cannot apply Enrollment Priority Mode to a non-enrollment billing.");
         }
 
@@ -212,9 +212,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label fw-bold small text-muted">Payment Context <span class="text-danger">*</span></label>
-                                <select class="form-select" name="payment_context" id="inputPaymentContext" required onchange="document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value !== 'DesignatedCategory')">
-                                    <option value="Enrollment" selected>Enrollment Priority (RFID &rarr; Misc &rarr; Lab)</option>
-                                    <option value="DesignatedCategory">Designated Category (Specific Fee Only)</option>
+                                <select class="form-select" name="payment_context" id="inputPaymentContext" required onchange="document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value !== 'CATEGORY_PRIORITY')">
+                                    <option value="ENROLLMENT_PRIORITY" selected>Enrollment Priority (RFID &rarr; Misc &rarr; Lab)</option>
+                                    <option value="CATEGORY_PRIORITY">Designated Category (Specific Fee Only)</option>
                                 </select>
                             </div>
 

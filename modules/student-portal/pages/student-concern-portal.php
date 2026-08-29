@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
 
                 if (move_uploaded_file($fileTmpPath, $dest_path)) {
                     try {
-                        $pdo = studentPortalDb();
+                        global $pdo;
                         $concernService = new PaymentConcernService($pdo);
                         $concernId = $concernService->submitConcern(
                             $studentId,
@@ -78,6 +78,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
                             $remarks,
                             $relativePath
                         );
+
+                        // Save OCR Results if provided by frontend
+                        $ocrRawText = $_POST['ocr_raw_text'] ?? null;
+                        if (!empty($ocrRawText)) {
+                            $ocrAmount = $_POST['ocr_amount'] ?? null;
+                            $ocrRef = $_POST['ocr_reference'] ?? null;
+                            
+                            $stmtOcr = $pdo->prepare("
+                                INSERT INTO payment_db.ocr_results 
+                                (concern_id, extracted_amount, reference_number, raw_json) 
+                                VALUES (?, ?, ?, ?)
+                            ");
+                            $stmtOcr->execute([
+                                $concernId, 
+                                $ocrAmount ? (float)$ocrAmount : null, 
+                                $ocrRef, 
+                                json_encode(['text' => $ocrRawText])
+                            ]);
+                        }
 
                         $successMsg = "Your support ticket #$concernId has been submitted successfully!";
                     } catch (Exception $e) {
@@ -97,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
 $myConcerns = [];
 
 try {
-    $pdo = studentPortalDb(); 
+    global $pdo;
     
     if ($pdo) {
         $stmtStud = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_number = :snum LIMIT 1");
@@ -160,15 +179,23 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-muted">Reference Number (Optional)</label>
-                            <input type="text" class="form-control shadow-sm" name="reference_no" placeholder="e.g. 000123456789">
+                            <input type="text" class="form-control shadow-sm" name="reference_no" id="refNoInput" placeholder="e.g. 000123456789">
                             <small class="text-muted" style="font-size: 0.75rem;">If you have a reference number from your text/email receipt.</small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold small text-muted">Upload Receipt / Screenshot</label>
-                            <input type="file" class="form-control shadow-sm" name="receipt_image" accept="image/png, image/jpeg, application/pdf" required>
+                            <label class="form-label fw-bold small text-muted">
+                                Upload Receipt / Screenshot 
+                                <span id="ocrStatusBadge" class="badge bg-secondary ms-2 d-none"></span>
+                            </label>
+                            <input type="file" class="form-control shadow-sm" name="receipt_image" id="receiptImageInput" accept="image/png, image/jpeg, application/pdf" required>
                             <small class="text-muted" style="font-size: 0.75rem;">Accepted formats: JPG, PNG, PDF. Max size: 2MB.</small>
                         </div>
+                        
+                        <!-- Hidden fields for OCR Results -->
+                        <input type="hidden" name="ocr_raw_text" id="ocrRawText">
+                        <input type="hidden" name="ocr_amount" id="ocrAmount">
+                        <input type="hidden" name="ocr_reference" id="ocrReference">
 
                         <div class="mb-4">
                             <label class="form-label fw-bold small text-muted">Additional Remarks</label>
@@ -252,3 +279,65 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <!-- 5. Load Footer -->
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
+
+<script>
+document.getElementById('receiptImageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Only process images for OCR (skip PDFs for this simple implementation)
+    if (!file.type.startsWith('image/')) return;
+
+    const badge = document.getElementById('ocrStatusBadge');
+    badge.className = 'badge bg-primary ms-2';
+    badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning AI...';
+    badge.classList.remove('d-none');
+
+    const formData = new FormData();
+    formData.append('receipt', file);
+    // Assumes csrfToken() generates a valid token, or we grab it from the form
+    const formCsrf = document.querySelector('input[name="csrf_token"]');
+    formData.append('csrf_token', formCsrf ? formCsrf.value : "<?= function_exists('csrfToken') ? csrfToken() : '' ?>");
+
+    fetch("<?= BASE_URL ?>/modules/student-portal/api/ocr/process-receipt.php", {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            badge.className = 'badge bg-success ms-2';
+            badge.innerHTML = '<i class="fas fa-check"></i> Scanned';
+            
+            // Populate hidden fields
+            document.getElementById('ocrRawText').value = data.raw_text || '';
+            document.getElementById('ocrAmount').value = data.amount || '';
+            document.getElementById('ocrReference').value = data.reference_number || '';
+            
+            // Auto-fill Reference Number if empty
+            const refInput = document.getElementById('refNoInput');
+            if (!refInput.value && data.reference_number) {
+                refInput.value = data.reference_number;
+            }
+            
+            // Optional: Auto-fill remarks with Amount if found
+            if (data.amount) {
+                const remarksInput = document.querySelector('textarea[name="remarks"]');
+                if (!remarksInput.value.includes('Amount')) {
+                    const prefix = remarksInput.value ? remarksInput.value + '\n' : '';
+                    remarksInput.value = prefix + 'Extracted Amount: PHP ' + data.amount;
+                }
+            }
+        } else {
+            badge.className = 'badge bg-warning text-dark ms-2';
+            badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> OCR Failed';
+            console.warn("OCR Failed:", data.error, data.message);
+        }
+    })
+    .catch(err => {
+        badge.className = 'badge bg-secondary ms-2';
+        badge.innerHTML = 'OCR Unavailable';
+        console.error("Network error during OCR:", err);
+    });
+});
+</script>

@@ -104,14 +104,15 @@ class PaymentConcernService {
     /**
      * Verifies or rejects a payment concern (Phase 7H / 7I)
      */
-    public function verifyConcern($concernId, $action, $reviewerId, $remarks, $billingId = null) {
+    public function verifyConcern($concernId, $action, $reviewerId, $remarks, $billingId = null, $verifiedData = []) {
         try {
             $this->pdo->beginTransaction();
 
-            $stmtGet = $this->pdo->prepare("SELECT payment_id FROM payment_concerns WHERE concern_id = :cid");
+            $stmtGet = $this->pdo->prepare("SELECT payment_id, student_id FROM payment_concerns WHERE concern_id = :cid");
             $stmtGet->execute([':cid' => $concernId]);
             $concern = $stmtGet->fetch(PDO::FETCH_ASSOC);
             $paymentId = $concern['payment_id'];
+            $studentId = $concern['student_id'];
 
             if ($action === 'Verify') {
                 // Update concern
@@ -122,20 +123,56 @@ class PaymentConcernService {
                 ");
                 $stmtConc->execute([':reviewer' => $reviewerId, ':remarks' => $remarks, ':cid' => $concernId]);
 
-                // Update or create payment?
-                // For now, if payment_id is not null, update it. If it is null, we need to handle it.
-                // Wait! If payment_id is null, we can't allocate.
-                // We MUST ensure the UI passes enough data to create a payment if it was null, or we assume OCR extracted amount and student_id is enough.
                 if (!$paymentId) {
-                    throw new Exception("Cannot verify concern: No payment record linked. Cashier must link or create a payment first.");
-                }
+                    // Fetch latest billing_id if not provided
+                    if (!$billingId) {
+                        $stmtFindBilling = $this->pdo->prepare("SELECT billing_id FROM billing WHERE student_id = :sid ORDER BY billing_id DESC LIMIT 1");
+                        $stmtFindBilling->execute([':sid' => $studentId]);
+                        $billingId = $stmtFindBilling->fetchColumn();
+                        if (!$billingId) {
+                            throw new Exception("Cannot verify: Student does not have an active billing record.");
+                        }
+                    }
 
-                $stmtPay = $this->pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_by = :reviewer, verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid");
-                $stmtPay->execute([':reviewer' => $reviewerId, ':pid' => $paymentId]);
+                    // Create official payment record
+                    if (empty($verifiedData['amount']) || empty($verifiedData['reference']) || empty($verifiedData['channel']) || empty($verifiedData['date'])) {
+                        throw new Exception("Cannot create payment: Missing verified data (amount, reference, channel, date).");
+                    }
+
+                    $stmtInsertPay = $this->pdo->prepare("
+                        INSERT INTO payments (student_id, billing_id, amount, payment_date, payment_channel, reference_number, payment_status, verified_by, verified_at, transaction_type, payment_method)
+                        VALUES (:sid, :bid, :amt, :pdate, :chan, :ref, 'Verified', :reviewer, CURRENT_TIMESTAMP, 'Payment Concern', 'Bank Transfer')
+                    ");
+                    $stmtInsertPay->execute([
+                        ':sid' => $studentId,
+                        ':bid' => $billingId,
+                        ':amt' => $verifiedData['amount'],
+                        ':pdate' => $verifiedData['date'],
+                        ':chan' => $verifiedData['channel'],
+                        ':ref' => $verifiedData['reference'],
+                        ':reviewer' => $reviewerId
+                    ]);
+                    $paymentId = $this->pdo->lastInsertId();
+
+                    // Update concern with new payment_id
+                    $updConc = $this->pdo->prepare("UPDATE payment_concerns SET payment_id = ? WHERE concern_id = ?");
+                    $updConc->execute([$paymentId, $concernId]);
+                } else {
+                    $stmtPay = $this->pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_by = :reviewer, verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid");
+                    $stmtPay->execute([':reviewer' => $reviewerId, ':pid' => $paymentId]);
+                    
+                    // Fetch billing_id and amount for allocation
+                    $stmtGetBill = $this->pdo->prepare("SELECT billing_id, amount FROM payments WHERE payment_id = :pid");
+                    $stmtGetBill->execute([':pid' => $paymentId]);
+                    $payData = $stmtGetBill->fetch(PDO::FETCH_ASSOC);
+                    $billingId = $payData['billing_id'];
+                    $verifiedData['amount'] = $payData['amount'];
+                }
 
                 // Phase 7F Convergence: Call the PaymentAllocationService
                 $allocationService = new PaymentAllocationService($this->pdo);
-                $allocationService->allocatePayment($paymentId);
+                $allocationService->allocatePayment($paymentId, $studentId, $billingId, (float)$verifiedData['amount']);
+
 
             } else {
                 // Action: Reject

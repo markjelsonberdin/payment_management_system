@@ -13,7 +13,7 @@ header("Access-Control-Allow-Methods: GET");
 try {
     // Option 2: May kasamang port
     $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3306';
+    $port = getenv('DB_PORT') ?: '3307';
     $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
     $username = getenv('DB_USERNAME') ?: 'root';
     $password = getenv('DB_PASSWORD') ?: '';

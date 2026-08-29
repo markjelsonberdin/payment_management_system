@@ -51,6 +51,11 @@ try {
         die("Unauthorized access. This payment does not belong to your account.");
     }
 
+    // 3.5. State Validation: Must be Pending
+    if ($payment['payment_status'] !== 'Pending') {
+        die("Only Pending payments can be resumed. Current status: " . htmlspecialchars($payment['payment_status']));
+    }
+
     // 4. Validate internal payment status
     if ($payment['payment_status'] !== 'Pending') {
         echo "<script>alert('This payment is no longer pending (Current Status: " . htmlspecialchars($payment['payment_status']) . ").'); window.location.href='../pages/payment-history.php';</script>";

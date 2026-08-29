@@ -11,7 +11,7 @@ if (!defined('DB_HOST')) {
     define('DB_HOST', sms2_env('DB_HOST', sms2_env('SMS2_DB_HOST', '127.0.0.1')));
 }
 if (!defined('DB_PORT')) {
-    define('DB_PORT', sms2_env('DB_PORT', '3306'));
+    define('DB_PORT', sms2_env('DB_PORT', '3307'));
 }
 if (!defined('DB_NAME')) {
     define('DB_NAME', sms2_env('SMS2_DB_DATABASE', sms2_env('DB_DATABASE', sms2_env('SMS2_DB_NAME', 'sms2_db'))));
