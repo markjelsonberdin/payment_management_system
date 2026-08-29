@@ -550,11 +550,16 @@ function initiatePayMongoCheckout(channel) {
             allocation_context: allocationContext,
             billing_item_id: billingItemId ? parseInt(billingItemId) : null,
             amount: inputAmount,
-            channel: channel
+            channel: channel,
+            csrf_token: "<?= function_exists('csrfToken') ? csrfToken() : '' ?>",
+            force_new_attempt: window.forceNewAttempt || false
         })
     })
     .then(response => response.json())
     .then(data => {
+        // Reset force flag after use
+        window.forceNewAttempt = false;
+
         if (data.success) {
             if (channel === 'qrph' && data.qr_image) {
                 displayQrPayment(data.qr_image, data.amount, data.payment_intent_id);
@@ -562,8 +567,12 @@ function initiatePayMongoCheckout(channel) {
                 window.location.href = data.checkout_url;
             }
         } else {
-            alert("Payment Initialization Failed: " + (data.error || data.message || "Unknown error occurred."));
-            resetCheckoutUI();
+            if (data.error === 'EXISTING_PENDING_PAYMENT') {
+                showDuplicateWarningModal(data.pending_payment, channel);
+            } else {
+                alert("Payment Initialization Failed: " + (data.error || data.message || "Unknown error occurred."));
+                resetCheckoutUI();
+            }
         }
     })
     .catch(error => {
@@ -611,27 +620,274 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } else {
                 container.innerHTML = `
-                    <div class="text-center py-4 text-muted border rounded-3 bg-light">
+                    <div class="text-center py-4 text-muted border rounded-3 bg-light mb-3">
                         <i class="fas fa-times-circle fs-3 mb-2 text-secondary"></i>
                         <div class="fw-bold">No Channels Available</div>
                         <small>Online payment is currently unavailable.</small>
                     </div>
                 `;
             }
+            appendManualUploadButton(container);
         })
         .catch(err => {
             console.error('Failed to load payment channels', err);
-            document.getElementById('payment-methods-container').innerHTML = `
-                <div class="text-center py-3 text-danger border rounded-3 bg-light">
+            const container = document.getElementById('payment-methods-container');
+            container.innerHTML = `
+                <div class="text-center py-3 text-danger border rounded-3 bg-light mb-3">
                     <small>Failed to load payment options. Please refresh the page.</small>
                 </div>
             `;
+            appendManualUploadButton(container);
         });
 });
+
+function appendManualUploadButton(container) {
+    const manualBtn = document.createElement('div');
+    manualBtn.className = 'p-3 border border-secondary rounded-3 bg-light shadow-sm d-flex justify-content-between align-items-center mt-3';
+    manualBtn.style.cursor = 'pointer';
+    manualBtn.onclick = () => openManualUploadModal();
+    manualBtn.innerHTML = `
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-file-invoice"></i></div>
+            <div>
+                <div class="fw-bold text-dark mb-0">Upload Receipt (Manual)</div>
+                <small class="text-muted">For OTC bank deposits or manual transfers</small>
+            </div>
+        </div>
+        <i class="fas fa-upload text-secondary"></i>
+    `;
+    container.appendChild(manualBtn);
+}
 
 function resetCheckoutUI() {
     document.getElementById('checkoutLoading').classList.add('d-none');
     document.querySelectorAll('.paymongo-btn').forEach(btn => btn.style.pointerEvents = 'auto');
+}
+
+function showDuplicateWarningModal(pendingPayment, channel) {
+    const modalHtml = `
+    <div class="modal fade" id="duplicateWarningModal" tabindex="-1" aria-labelledby="duplicateWarningModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="duplicateWarningModalLabel"><i class="fas fa-exclamation-triangle"></i> Existing Pending Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="resetCheckoutUI()"></button>
+                </div>
+                <div class="modal-body">
+                    <p>You already have a pending payment transaction for this fee.</p>
+                    <div class="card bg-light mb-3">
+                        <div class="card-body py-2">
+                            <div><strong>Reference:</strong> ${pendingPayment.reference_number || pendingPayment.payment_id}</div>
+                            <div><strong>Amount:</strong> ₱${parseFloat(pendingPayment.amount).toFixed(2)}</div>
+                            <div><strong>Created:</strong> ${pendingPayment.payment_date}</div>
+                        </div>
+                    </div>
+                    <p class="mb-0">Creating another payment will create a separate active payment attempt. What would you like to do?</p>
+                </div>
+                <div class="modal-footer d-flex flex-column gap-2 border-0 pt-0">
+                    <a href="<?= BASE_URL ?>/modules/student-portal/api/resume-payment.php?id=${pendingPayment.payment_id}" class="btn btn-warning w-100 fw-bold">Resume Existing</a>
+                    <button type="button" class="btn btn-danger w-100 fw-bold" onclick="cancelPendingPayment(${pendingPayment.payment_id})">Cancel Existing</button>
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="createAnotherAnyway('${channel}')">Create Another Anyway</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    // Remove old modal if exists
+    const oldModal = document.getElementById('duplicateWarningModal');
+    if (oldModal) {
+        oldModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('duplicateWarningModal'));
+    modal.show();
+}
+
+function cancelPendingPayment(paymentId) {
+    if (!confirm("Are you sure you want to cancel this pending payment?")) return;
+    
+    document.getElementById('duplicateWarningModal').querySelector('.modal-body').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-danger"></div><div class="mt-2">Cancelling payment...</div></div>';
+    
+    fetch("<?= BASE_URL ?>/modules/student-portal/api/cancel-payment.php", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            payment_id: paymentId,
+            csrf_token: "<?= function_exists('csrfToken') ? csrfToken() : '' ?>"
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Pending payment cancelled successfully.");
+            bootstrap.Modal.getInstance(document.getElementById('duplicateWarningModal')).hide();
+            resetCheckoutUI();
+        } else {
+            alert("Failed to cancel payment: " + (data.error || data.message));
+        }
+    })
+    .catch(err => {
+        alert("A network error occurred.");
+    });
+}
+
+function createAnotherAnyway(channel) {
+    if (confirm("Are you sure you want to create a separate payment attempt? This will leave your previous attempt pending until it expires.")) {
+        bootstrap.Modal.getInstance(document.getElementById('duplicateWarningModal')).hide();
+        window.forceNewAttempt = true;
+        initiatePayMongoCheckout(channel);
+    }
+}
+
+// -----------------------------------------
+// OCR Manual Upload Logic
+// -----------------------------------------
+let currentOcrData = null;
+
+function openManualUploadModal() {
+    const modalHtml = `
+    <div class="modal fade" id="ocrUploadModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title"><i class="fas fa-cloud-upload-alt"></i> Upload Manual Receipt</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="ocrUploadSection">
+                        <p class="text-muted small">Upload your deposit slip, GCash, or Maya screenshot here. Our AI will extract the details.</p>
+                        <input type="file" id="receiptFileInput" class="form-control mb-3" accept="image/jpeg, image/png, image/webp">
+                        <button class="btn btn-primary w-100 fw-bold" onclick="processReceiptOCR()"><i class="fas fa-robot"></i> Scan Receipt</button>
+                        <div id="ocrLoading" class="text-center mt-3 d-none">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="mt-2 text-muted small">Scanning receipt with AI...</div>
+                        </div>
+                    </div>
+
+                    <div id="ocrFormSection" class="d-none mt-3">
+                        <div class="alert alert-info py-2 small"><i class="fas fa-info-circle"></i> Please review and correct the extracted details below.</div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Reference Number</label>
+                            <input type="text" id="manualRefNum" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Amount Paid (PHP)</label>
+                            <input type="number" step="0.01" id="manualAmount" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Payment Channel / Bank</label>
+                            <input type="text" id="manualChannel" class="form-control form-control-sm" placeholder="e.g. GCash, BDO, UnionBank">
+                        </div>
+                        <button class="btn btn-success w-100 fw-bold" onclick="submitManualPayment()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+
+    const oldModal = document.getElementById('ocrUploadModal');
+    if (oldModal) oldModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('ocrUploadModal'));
+    modal.show();
+}
+
+function processReceiptOCR() {
+    const fileInput = document.getElementById('receiptFileInput');
+    if (!fileInput.files.length) {
+        alert("Please select an image file first.");
+        return;
+    }
+
+    document.getElementById('ocrLoading').classList.remove('d-none');
+    const formData = new FormData();
+    formData.append('receipt', fileInput.files[0]);
+    formData.append('csrf_token', "<?= function_exists('csrfToken') ? csrfToken() : '' ?>");
+
+    fetch("<?= BASE_URL ?>/modules/student-portal/api/ocr/process-receipt.php", {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('ocrLoading').classList.add('d-none');
+        if (data.success) {
+            currentOcrData = data;
+            document.getElementById('ocrUploadSection').classList.add('d-none');
+            document.getElementById('ocrFormSection').classList.remove('d-none');
+            
+            // Pre-fill
+            if (data.reference_number) document.getElementById('manualRefNum').value = data.reference_number;
+            if (data.amount) document.getElementById('manualAmount').value = data.amount;
+        } else {
+            alert("OCR Failed: " + (data.error || data.message));
+        }
+    })
+    .catch(err => {
+        document.getElementById('ocrLoading').classList.add('d-none');
+        alert("A network error occurred while processing the receipt.");
+    });
+}
+
+function submitManualPayment() {
+    const refNum = document.getElementById('manualRefNum').value;
+    const amt = document.getElementById('manualAmount').value;
+    const channel = document.getElementById('manualChannel').value || 'Manual';
+    
+    if (!refNum || !amt) {
+        alert("Please fill in the Reference Number and Amount.");
+        return;
+    }
+
+    const fileInput = document.getElementById('receiptFileInput');
+    const formData = new FormData();
+    formData.append('receipt', fileInput.files[0]);
+    formData.append('csrf_token', "<?= function_exists('csrfToken') ? csrfToken() : '' ?>");
+    formData.append('reference_number', refNum);
+    formData.append('amount', amt);
+    formData.append('channel', channel);
+    
+    // OCR Details
+    if (currentOcrData) {
+        formData.append('ocr_raw_text', currentOcrData.raw_text || '');
+        formData.append('ocr_amount', currentOcrData.amount || '');
+        formData.append('ocr_reference', currentOcrData.reference_number || '');
+    }
+
+    // Context details (same as PayMongo)
+    formData.append('allocation_context', allocationContext);
+    formData.append('billing_id', "<?= addslashes($billingDetails['billing_id'] ?? '') ?>");
+    if (billingItemId) {
+        formData.append('billing_item_id', billingItemId);
+    }
+
+    const btn = event.target.closest('button');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+    btn.disabled = true;
+
+    fetch("<?= BASE_URL ?>/modules/student-portal/api/submit-manual-payment.php", {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Success! " + data.message);
+            window.location.href = "<?= BASE_URL ?>/modules/student-portal/pages/payment-history.php";
+        } else {
+            alert("Failed: " + (data.error || data.message));
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit for Verification';
+            btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        alert("A network error occurred.");
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit for Verification';
+        btn.disabled = false;
+    });
 }
 </script>
 <?php endif; ?>

@@ -93,6 +93,26 @@ class PaymentAllocationService {
                     ':billing_id' => $billingId, 
                     ':item_id' => $billingItemId
                 ]);
+            } elseif ($allocationContext === 'CATEGORY_PRIORITY') {
+                if (!$billingItemId) {
+                    throw new Exception("Category ID is required for CATEGORY_PRIORITY allocation.");
+                }
+
+                $stmt = $this->pdo->prepare("
+                    SELECT bi.billing_item_id, bi.remaining_amount
+                    FROM payment_db.billing_items bi
+                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    WHERE bi.billing_id = :billing_id 
+                      AND f.category_id = :cat_id
+                      AND bi.status != 'Paid'
+                      AND bi.remaining_amount > 0
+                    ORDER BY bi.billing_item_id ASC
+                    FOR UPDATE
+                ");
+                $stmt->execute([
+                    ':billing_id' => $billingId, 
+                    ':cat_id' => $billingItemId // Here, the 6th arg is the category_id
+                ]);
             } else {
                 throw new Exception("Invalid payment allocation context specified.");
             }

@@ -20,7 +20,7 @@ $paymentDb = null;
 $smsDb = null;
 try {
     $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3306';
+    $port = getenv('DB_PORT') ?: '3307';
     $paymentDbName = getenv('DB_DATABASE') ?: 'payment_db';
     $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
     $username = getenv('DB_USERNAME') ?: 'root';

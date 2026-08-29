@@ -30,7 +30,7 @@ if (is_file($lockFile) && !in_array('--force', $argv ?? [], true)) {
     exit(0);
 }
 
-$host = '127.0.0.1;port=3307';
+$host = '127.0.0.1;port=3306';
 $name = 'sms2_db';
 $user = 'root';
 $pass = '';

@@ -1,6 +1,6 @@
 <?php
 $host = getenv('DB_HOST') ?: '127.0.0.1';
-$port = getenv('DB_PORT') ?: '3306'; // Changed default to 3306 but reads env first
+$port = getenv('DB_PORT') ?: '3307'; // Changed default to 3307 but reads env first
 $dbname = getenv('DB_DATABASE') ?: 'payment_db';
 $username = getenv('DB_USERNAME') ?: 'root';
 $password = getenv('DB_PASSWORD') ?: '';
