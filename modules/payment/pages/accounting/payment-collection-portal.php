@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
+require_once __DIR__ . '/../../includes/PaymentSecurityService.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection');
@@ -21,6 +22,12 @@ $cashier_id = $_SESSION['user_id'] ?? 1; // Fallback user ID kung sakaling walan
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     
+    // CSRF Protection Check
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
+
     $billing_id       = $_POST['billing_id'] ?? '';
     $student_id       = $_POST['student_id'] ?? '';
     
@@ -28,20 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
     $payment_context  = $_POST['payment_context'] ?? 'GENERAL_PRIORITY';
     $category_id      = isset($_POST['category_id']) ? (int)$_POST['category_id'] : null;
-    $payment_channel  = $_POST['payment_channel']; // Cash, GCash, etc.
+    $payment_channel  = $_POST['payment_channel'] ?? 'Cash'; // Dedicated Cash Walk-in
     $reference_number = trim($_POST['reference_number']) ?: 'OR-' . date('Ymd') . '-' . rand(1000, 9999);
     $remarks          = trim($_POST['remarks']);
 
     try {
-        // Idagdag itong checker na ito
         if (empty($billing_id)) {
             throw new Exception("Cache Error: Walang naipasang Billing ID ang form! Paki-Hard Refresh (CTRL + F5) ang iyong browser.");
         }
 
-        // Tinanggal na ang $pdo->beginTransaction(); dito dahil hawak na ito ng Allocation Service
+        // Start transaction for atomic payment record + allocation
+        $pdo->beginTransaction();
 
-        // 1. Validate Billing (Service will handle FOR UPDATE locking on items)
-        $stmtBill = $pdo->prepare("SELECT remaining_balance, billing_type FROM billing WHERE billing_id = :id");
+        // 1. Validate Billing with Row-Level Locking (FOR UPDATE)
+        $stmtBill = $pdo->prepare("SELECT billing_id, remaining_balance, billing_type FROM billing WHERE billing_id = :id FOR UPDATE");
         $stmtBill->execute([':id' => $billing_id]);
         $bill = $stmtBill->fetch();
 
@@ -50,9 +57,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         }
 
         // Validate backend Context
-        if ($payment_context === 'ENROLLMENT_PRIORITY' && $bill['billing_type'] !== 'Enrollment') {
-            throw new Exception("Invalid Context: Cannot apply Enrollment Priority Mode to a non-enrollment billing.");
-        }
+        $securityService = new PaymentSecurityService($pdo);
+        $securityService->validatePaymentContext(
+            $payment_context, 
+            $amount_paid, 
+            (float)$bill['remaining_balance'], 
+            $bill, 
+            $payment_context === 'SPECIFIC_ITEM' ? (int)($_POST['item_id'] ?? 0) : null, 
+            $category_id
+        );
 
         if ($amount_paid <= 0) {
             throw new Exception("Please enter a valid payment amount.");
@@ -64,8 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         $change_amount = $cash_received - $amount_paid;
 
-        // Start transaction for atomic payment record + allocation
-        $pdo->beginTransaction();
+        $change_amount = $cash_received - $amount_paid;
 
         // 2. Insert main payment record
         $stmtPayment = $pdo->prepare("
@@ -213,7 +225,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <h5 class="fw-bold mb-3"><p class="fas fa-money-bill-wave text-success me-2"></p>2. Receive Payment & Issue OR</h5>
                     
                     <form action="" method="POST" id="paymentForm">
-                        <?= csrfField(); ?>
+                        <input type="hidden" name="process_payment" value="1">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="billing_id" id="inputBillingId">
                         <input type="hidden" name="student_id" id="inputStudentId">
 
@@ -256,12 +269,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold small text-muted">Payment Channel <span class="text-danger">*</span></label>
-                                <select class="form-select" name="payment_channel" required>
-                                    <option value="Cash" selected>Cash (Walk-in)</option>
-                                    <option value="Bank">Bank Deposit / OTC</option>
-                                    <option value="GCash">GCash Counter</option>
-                                </select>
+                                <label class="form-label fw-bold small text-muted">Payment Channel</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-success fw-bold"><i class="fas fa-money-bill-wave"></i></span>
+                                    <input type="text" class="form-control bg-light fw-bold text-dark" value="Cash (Walk-in)" readonly>
+                                </div>
+                                <input type="hidden" name="payment_channel" value="Cash">
+                                <small class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-lock me-1"></i>Dedicated channel for walk-in counter payments.</small>
                             </div>
 
                             <div class="col-md-6 mb-3">

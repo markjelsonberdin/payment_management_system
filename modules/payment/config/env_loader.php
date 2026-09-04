@@ -33,14 +33,10 @@ if (!function_exists('payment_load_env')) {
                 // Remove surrounding quotes if they exist
                 $value = trim($parts[1], " \t\n\r\0\x0B\"'");
                 
-                // Do not overwrite existing environment variables
-                // Wait, if it was already set by a previous require, we might want to overwrite it if it's explicitly loaded again?
-                // Actually, standard behavior is not to overwrite.
-                if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
-                    putenv(sprintf('%s=%s', $name, $value));
-                    $_ENV[$name] = $value;
-                    $_SERVER[$name] = $value;
-                }
+                // Force overwrite to clear any poisoned environment variables in mod_php
+                putenv(sprintf('%s=%s', $name, $value));
+                $_ENV[$name] = $value;
+                $_SERVER[$name] = $value;
             }
         }
         

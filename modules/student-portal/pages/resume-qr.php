@@ -6,7 +6,7 @@
 require_once __DIR__ . '/../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once __DIR__ . '/../../payment/config/paymongo.php';
-require_once __DIR__ . '/../../payment/includes/PayMongoService.php';
+require_once __DIR__ . '/../../payment/includes/paymongo/paymongo/PayMongoService.php';
 require_once __DIR__ . '/../../payment/database/db_connect.php';
 
 requireAuth();
@@ -116,3 +116,4 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 </script>
 
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
+

@@ -21,6 +21,49 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__));
 }
 
+// ---------------------------------------------------------
+// Global Secure Error Handling
+// ---------------------------------------------------------
+if (!function_exists('sms2_secure_log_error')) {
+    function sms2_secure_log_error($message) {
+        $logDir = 'C:\xampp\sms2_logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        $logFile = $logDir . DIRECTORY_SEPARATOR . 'error.log';
+        $timestamp = date('Y-m-d H:i:s');
+        @error_log("[$timestamp] $message\n", 3, $logFile);
+    }
+}
+
+set_exception_handler(function($e) {
+    $errorMsg = "Exception: " . get_class($e) . " - " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\nStack trace:\n" . $e->getTraceAsString();
+    sms2_secure_log_error($errorMsg);
+    
+    if (php_sapi_name() === 'cli') {
+        echo "An unexpected system error occurred.\n";
+    } else {
+        if (!headers_sent()) {
+            http_response_code(500);
+        }
+        echo "An unexpected system error occurred. Please try again later.";
+    }
+    exit;
+});
+
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        $errorMsg = "Fatal Error: {$error['message']} in {$error['file']} on line {$error['line']}";
+        sms2_secure_log_error($errorMsg);
+        
+        if (php_sapi_name() !== 'cli' && !headers_sent()) {
+            http_response_code(500);
+            echo "An unexpected system error occurred. Please try again later.";
+        }
+    }
+});
+
 // Optional machine-specific overrides. Copy config/local.example.php to
 // config/local.php on another computer if its MySQL settings are different.
 $sms2LocalConfig = __DIR__ . '/local.php';

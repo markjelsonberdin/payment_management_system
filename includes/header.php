@@ -56,6 +56,8 @@ $bodyClass = $bodyClass ?? '';
     <link href="<?= BASE_URL ?>/assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/vendor/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/vendor/fonts/inter.css" rel="stylesheet">
+    <!-- Tabler Icons (used by Kenneth's UI in icons.php) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="<?= BASE_URL ?>/assets/vendor/chartjs/chart.umd.min.js"></script>
     <script>
     (function () {

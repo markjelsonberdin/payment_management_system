@@ -10,7 +10,7 @@ class PayMongoService {
     private $baseUrl = 'https://api.paymongo.com/v1';
 
     public function __construct() {
-        $this->config = require __DIR__ . '/../config/paymongo.php';
+        $this->config = require __DIR__ . '/../../config/paymongo.php';
         
         if (empty($this->config['secret_key'])) {
             throw new Exception("PayMongo Secret Key is missing from configuration.");

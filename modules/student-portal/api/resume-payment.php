@@ -9,7 +9,7 @@
  */
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../payment/config/paymongo.php';
-require_once __DIR__ . '/../../payment/includes/PayMongoService.php';
+require_once __DIR__ . '/../../payment/includes/paymongo/paymongo/PayMongoService.php';
 require_once __DIR__ . '/../../payment/includes/PaymentValidationService.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
@@ -205,3 +205,4 @@ try {
 } catch (Exception $e) {
     die("Error processing resume payment: " . htmlspecialchars($e->getMessage()));
 }
+

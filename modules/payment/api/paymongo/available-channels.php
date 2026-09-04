@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/PayMongoService.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
 require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
@@ -49,3 +49,4 @@ try {
     ]);
     http_response_code(500);
 }
+

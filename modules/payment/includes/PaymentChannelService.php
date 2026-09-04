@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/PayMongoService.php';
+require_once __DIR__ . '/paymongo/PayMongoService.php';
 
 class PaymentChannelService
 {
@@ -129,3 +129,4 @@ class PaymentChannelService
         return $statuses[$channelCode]['status'] === 'AVAILABLE';
     }
 }
+

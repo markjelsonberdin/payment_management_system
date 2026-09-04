@@ -4,6 +4,9 @@ require_once __DIR__ . '/../../../includes/authentication.php';
 require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 header('Content-Type: application/json');
 
 if (!isAuthenticated()) {
@@ -49,10 +52,18 @@ try {
     $billing = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if($billing) {
+        $studentName = trim((string) ($student['full_name'] ?? ''));
+        if ($studentName === '') {
+            $studentName = trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
+        }
+        if ($studentName === '') {
+            $studentName = 'Unknown Student';
+        }
+
         echo json_encode([
             'success' => true,
             'billing_id' => $billing['billing_id'],
-            'name' => trim($student['first_name'] . ' ' . $student['last_name']),
+            'name' => $studentName,
             'student_number' => $student['student_number'],
             'balance' => (float) $billing['remaining_balance']
         ]);
