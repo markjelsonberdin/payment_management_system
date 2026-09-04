@@ -255,6 +255,7 @@ INSERT INTO `fee_categories` (`category_id`, `category_name`, `priority_order`, 
 CREATE TABLE `ocr_results` (
   `ocr_result_id` int(10) UNSIGNED NOT NULL,
   `concern_id` int(10) UNSIGNED NOT NULL,
+  `scan_attempt` int(11) DEFAULT 1,
   `extracted_amount` decimal(10,2) DEFAULT NULL,
   `bank_name` varchar(100) DEFAULT NULL,
   `confidence_score` decimal(5,2) DEFAULT NULL,
@@ -263,15 +264,55 @@ CREATE TABLE `ocr_results` (
   `transaction_time` time DEFAULT NULL,
   `raw_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`raw_json`)),
   `extraction_status` varchar(50) DEFAULT 'PROCESSING',
-  `extraction_notes` text DEFAULT NULL
+  `extraction_notes` text DEFAULT NULL,
+  `scanned_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
 ) ;
 
 --
 -- Dumping data for table `ocr_results`
 --
 
-INSERT INTO `ocr_results` (`ocr_result_id`, `concern_id`, `extracted_amount`, `bank_name`, `confidence_score`, `reference_number`, `transaction_date`, `transaction_time`, `raw_json`, `extraction_status`, `extraction_notes`) VALUES
-(3, 2, 1500.00, 'GCash', NULL, '1029384756', '2026-08-26', '14:30:00', '{\"text\":\"MOCK OCR SOURCE\\nGCash\\nAmount Paid: PHP 1,500.00\\nRef No. 1029384756\\nDate: 08\\/26\\/2026 14:30\"}', 'COMPLETE', '');
+INSERT INTO `ocr_results` (`ocr_result_id`, `concern_id`, `scan_attempt`, `extracted_amount`, `bank_name`, `confidence_score`, `reference_number`, `transaction_date`, `transaction_time`, `raw_json`, `extraction_status`, `extraction_notes`, `scanned_by`, `created_at`, `updated_at`) VALUES
+(3, 2, 1, 1500.00, 'GCash', NULL, '1029384756', '2026-08-26', '14:30:00', '{\"text\":\"MOCK OCR SOURCE\\nGCash\\nAmount Paid: PHP 1,500.00\\nRef No. 1029384756\\nDate: 08\\/26\\/2026 14:30\"}', 'COMPLETE', '', NULL, current_timestamp(), NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_statements`
+--
+
+CREATE TABLE `bank_statements` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `source_bank` varchar(50) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `file_hash` varchar(64) NOT NULL,
+  `uploaded_by` int(10) UNSIGNED NOT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Pending','Processed','Failed') DEFAULT 'Pending',
+  `row_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_statement_rows`
+--
+
+CREATE TABLE `bank_statement_rows` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `statement_id` int(10) UNSIGNED NOT NULL,
+  `transaction_date` date NOT NULL,
+  `transaction_time` time DEFAULT NULL,
+  `reference_number` varchar(100) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` varchar(10) DEFAULT 'PHP',
+  `transaction_type` varchar(50) DEFAULT NULL,
+  `status` enum('Unmatched','Matched','Ignored') DEFAULT 'Unmatched',
+  `raw_row_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`raw_row_data`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -303,6 +344,7 @@ CREATE TABLE `payments` (
   `remarks` text DEFAULT NULL,
   `receipt_number` varchar(50) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL COMMENT 'Used for QR payment 30-min expiry',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ;
 

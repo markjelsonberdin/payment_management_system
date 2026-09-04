@@ -33,7 +33,7 @@ if (!$forceRefresh && isset($_SESSION['paymongo_status_cache'])) {
 
 // 3. Load Configurations securely via the new env loader inside paymongo.php
 $paymongoConfig = require __DIR__ . '/../../config/paymongo.php';
-require_once __DIR__ . '/../../includes/PayMongoService.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
 
 $mode = $paymongoConfig['env']; // 'test' or 'live'
 $isLive = ($mode === 'live');
@@ -176,3 +176,4 @@ $_SESSION['paymongo_status_cache'] = [
 ];
 
 echo json_encode($response);
+

@@ -4,7 +4,7 @@
  * Expected POST JSON: { "student_id": 1, "billing_id": 1, "category_id": 2, "amount": 1500 }
  */
 
-require_once __DIR__ . '/../../includes/PayMongoService.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
 require_once __DIR__ . '/../../includes/OnlinePaymentValidationService.php';
 require_once __DIR__ . '/../../includes/InternalPendingPaymentService.php';
 

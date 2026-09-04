@@ -1,6 +1,8 @@
 <?php
 /**
- * SMS 2 - Research Document Attachment Form
+ * [DEPRECATED] SMS 2 - Research Document Attachment Form
+ * NOTE: This file is no longer in use. Upload logic has been migrated to research-proposal-submission.php.
+ * The Payment Gate logic from this file has been extracted to includes/payment_gate.php.
  * Student Portal — CRD Document Vault (secure uploads)
  */
 require_once __DIR__ . '/../../../config/config.php';

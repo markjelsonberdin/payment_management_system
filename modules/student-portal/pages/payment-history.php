@@ -71,10 +71,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     </div>
 
     <!-- Payment Transactions Table Card -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-body p-4">
+    <section class="card mb-4">
+        <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h6 class="fw-bold m-0 text-dark">Official Payment Transactions</h6>
+                <h5 class="card-title fw-semibold m-0">Official Payment Transactions</h5>
                 <a href="student-concern-portal.php" class="btn btn-sm btn-outline-danger fw-semibold rounded-3 shadow-sm">
                     <i class="fas fa-exclamation-circle me-1"></i> Report an Issue
                 </a>
@@ -97,7 +97,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             </ul>
             
             <div class="table-responsive mb-2">
-                <table class="table table-hover table-borderless align-middle mb-0">
+                <table class="table student-table align-middle mb-0">
                     <thead class="border-bottom text-muted" style="font-size: 0.75rem;">
                         <tr>
                             <th class="py-3 ps-2">DATE</th>
@@ -205,7 +205,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             </div>
 
         </div>
-    </div>
+    </section>
 
 </div> <!-- End of student-portal -->
 

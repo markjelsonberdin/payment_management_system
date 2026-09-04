@@ -23,6 +23,7 @@ require_once __DIR__ . '/../../../includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 require_once __DIR__ . '/../../../modules/crad/config/config.php';
 require_once __DIR__ . '/../../../modules/crad/includes/research-progress-helpers.php';
+require_once __DIR__ . '/../../../modules/crad/includes/final-phase-helpers.php';
 
 // Check if module is properly installed
 try {
@@ -34,13 +35,13 @@ try {
         throw new Exception('Research Progress module not installed. Please run database installer.');
     }
 } catch (Throwable $e) {
-    echo '<div class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        <strong>Module Not Installed</strong><br>
-        The Research Progress module database tables are not yet installed.
-        Please contact your system administrator or run the database installer at:
-        <code>/modules/crad/database/install_progress_module.php</code>
-    </div>';
+    echo '<div class="alert alert-warning">'
+        . smsIcon('exclamation-triangle', ['class' => 'me-2'])
+        . '<strong>Module Not Installed</strong><br>'
+        . 'The Research Progress module database tables are not yet installed.'
+        . ' Please contact your system administrator or run the database installer at:'
+        . ' <code>/modules/crad/database/install_progress_module.php</code>'
+        . '</div>';
     require_once ROOT_PATH . '/includes/layout-end.php';
     exit;
 }
@@ -52,14 +53,12 @@ $studentUserId = (int) ($_SESSION['user_id'] ?? 0);
 $researchGroup = rpGetRegisteredResearchGroup($crad, $studentId, $studentUserId);
 
 if (!$researchGroup) {
-    echo '<div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>Research Development is not yet available.</strong><br>
-        Your research group must be officially registered in the
-        Capstone Group/Student Registry before you can access this section.
-        Please ensure your title approval is fully signed and your adviser
-        and coordinator assignments are in place.
-    </div>';
+    echo '<div class="alert alert-info">'
+        . smsIcon('info-circle', ['class' => 'me-2'])
+        . '<strong>Research Development is not yet available.</strong><br>'
+        . 'Your research group must be officially registered in the Capstone Group/Student Registry before you can access this section.'
+        . ' Please ensure your title approval is fully signed and your adviser and coordinator assignments are in place.'
+        . '</div>';
     require_once ROOT_PATH . '/includes/layout-end.php';
     exit;
 }
@@ -68,10 +67,13 @@ $groupId = (int) $researchGroup['id'];
 
 // Get or create research plan (idempotent)
 $plan = rpGetOrCreateResearchPlan($crad, $groupId);
+finalPhaseEnsureSchema($crad);
+$finalDefenseRecommendation = fpGetFinalDefenseRecommendation($crad, $groupId);
 
 // Get milestones with Chapter 1-3 synced from document submissions
 $milestones = rpGetMilestonesForPlan($crad, (int) $plan['id'], $groupId);
 $plan = rpApplySyncedPlanProgress($plan, $milestones);
+$academicPhase = rpGroupAcademicPhase($crad, $groupId);
 
 // Get latest progress update
 $latestUpdateStmt = $crad->prepare("
@@ -111,7 +113,7 @@ $overallProgress = (float) $plan['overall_progress'];
                         <p class="glass-panel-sub">Your research group details</p>
                     </div>
                     <span class="glass-chip">
-                        <i class="fas fa-check-circle"></i> Active
+                        <?= smsIcon('check-circle') ?> Active
                     </span>
                 </div>
                 
@@ -134,7 +136,7 @@ $overallProgress = (float) $plan['overall_progress'];
                         <div class="mb-3">
                             <label class="form-label text-muted" style="font-size:0.8rem;font-weight:700;">Assigned Adviser</label>
                             <div style="font-weight:700;color:var(--sms-heading);">
-                                <i class="fas fa-user-tie me-2" style="color:var(--sms-primary);"></i>
+                                <?= smsIcon('user-tie', ['class' => 'me-2', 'style' => 'color:var(--sms-primary);']) ?>
                                 <?= htmlspecialchars($researchGroup['adviser_name'] ?: $researchGroup['adviser']) ?>
                             </div>
                         </div>
@@ -146,6 +148,42 @@ $overallProgress = (float) $plan['overall_progress'];
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Final Defense Recommendation -->
+        <div class="glass-panel mb-4">
+            <div class="glass-panel-body">
+                <div class="glass-panel-head">
+                    <div>
+                        <h5 class="glass-panel-title">Final Defense Recommendation</h5>
+                        <p class="glass-panel-sub">Your adviser's current readiness assessment</p>
+                    </div>
+                    <?php if (($finalDefenseRecommendation['status'] ?? '') === 'Recommended'): ?>
+                        <span class="glass-chip" style="color:#047857;background:#d1fae5;">
+                            <?= smsIcon('check-circle') ?> Recommended
+                        </span>
+                    <?php else: ?>
+                        <span class="glass-chip">
+                            <?= smsIcon('clock') ?> Not Yet Recommended
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <?php if (($finalDefenseRecommendation['status'] ?? '') === 'Recommended'): ?>
+                    <div class="small text-muted">
+                        Recommended by <strong><?= htmlspecialchars((string) ($finalDefenseRecommendation['final_defense_recommended_by_name'] ?? '')) ?></strong>
+                        <?php if (!empty($finalDefenseRecommendation['final_defense_recommended_at'])): ?>
+                            on <?= date('M d, Y g:i A', strtotime($finalDefenseRecommendation['final_defense_recommended_at'])) ?>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (trim((string) ($finalDefenseRecommendation['final_defense_recommendation_remarks'] ?? '')) !== ''): ?>
+                        <div class="mt-2" style="white-space:pre-line;color:var(--sms-text);">
+                            <?= htmlspecialchars((string) $finalDefenseRecommendation['final_defense_recommendation_remarks']) ?>
+                        </div>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <p class="text-muted mb-0">Your adviser has not recommended the group for Final Defense yet.</p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -172,8 +210,9 @@ $overallProgress = (float) $plan['overall_progress'];
                 </div>
                 
                 <div class="mt-3 text-muted" style="font-size:0.85rem;">
-                    <i class="fas fa-info-circle me-1"></i>
+                    <?= smsIcon('info-circle', ['class' => 'me-1']) ?>
                     Current Stage: <strong><?= htmlspecialchars($plan['current_stage']) ?></strong>
+                    <span class="ms-2">Academic Phase: <strong><?= htmlspecialchars($academicPhase) ?></strong></span>
                 </div>
             </div>
         </div>
@@ -187,7 +226,7 @@ $overallProgress = (float) $plan['overall_progress'];
                         <p class="glass-panel-sub">Progress breakdown by milestone</p>
                     </div>
                     <a href="<?= BASE_URL ?>/modules/student-portal/pages/milestones.php" class="btn btn-sm btn-outline-primary">
-                        View All <i class="fas fa-arrow-right ms-1"></i>
+                        View All <?= smsIcon('arrow-right', ['class' => 'ms-1']) ?>
                     </a>
                 </div>
                 
@@ -212,9 +251,7 @@ $overallProgress = (float) $plan['overall_progress'];
                                     <div style="font-weight:700;color:var(--sms-heading);font-size:0.95rem;">
                                         <?= htmlspecialchars($milestone['milestone_name']) ?>
                                     </div>
-                                    <i class="fas <?= $statusInfo['icon'] ?>" 
-                                       style="color:<?= $statusInfo['color'] ?>;font-size:1.1rem;" 
-                                       title="<?= htmlspecialchars($status) ?>"></i>
+                                    <?= smsIcon($statusInfo['icon'], ['style' => 'color:' . $statusInfo['color'] . ';font-size:1.1rem;', 'title' => $status]) ?>
                                 </div>
                                 <div class="progress mb-2" style="height:8px;border-radius:4px;">
                                     <div class="progress-bar" style="width:<?= $progress ?>%;background:<?= $statusInfo['color'] ?>;" 
@@ -257,12 +294,12 @@ $overallProgress = (float) $plan['overall_progress'];
                                 <strong><?= number_format((float)$latestUpdate['new_progress'], 1) ?>%</strong>
                             </p>
                             <p class="text-muted mb-0" style="font-size:0.75rem;">
-                                <i class="fas fa-clock me-1"></i>
+                                <?= smsIcon('clock', ['class' => 'me-1']) ?>
                                 <?= date('M d, Y g:i A', strtotime($latestUpdate['submitted_at'])) ?>
                             </p>
                         <?php else: ?>
                             <p class="text-muted mb-0" style="font-size:0.9rem;">
-                                <i class="fas fa-info-circle me-2"></i>No progress updates yet
+                                <?= smsIcon('info-circle', ['class' => 'me-2']) ?>No progress updates yet
                             </p>
                         <?php endif; ?>
                     </div>
@@ -303,18 +340,18 @@ $overallProgress = (float) $plan['overall_progress'];
                                         <?php if (mb_strlen($feedback['feedback_text']) > 100): ?>...<?php endif; ?>
                                     </p>
                                     <p class="mb-0 text-muted" style="font-size:0.7rem;">
-                                        <i class="fas fa-clock me-1"></i>
+                                        <?= smsIcon('clock', ['class' => 'me-1']) ?>
                                         <?= date('M d, Y', strtotime($feedback['created_at'])) ?>
                                     </p>
                                 </div>
                             <?php endforeach; ?>
                             <a href="<?= BASE_URL ?>/modules/student-portal/pages/adviser-feedback.php" 
                                class="btn btn-sm btn-link p-0">
-                                View All Feedback <i class="fas fa-arrow-right ms-1"></i>
+                                View All Feedback <?= smsIcon('arrow-right', ['class' => 'ms-1']) ?>
                             </a>
                         <?php else: ?>
                             <p class="text-muted mb-0" style="font-size:0.9rem;">
-                                <i class="fas fa-info-circle me-2"></i>No feedback yet
+                                <?= smsIcon('info-circle', ['class' => 'me-2']) ?>No feedback yet
                             </p>
                         <?php endif; ?>
                     </div>

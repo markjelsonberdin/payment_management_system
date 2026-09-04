@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/icons.php';
 
 /**
  * Ensure security-related tables exist (safe to call repeatedly).
@@ -519,14 +520,19 @@ function smsPasswordStrengthMarkup(string $inputId = 'password'): string
     $items = '';
     foreach ($policy['rules'] as $key => $label) {
         $items .= '<li class="pw-rule" data-rule="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '">'
-            . '<i class="fas fa-circle pw-rule-icon" aria-hidden="true"></i> '
-            . '<span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>'
+            . smsIcon('circle', ['class' => 'pw-rule-icon', 'aria-hidden' => 'true'])
+            . ' <span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>'
             . '</li>';
     }
 
     return '<div class="pw-strength mt-2" data-pw-input="' . htmlspecialchars($inputId, ENT_QUOTES, 'UTF-8') . '" data-pw-min="' . (int) $policy['min'] . '">'
-        . '<div class="small fw-semibold mb-1">Password requirements</div>'
-        . '<ul class="pw-rules list-unstyled small mb-0">' . $items . '</ul>'
+        . '<div class="pw-strength-head">'
+        . '<span class="pw-strength-label">Password strength</span>'
+        . '<span class="pw-strength-score" data-pw-score>—</span>'
+        . '</div>'
+        . '<div class="pw-strength-bar" aria-hidden="true"><span class="pw-strength-bar-fill"></span></div>'
+        . '<div class="pw-strength-rules-title">Requirements</div>'
+        . '<ul class="pw-rules list-unstyled mb-0">' . $items . '</ul>'
         . '</div>';
 }
 
@@ -548,7 +554,7 @@ function smsUsersForModuleReset(string $moduleKey): array
 
     $roles = array_values(array_filter(
         smsRolesForModule($moduleKey),
-        static fn(string $r): bool => $r !== 'admin'
+        static fn(string $r): bool => !smsIsGrantedAdminRole($r)
     ));
     if ($roles === []) {
         return [];
@@ -571,15 +577,43 @@ function smsUsersForModuleReset(string $moduleKey): array
  */
 function smsPrimaryModuleForRole(string $roleKey): string
 {
+    if (function_exists('smsAllowedModuleKeysForRole')) {
+        $allowed = smsAllowedModuleKeysForRole($roleKey);
+        $priority = [
+            'user-management', 'enrollment', 'registrar', 'curriculum',
+            'accreditation', 'payment', 'faculty', 'scheduling',
+            'cocurricular', 'lms', 'crad', 'crad_grant', 'reports-analytics',
+            'student_portal',
+        ];
+        foreach ($priority as $moduleKey) {
+            if (in_array($moduleKey, $allowed, true)) {
+                return $moduleKey;
+            }
+        }
+    }
+
     $map = [
+        'superadmin'   => 'user-management',
+        'sms_admin'    => 'enrollment',
         'admin'        => 'user-management',
+        'admission'    => 'enrollment',
         'registrar'    => 'registrar',
         'crad_officer' => 'crad',
+        'research_coordinator' => 'crad',
+        'department_chair' => 'crad',
+        'research_office' => 'crad',
+        'research_grant' => 'crad_grant',
+        'review_committee' => 'crad_grant',
         'finance'      => 'payment',
         'hr'           => 'faculty',
+        'adviser'      => 'faculty',
+        'panel'        => 'faculty',
+        'research_director' => 'faculty',
+        'grammarian'   => 'faculty',
         'it_office'    => 'lms',
         'osa'          => 'cocurricular',
         'qa'           => 'accreditation',
+        'vpaa'         => 'accreditation',
         'student'      => 'student_portal',
     ];
     return $map[$roleKey] ?? 'System';
@@ -592,22 +626,48 @@ function smsPrimaryModuleForRole(string $roleKey): string
  */
 function smsRolesForModule(string $moduleKey): array
 {
+    $pdo = db();
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT DISTINCT role_key FROM role_permissions WHERE module_key = ? AND granted = 1'
+            );
+            $stmt->execute([$moduleKey]);
+            $roles = array_map(
+                static function ($role): string {
+                    $roleKey = (string) $role;
+                    if (function_exists('smsNormalizeRoleKey')) {
+                        return smsNormalizeRoleKey($roleKey);
+                    }
+                    return $roleKey === 'crad' ? 'crad_officer' : $roleKey;
+                },
+                $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []
+            );
+            if ($roles !== []) {
+                return array_values(array_unique($roles));
+            }
+        } catch (Throwable $e) {
+            // fall back to static defaults below
+        }
+    }
+
     $map = [
-        'enrollment'         => ['registrar', 'admin'],
-        'registrar'          => ['registrar', 'admin'],
-        'curriculum'         => ['registrar', 'admin'],
-        'scheduling'         => ['registrar', 'admin'],
-        'payment'            => ['finance', 'admin'],
-        'faculty'            => ['hr', 'admin'],
-        'cocurricular'       => ['osa', 'admin'],
-        'lms'                => ['it_office', 'admin'],
-        'crad'               => ['crad_officer', 'admin'],
-        'accreditation'      => ['qa', 'admin'],
-        'reports-analytics'  => ['admin', 'registrar', 'finance', 'hr', 'it_office', 'osa', 'qa', 'crad_officer'],
-        'user-management'    => ['admin'],
-        'student_portal'     => ['student', 'admin'],
+        'enrollment'         => ['admission', 'registrar', 'superadmin', 'sms_admin', 'admin'],
+        'registrar'          => ['registrar', 'superadmin', 'sms_admin', 'admin'],
+        'curriculum'         => ['registrar', 'superadmin', 'sms_admin', 'admin'],
+        'scheduling'         => ['registrar', 'superadmin', 'sms_admin', 'admin'],
+        'payment'            => ['finance', 'superadmin', 'sms_admin', 'admin'],
+        'faculty'            => ['hr', 'adviser', 'panel', 'grammarian', 'superadmin', 'sms_admin', 'admin'],
+        'cocurricular'       => ['osa', 'superadmin', 'sms_admin', 'admin'],
+        'lms'                => ['it_office', 'superadmin', 'sms_admin', 'admin'],
+        'crad'               => ['crad_officer', 'research_coordinator', 'superadmin', 'sms_admin', 'admin'],
+        'crad_grant'         => ['research_grant', 'review_committee', 'superadmin', 'sms_admin', 'admin'],
+        'accreditation'      => ['qa', 'superadmin', 'sms_admin', 'admin'],
+        'reports-analytics'  => ['superadmin', 'sms_admin', 'admin', 'registrar', 'finance', 'hr', 'it_office', 'osa', 'qa', 'crad_officer', 'research_coordinator'],
+        'user-management'    => ['superadmin', 'sms_admin', 'admin'],
+        'student_portal'     => ['student'],
     ];
-    return $map[$moduleKey] ?? ['admin'];
+    return $map[$moduleKey] ?? ['superadmin', 'sms_admin'];
 }
 
 /**
@@ -796,7 +856,7 @@ function smsRejectPasswordRequest(int $requestId, int $adminId, string $note = '
  *
  * @return list<array<string,mixed>>
  */
-function smsModuleActivityLogs(string $moduleKey, int $limit = 100): array
+function smsModuleActivityLogs(string $moduleKey, int $limit = 100, ?int $userId = null): array
 {
     $pdo = db();
     if (!$pdo) {
@@ -815,12 +875,18 @@ function smsModuleActivityLogs(string $moduleKey, int $limit = 100): array
                    DATE_FORMAT(created_at, '%b %e, %Y %H:%i:%s') AS time,
                    DATE_FORMAT(created_at, '%Y-%m-%d') AS log_date
             FROM activity_logs
-            WHERE module_key = ?
+            WHERE module_key = ?";
+    $params = [$moduleKey];
+    if ($userId !== null && $userId > 0) {
+        $sql .= " AND user_id = ?";
+        $params[] = $userId;
+    }
+    $sql .= "
             ORDER BY id DESC
             LIMIT {$limit}";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$moduleKey]);
+    $stmt->execute($params);
     return $stmt->fetchAll() ?: [];
 }
 
@@ -866,3 +932,4 @@ function smsModuleLabel(string $moduleKey): string
     }
     return ucwords(str_replace(['_', '-'], ' ', $moduleKey));
 }
+

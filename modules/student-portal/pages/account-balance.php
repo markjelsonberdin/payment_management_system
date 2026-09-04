@@ -208,39 +208,24 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         </div>
     <?php endif; ?>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3 dashboard-stats">
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #f59e0b !important;">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Total Assessment</span>
-                    <h4 class="fw-bolder text-dark mb-0">PHP <?= number_format($totalAssessment, 2) ?></h4>
-                </div>
-            </div>
+            <section class="card stat-card warning"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('file-invoice-dollar') ?></div><div><h6 class="text-muted">Total Assessment</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalAssessment, 2) ?></h4></div></div></section>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #10b981 !important;">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Total Paid</span>
-                    <h4 class="fw-bolder text-dark mb-0">PHP <?= number_format($totalPaid, 2) ?></h4>
-                </div>
-            </div>
+            <section class="card stat-card success"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('check-circle') ?></div><div><h6 class="text-muted">Total Paid</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalPaid, 2) ?></h4></div></div></section>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 5px solid #3b82f6 !important;">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Balance</span>
-                    <h4 class="fw-bolder text-dark mb-0">PHP <?= number_format($remainingBalance, 2) ?></h4>
-                </div>
-            </div>
+            <section class="card stat-card primary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('wallet') ?></div><div><h6 class="text-muted">Balance</h6><h4 class="fw-bold mb-0">PHP <?= number_format($remainingBalance, 2) ?></h4></div></div></section>
         </div>
     </div>
     
     <!-- Assessment Breakdown -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h6 class="fw-bold m-0 text-dark">Assessment Breakdown</h6>
-                <span class="badge bg-light text-dark border px-3 py-2">S.Y. <?= htmlspecialchars($academicYear) ?> • <?= htmlspecialchars($semester) ?> Semester</span>
+    <section class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title fw-semibold mb-0">Assessment Breakdown</h5>
+                <span class="badge text-bg-light border">S.Y. <?= htmlspecialchars($academicYear) ?> • <?= htmlspecialchars($semester) ?> Semester</span>
             </div>
             
             <div class="accordion mb-4" id="breakdownAccordion">
@@ -314,38 +299,24 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         No assessment records found. You currently have no active billing.
                     </div>
                 <?php endif; ?>
-            </div>
-
-            <div>
-                <a href="?process=soa" class="btn btn-outline-primary fw-semibold px-4 py-2 shadow-sm rounded-3">
-                    <i class="fas fa-file-invoice me-2"></i>Request Statement of Account
+            </div> <!-- End accordion -->
+            
+            <div class="student-process-bar d-flex gap-2">
+                <?php if ($remainingBalance > 0): ?>
+                    <button class="btn btn-sms-primary fw-bold shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#paymongoModal">
+                        <?= smsIcon('credit-card', ['class' => 'me-2']) ?>Pay Remaining Balance
+                    </button>
+                <?php else: ?>
+                    <button class="btn btn-success fw-bold shadow-sm px-4" disabled>
+                        <?= smsIcon('check-circle', ['class' => 'me-2']) ?>Fully Paid
+                    </button>
+                <?php endif; ?>
+                <a class="btn btn-outline-primary fw-bold shadow-sm px-4" href="?process=soa">
+                    <?= smsIcon('file-invoice', ['class' => 'me-2']) ?>Request Statement of Account
                 </a>
             </div>
         </div>
-    </div>
-
-    <!-- Pay Online via Paymongo Section -->
-    <div class="card border-0 shadow-sm rounded-3" style="background-color: #f8fafc;">
-        <div class="card-body p-4">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div>
-                    <h6 class="fw-bold text-dark mb-1"><i class="fas fa-shield-alt text-success me-2"></i>Pay Online via Paymongo</h6>
-                    <p class="text-muted mb-0" style="font-size: 0.85rem;">Secure checkout powered by Paymongo. Choose your preferred payment channel below.</p>
-                </div>
-                <div>
-                    <?php if ($remainingBalance > 0): ?>
-                        <button class="btn btn-primary fw-bold px-4 py-2 shadow-sm rounded-3 w-100" data-bs-toggle="modal" data-bs-target="#paymongoModal">
-                            <i class="fas fa-credit-card me-2"></i>Pay Remaining Balance
-                        </button>
-                    <?php else: ?>
-                        <button class="btn btn-success fw-bold px-4 py-2 shadow-sm rounded-3 w-100" disabled>
-                            <i class="fas fa-check-circle me-2"></i>Fully Paid
-                        </button>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
+    </section>
 
 </div> <!-- End of student-portal -->
 
@@ -627,7 +598,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
             }
-            appendManualUploadButton(container);
         })
         .catch(err => {
             console.error('Failed to load payment channels', err);
@@ -637,27 +607,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <small>Failed to load payment options. Please refresh the page.</small>
                 </div>
             `;
-            appendManualUploadButton(container);
         });
 });
 
-function appendManualUploadButton(container) {
-    const manualBtn = document.createElement('div');
-    manualBtn.className = 'p-3 border border-secondary rounded-3 bg-light shadow-sm d-flex justify-content-between align-items-center mt-3';
-    manualBtn.style.cursor = 'pointer';
-    manualBtn.onclick = () => openManualUploadModal();
-    manualBtn.innerHTML = `
-        <div class="d-flex align-items-center gap-3">
-            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;"><i class="fas fa-file-invoice"></i></div>
-            <div>
-                <div class="fw-bold text-dark mb-0">Upload Receipt (Manual)</div>
-                <small class="text-muted">For OTC bank deposits or manual transfers</small>
-            </div>
-        </div>
-        <i class="fas fa-upload text-secondary"></i>
-    `;
-    container.appendChild(manualBtn);
-}
 
 function resetCheckoutUI() {
     document.getElementById('checkoutLoading').classList.add('d-none');
@@ -741,154 +693,6 @@ function createAnotherAnyway(channel) {
     }
 }
 
-// -----------------------------------------
-// OCR Manual Upload Logic
-// -----------------------------------------
-let currentOcrData = null;
-
-function openManualUploadModal() {
-    const modalHtml = `
-    <div class="modal fade" id="ocrUploadModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-secondary text-white">
-                    <h5 class="modal-title"><i class="fas fa-cloud-upload-alt"></i> Upload Manual Receipt</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="ocrUploadSection">
-                        <p class="text-muted small">Upload your deposit slip, GCash, or Maya screenshot here. Our AI will extract the details.</p>
-                        <input type="file" id="receiptFileInput" class="form-control mb-3" accept="image/jpeg, image/png, image/webp">
-                        <button class="btn btn-primary w-100 fw-bold" onclick="processReceiptOCR()"><i class="fas fa-robot"></i> Scan Receipt</button>
-                        <div id="ocrLoading" class="text-center mt-3 d-none">
-                            <div class="spinner-border text-primary" role="status"></div>
-                            <div class="mt-2 text-muted small">Scanning receipt with AI...</div>
-                        </div>
-                    </div>
-
-                    <div id="ocrFormSection" class="d-none mt-3">
-                        <div class="alert alert-info py-2 small"><i class="fas fa-info-circle"></i> Please review and correct the extracted details below.</div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Reference Number</label>
-                            <input type="text" id="manualRefNum" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Amount Paid (PHP)</label>
-                            <input type="number" step="0.01" id="manualAmount" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Payment Channel / Bank</label>
-                            <input type="text" id="manualChannel" class="form-control form-control-sm" placeholder="e.g. GCash, BDO, UnionBank">
-                        </div>
-                        <button class="btn btn-success w-100 fw-bold" onclick="submitManualPayment()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-
-    const oldModal = document.getElementById('ocrUploadModal');
-    if (oldModal) oldModal.remove();
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('ocrUploadModal'));
-    modal.show();
-}
-
-function processReceiptOCR() {
-    const fileInput = document.getElementById('receiptFileInput');
-    if (!fileInput.files.length) {
-        alert("Please select an image file first.");
-        return;
-    }
-
-    document.getElementById('ocrLoading').classList.remove('d-none');
-    const formData = new FormData();
-    formData.append('receipt', fileInput.files[0]);
-    formData.append('csrf_token', "<?= function_exists('csrfToken') ? csrfToken() : '' ?>");
-
-    fetch("<?= BASE_URL ?>/modules/student-portal/api/ocr/process-receipt.php", {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById('ocrLoading').classList.add('d-none');
-        if (data.success) {
-            currentOcrData = data;
-            document.getElementById('ocrUploadSection').classList.add('d-none');
-            document.getElementById('ocrFormSection').classList.remove('d-none');
-            
-            // Pre-fill
-            if (data.reference_number) document.getElementById('manualRefNum').value = data.reference_number;
-            if (data.amount) document.getElementById('manualAmount').value = data.amount;
-        } else {
-            alert("OCR Failed: " + (data.error || data.message));
-        }
-    })
-    .catch(err => {
-        document.getElementById('ocrLoading').classList.add('d-none');
-        alert("A network error occurred while processing the receipt.");
-    });
-}
-
-function submitManualPayment() {
-    const refNum = document.getElementById('manualRefNum').value;
-    const amt = document.getElementById('manualAmount').value;
-    const channel = document.getElementById('manualChannel').value || 'Manual';
-    
-    if (!refNum || !amt) {
-        alert("Please fill in the Reference Number and Amount.");
-        return;
-    }
-
-    const fileInput = document.getElementById('receiptFileInput');
-    const formData = new FormData();
-    formData.append('receipt', fileInput.files[0]);
-    formData.append('csrf_token', "<?= function_exists('csrfToken') ? csrfToken() : '' ?>");
-    formData.append('reference_number', refNum);
-    formData.append('amount', amt);
-    formData.append('channel', channel);
-    
-    // OCR Details
-    if (currentOcrData) {
-        formData.append('ocr_raw_text', currentOcrData.raw_text || '');
-        formData.append('ocr_amount', currentOcrData.amount || '');
-        formData.append('ocr_reference', currentOcrData.reference_number || '');
-    }
-
-    // Context details (same as PayMongo)
-    formData.append('allocation_context', allocationContext);
-    formData.append('billing_id', "<?= addslashes($billingDetails['billing_id'] ?? '') ?>");
-    if (billingItemId) {
-        formData.append('billing_item_id', billingItemId);
-    }
-
-    const btn = event.target.closest('button');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
-    btn.disabled = true;
-
-    fetch("<?= BASE_URL ?>/modules/student-portal/api/submit-manual-payment.php", {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("Success! " + data.message);
-            window.location.href = "<?= BASE_URL ?>/modules/student-portal/pages/payment-history.php";
-        } else {
-            alert("Failed: " + (data.error || data.message));
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit for Verification';
-            btn.disabled = false;
-        }
-    })
-    .catch(err => {
-        alert("A network error occurred.");
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit for Verification';
-        btn.disabled = false;
-    });
-}
 </script>
 <?php endif; ?>
 

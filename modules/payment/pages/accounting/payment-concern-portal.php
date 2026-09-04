@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentConcernService.php';
 require_once __DIR__ . '/../../includes/PaymentConcernVerificationService.php';
+require_once __DIR__ . '/../../includes/bank_recon/BankReconciliationService.php';
 
 requireAuth();
 requirePaymentPermission('payment.concern_review');
@@ -67,11 +68,17 @@ try {
     
     // Evaluate rules for pending concerns
     $ruleEngine = new PaymentConcernVerificationService($pdo);
+    $reconService = new BankReconciliationService($pdo);
+
     foreach ($concernsList as &$concern) {
         if ($concern['verification_status'] === 'Pending' && $concern['ocr_status'] === 'Completed') {
             $eval = $ruleEngine->evaluateConcern($concern['concern_id']);
             $concern['rule_status'] = $eval['status'];
             $concern['rule_remarks'] = $eval['remarks'];
+
+            if (!empty($concern['ocr_result_id'])) {
+                $concern['bank_match'] = $reconService->reconcileConcern($concern['ocr_result_id']);
+            }
         }
     }
 
@@ -101,10 +108,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <h2 class="mb-1 fw-bolder"><i class="fas fa-headset text-primary me-2"></i>Payment Concern Portal</h2>
             <p class="text-muted mb-0 fs-6">Review student-submitted payment receipts, analyze Google OCR extractions, and verify bank transfers.</p>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2">
+            <a href="bank-reconciliation.php" class="btn btn-outline-primary shadow-sm" title="Bank Reconciliation">
+                <i class="fas fa-university"></i>
+            </a>
             <div class="input-group w-auto shadow-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#concernsTable" placeholder="Search concern or student...">
+                <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#concernsTable" placeholder="Search...">
             </div>
         </div>
     </div>
@@ -211,7 +221,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <h6 class="fw-bold text-muted mb-3"><i class="fas fa-image me-2"></i>Receipt Image</h6>
                                 <div class="text-center bg-light rounded border flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden position-relative" style="min-height: 400px; max-height: 600px;">
                                     <?php if (!empty($row['receipt_path'])): ?>
-                                        <img src="<?= BASE_URL . '/' . htmlspecialchars($row['receipt_path']) ?>" alt="Receipt" class="img-fluid" style="object-fit: contain; max-height: 600px;">
+                                        <img src="<?= BASE_URL ?>/modules/payment/api/accounting/view-receipt.php?concern_id=<?= (int)$row['concern_id'] ?>" alt="Receipt" class="img-fluid" style="object-fit: contain; max-height: 600px;">
                                     <?php else: ?>
                                         <span class="text-muted"><i class="fas fa-ban fs-3 d-block mb-2"></i>No image attached</span>
                                     <?php endif; ?>
@@ -253,9 +263,27 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <div class="col-6 text-muted small fw-bold">OCR Extracted Amount</div>
                                             <div class="col-6 text-success fw-bold" id="ocr_amount_<?= $row['concern_id'] ?>">₱ <?= number_format((float)($row['ocr_amount'] ?? 0), 2) ?></div>
                                         </div>
-                                        <div class="row mb-0">
+                                        <div class="row mb-3">
                                             <div class="col-6 text-muted small fw-bold">OCR Reference No.</div>
                                             <div class="col-6 text-dark fw-bold" id="ocr_ref_<?= $row['concern_id'] ?>"><?= htmlspecialchars($row['ocr_ref'] ?? 'Pending Scan') ?></div>
+                                        </div>
+                                        <div class="row mb-0">
+                                            <div class="col-6 text-muted small fw-bold"><i class="fas fa-university text-primary me-1"></i> Bank Match</div>
+                                            <div class="col-6" id="bank_match_container_<?= $row['concern_id'] ?>">
+                                                <?php if (isset($row['bank_match'])): ?>
+                                                    <?php 
+                                                        $bmBadge = match($row['bank_match']['status']) {
+                                                            'PERFECT_MATCH' => 'bg-success',
+                                                            'DATE_MISMATCH', 'AMOUNT_MISMATCH', 'PARTIAL_MATCH' => 'bg-warning text-dark',
+                                                            'NOT_FOUND' => 'bg-danger',
+                                                            default => 'bg-secondary'
+                                                        };
+                                                    ?>
+                                                    <span class="badge <?= $bmBadge ?>" title="<?= htmlspecialchars($row['bank_match']['message']) ?>"><?= htmlspecialchars(str_replace('_', ' ', $row['bank_match']['status'])) ?></span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-light text-muted border">Pending</span>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -311,6 +339,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 <?php endif; ?>
 
 <script>
+const CSRF_TOKEN = '<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>';
+
 function scanConcernOCR(concernId, btnElement) {
     const originalText = btnElement.innerHTML;
     btnElement.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Scanning...';
@@ -319,7 +349,7 @@ function scanConcernOCR(concernId, btnElement) {
     fetch("<?= BASE_URL ?>/modules/payment/api/accounting/ocr-scan-concern.php", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concern_id: concernId })
+        body: JSON.stringify({ concern_id: concernId, csrf_token: CSRF_TOKEN })
     })
     .then(res => res.json())
     .then(data => {
@@ -347,6 +377,17 @@ function scanConcernOCR(concernId, btnElement) {
                     const bankInput = modal.querySelector(`input[name="verified_channel"]`);
                     if(bankInput) bankInput.value = data.data.bank;
                 }
+            }
+
+            // Render Bank Match if available
+            if (data.bank_match) {
+                let badgeClass = 'bg-secondary';
+                if (data.bank_match.status === 'PERFECT_MATCH') badgeClass = 'bg-success';
+                else if (data.bank_match.status === 'NOT_FOUND') badgeClass = 'bg-danger';
+                else badgeClass = 'bg-warning text-dark';
+
+                const displayStatus = data.bank_match.status.replace(/_/g, ' ');
+                document.getElementById('bank_match_container_' + concernId).innerHTML = `<span class="badge ${badgeClass}" title="${data.bank_match.message}">${displayStatus}</span>`;
             }
             
             btnElement.innerHTML = '<i class="fas fa-check text-success me-2"></i> Scan Complete';

@@ -46,6 +46,54 @@ if ($studentId && $referenceNumber) {
             if (!$paymentData) {
                 // Payment not found or does not belong to student
                 $accessDenied = true;
+            } elseif ($paymentData['payment_status'] === 'Pending' && !empty($paymentData['checkout_session_id'])) {
+                // Fallback: Check PayMongo API directly (Useful for localhost testing without webhooks)
+                require_once ROOT_PATH . '/modules/payment/includes/paymongo/paymongo/PayMongoService.php';
+                require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+                global $pdo; // $pdo from db_connect.php has full write privileges
+                
+                try {
+                    $paymongo = new PayMongoService();
+                    $session = $paymongo->getCheckoutSession($paymentData['checkout_session_id']);
+                    
+                    $pmPayments = $session['data']['attributes']['payments'] ?? [];
+                    $isPaid = false;
+                    foreach ($pmPayments as $pmPayment) {
+                        if (($pmPayment['attributes']['status'] ?? '') === 'paid') {
+                            $isPaid = true;
+                            break;
+                        }
+                    }
+                    
+                    if ($isPaid) {
+                        $pdo->beginTransaction();
+                        $stmtUpdate = $pdo->prepare("UPDATE payment_db.payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
+                        $stmtUpdate->execute([':pid' => $paymentData['payment_id']]);
+                        
+                        if ($stmtUpdate->rowCount() > 0) {
+                            require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
+                            $allocationService = new PaymentAllocationService($pdo);
+                            $allocationService->allocatePayment(
+                                $paymentData['payment_id'],
+                                $paymentData['student_id'],
+                                $paymentData['billing_id'],
+                                (float) $paymentData['amount'],
+                                $paymentData['allocation_context'],
+                                $paymentData['billing_item_id']
+                            );
+                            $paymentData['payment_status'] = 'Verified';
+                            
+                            // Refetch remaining balance
+                            $stmtRefetch = $pdo->prepare("SELECT remaining_balance FROM payment_db.billing WHERE billing_id = :bid");
+                            $stmtRefetch->execute([':bid' => $paymentData['billing_id']]);
+                            $paymentData['remaining_balance'] = $stmtRefetch->fetchColumn();
+                        }
+                        $pdo->commit();
+                    }
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log("PayMongo Fallback Check Error: " . $e->getMessage());
+                }
             }
         }
     } catch (Exception $e) {
@@ -156,3 +204,4 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 </div>
 
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
+

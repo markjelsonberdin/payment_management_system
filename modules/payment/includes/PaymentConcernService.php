@@ -90,7 +90,7 @@ class PaymentConcernService {
         $stmt = $this->pdo->prepare("
             SELECT pc.*, p.amount as payment_amount, p.billing_id, p.payment_channel, 
                    s.student_number, s.full_name,
-                   o.extracted_amount, o.bank_name, o.confidence_score, o.reference_number as ocr_ref, o.transaction_date
+                   o.ocr_result_id, o.extracted_amount, o.bank_name, o.confidence_score, o.reference_number as ocr_ref, o.transaction_date
             FROM payment_concerns pc
             LEFT JOIN payments p ON pc.payment_id = p.payment_id
             JOIN students s ON pc.student_id = s.student_id
@@ -108,9 +108,17 @@ class PaymentConcernService {
         try {
             $this->pdo->beginTransaction();
 
-            $stmtGet = $this->pdo->prepare("SELECT payment_id, student_id FROM payment_concerns WHERE concern_id = :cid");
+            $stmtGet = $this->pdo->prepare("SELECT payment_id, student_id, verification_status FROM payment_concerns WHERE concern_id = :cid FOR UPDATE");
             $stmtGet->execute([':cid' => $concernId]);
             $concern = $stmtGet->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$concern) {
+                throw new Exception("Payment concern not found.");
+            }
+            if ($concern['verification_status'] !== 'Pending') {
+                throw new Exception("This concern has already been processed (Status: {$concern['verification_status']}).");
+            }
+
             $paymentId = $concern['payment_id'];
             $studentId = $concern['student_id'];
 

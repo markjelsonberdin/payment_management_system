@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/security.php';
 require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/PayMongoService.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
 require_once __DIR__ . '/../../includes/PaymentValidationService.php';
 require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
 require_once __DIR__ . '/../../includes/PaymentChannelService.php';
@@ -253,3 +253,4 @@ try {
         'error' => $e->getMessage()
     ]);
 }
+

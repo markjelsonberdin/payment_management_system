@@ -9,17 +9,17 @@
     document.addEventListener('DOMContentLoaded', init);
 
     function init() {
-        var index    = window.SMS2_SEARCH_INDEX || [];
-        var input    = document.getElementById('globalSearch');
+        var index = window.SMS2_SEARCH_INDEX || [];
+        var input = document.getElementById('globalSearch');
         var dropdown = document.getElementById('searchDropdown');
-        var list     = document.getElementById('searchResultsList');
-        var empty    = document.getElementById('searchEmpty');
+        var list = document.getElementById('searchResultsList');
+        var empty = document.getElementById('searchEmpty');
         var clearBtn = document.getElementById('globalSearchClear');
 
         if (!input || !dropdown || !list) return;
 
         var activeIndex = -1;   // keyboard navigation cursor
-        var lastQuery   = '';
+        var lastQuery = '';
 
         /* ── helpers ───────────────────────────────────────────── */
         function openDropdown() {
@@ -74,15 +74,15 @@
             var scored = [];
 
             index.forEach(function (item) {
-                var kw    = item.keywords;
+                var kw = item.keywords;
                 var label = item.label.toLowerCase();
                 var score = 0;
 
                 tokens.forEach(function (t) {
-                    if (label === t)            score += 100;
+                    if (label === t) score += 100;
                     else if (label.startsWith(t)) score += 60;
-                    else if (label.includes(t))  score += 30;
-                    else if (kw.includes(t))     score += 15;
+                    else if (label.includes(t)) score += 30;
+                    else if (kw.includes(t)) score += 15;
                 });
 
                 if (score > 0) scored.push({ item: item, score: score });
@@ -92,7 +92,7 @@
             scored.sort(function (a, b) {
                 if (b.score !== a.score) return b.score - a.score;
                 if (a.item.type === 'module' && b.item.type !== 'module') return -1;
-                if (b.item.type === 'module' && a.item.type !== 'module') return  1;
+                if (b.item.type === 'module' && a.item.type !== 'module') return 1;
                 return 0;
             });
 
@@ -106,13 +106,13 @@
 
             /* Separate modules & pages */
             var modules = scored.filter(function (s) { return s.item.type === 'module'; });
-            var pages   = scored.filter(function (s) { return s.item.type === 'page'; });
+            var pages = scored.filter(function (s) { return s.item.type === 'page'; });
 
             /* Limit total results */
             var MAX_MODULES = 3;
-            var MAX_PAGES   = 8;
+            var MAX_PAGES = 8;
             modules = modules.slice(0, MAX_MODULES);
-            pages   = pages.slice(0, MAX_PAGES);
+            pages = pages.slice(0, MAX_PAGES);
 
             var fragment = document.createDocumentFragment();
 
@@ -124,8 +124,8 @@
             }
 
             function makeResultItem(scored) {
-                var s    = scored.item;
-                var li   = document.createElement('li');
+                var s = scored.item;
+                var li = document.createElement('li');
                 li.className = 'search-result-item';
                 li.setAttribute('role', 'option');
 
@@ -135,7 +135,7 @@
 
                 var iconDiv = document.createElement('div');
                 iconDiv.className = 'search-result-icon';
-                iconDiv.innerHTML = '<i class="fas ' + esc(s.icon) + '"></i>';
+                iconDiv.innerHTML = window.smsIconHtml ? window.smsIconHtml(s.icon) : '<i class="ti ti-layout-grid"></i>';
 
                 var textDiv = document.createElement('div');
                 textDiv.className = 'search-result-text';
@@ -249,16 +249,45 @@
 
         /* ── close on outside click ────────────────────────────── */
         document.addEventListener('click', function (e) {
-            var wrapper = document.querySelector('.navbar-search-wrapper');
+            var wrapper = document.querySelector('.navbar-search');
+            var navbar = document.querySelector('.sms-navbar');
             if (wrapper && !wrapper.contains(e.target)) {
                 closeDropdown();
             }
+            if (navbar && navbar.classList.contains('search-open')) {
+                var toggle = document.getElementById('navbarSearchToggle');
+                if (toggle && !toggle.contains(e.target) && wrapper && !wrapper.contains(e.target)) {
+                    navbar.classList.remove('search-open');
+                    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                }
+            }
         });
+
+        /* ── mobile search toggle ────────────────────────────────── */
+        var searchToggle = document.getElementById('navbarSearchToggle');
+        var navbarEl = document.querySelector('.sms-navbar');
+        if (searchToggle && navbarEl) {
+            searchToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var open = navbarEl.classList.toggle('search-open');
+                searchToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open) {
+                    input.focus();
+                } else {
+                    closeDropdown();
+                }
+            });
+        }
 
         /* ── Ctrl+K / Cmd+K shortcut ───────────────────────────── */
         document.addEventListener('keydown', function (e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
+                if (navbarEl && window.matchMedia('(max-width: 767.98px)').matches) {
+                    navbarEl.classList.add('search-open');
+                    if (searchToggle) searchToggle.setAttribute('aria-expanded', 'true');
+                }
                 input.focus();
                 input.select();
             }

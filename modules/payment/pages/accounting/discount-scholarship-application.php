@@ -17,7 +17,8 @@ requirePaymentPermission('payment.discount');
 // BACKEND: PROCESS SCHOLARSHIP APPLICATION
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_discount'])) {
-    
+    requireCsrf();
+
     $student_number = trim($_POST['student_number']);
     $billing_id = $_POST['billing_id'];
     $scholarship_name = $_POST['scholarship_name'];
@@ -90,6 +91,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <input type="text" class="form-control" id="searchStudentDiscount" placeholder="Enter Student Number" autocomplete="off">
                         <button class="btn btn-primary" type="button" id="btnSearchBilling">Search</button>
                     </div>
+                    <p class="small text-muted mb-0" id="discountSearchHint">Search an unpaid student billing first. Scholarships stay locked until a match is found.</p>
                     
                     <!-- Dito lalabas ang result ng student at billing -->
                     <div id="billingDetailsContainer" class="d-none mt-4">
@@ -221,6 +223,11 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     .scholarship-card.selected { border: 2px solid #0d6efd !important; background-color: #f8fbff; box-shadow: 0 4px 15px rgba(13,110,253,0.2); }
 </style>
 
-<script src="../../assets/js/discount-scholarship.js"></script>
-<script src="<?= BASE_URL ?>/assets/js/payment-search.js"></script>
+<script>
+window.SMS2_DISCOUNT = {
+    fetchUrl: <?= json_encode(BASE_URL . '/modules/payment/api/fetch_unpaid_billing.php') ?>
+};
+</script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/discount-scholarship.js?v=3"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js?v=2"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

@@ -36,7 +36,7 @@ class GoogleOCRService {
      * Processes an existing receipt file for a Payment Concern (Saves to DB).
      * Used by Accounting.
      */
-    public function processReceipt($concernId, $receiptPath) {
+    public function processReceipt($concernId, $receiptPath, $scannedBy = null) {
         if (!$this->pdo) {
             throw new Exception("Database connection required for processReceipt.");
         }
@@ -72,12 +72,20 @@ class GoogleOCRService {
                 $rawJson = json_encode(['text' => $result['raw_text']]);
             }
 
+            // Get current scan attempt
+            $stmt = $this->pdo->prepare("SELECT scan_attempt FROM ocr_results WHERE concern_id = ?");
+            $stmt->execute([$concernId]);
+            $existing = $stmt->fetch();
+            $scanAttempt = $existing ? ((int)$existing['scan_attempt'] + 1) : 1;
+
             // Save to ocr_results
             $stmt = $this->pdo->prepare("
                 INSERT INTO ocr_results 
-                (concern_id, extracted_amount, bank_name, reference_number, transaction_date, transaction_time, raw_json, extraction_status, extraction_notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (concern_id, scan_attempt, scanned_by, extracted_amount, bank_name, reference_number, transaction_date, transaction_time, raw_json, extraction_status, extraction_notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE 
+                    scan_attempt = VALUES(scan_attempt),
+                    scanned_by = VALUES(scanned_by),
                     extracted_amount = VALUES(extracted_amount),
                     bank_name = VALUES(bank_name),
                     reference_number = VALUES(reference_number),
@@ -89,6 +97,8 @@ class GoogleOCRService {
             ");
             $stmt->execute([
                 $concernId,
+                $scanAttempt,
+                $scannedBy,
                 $amount !== null ? (float)$amount : null,
                 $bank,
                 $ref,
@@ -99,9 +109,14 @@ class GoogleOCRService {
                 $notes
             ]);
 
-            // Update concern status
-            $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ?");
-            $upd->execute([$concernId]);
+            // Update concern status based on strict policy
+            if ($status !== 'COMPLETE') {
+                $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Failed', verification_status = 'Rejected', remarks = CONCAT(COALESCE(remarks, ''), '\\n\\nSystem: Automatically rejected due to unreadable receipt (', ?, '). Please re-upload a clearer image.') WHERE concern_id = ?");
+                $upd->execute([$status, $concernId]);
+            } else {
+                $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ?");
+                $upd->execute([$concernId]);
+            }
 
             $this->pdo->commit();
             

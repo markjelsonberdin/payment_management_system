@@ -8,7 +8,7 @@
 
 require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
-require_once ROOT_PATH . '/modules/payment/includes/PayMongoWebhookSecurityService.php';
+require_once ROOT_PATH . '/modules/payment/includes/paymongo/PayMongoWebhookSecurityService.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
 
 ini_set('display_errors', 0);
@@ -109,10 +109,25 @@ try {
         throw new Exception("Payment record is in an unexpected state: " . $internalPayment['payment_status']);
     }
 
+    // Validate Context matches
+    if (empty($internalPayment['student_id']) || empty($internalPayment['billing_id'])) {
+        throw new Exception("Payment record lacks required context (student_id/billing_id)");
+    }
+
     // Amount validation
     $expectedTotal = (float) $internalPayment['checkout_total'];
     if (abs($expectedTotal - $paymongoAmountDec) > 0.01) {
         throw new Exception("Amount mismatch. Expected: $expectedTotal, Actual: $paymongoAmountDec");
+    }
+
+    // Handle expiry/late-payment policy
+    if (!empty($internalPayment['expires_at'])) {
+        $expiresAt = strtotime($internalPayment['expires_at']);
+        if (time() > $expiresAt) {
+            // Late Webhook Policy: If a QR is expired but a payment is later officially confirmed by PayMongo 
+            // and passes all validation (signature, idempotency, intent ownership, amount, state), RECONCILE AS PAID.
+            error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$internalPayment['expires_at']}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
+        }
     }
 
     // Allocation Logic
