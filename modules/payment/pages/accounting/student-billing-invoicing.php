@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_billing'])) 
         $student_id = $student['student_id'];
 
         $stmtCheck = $pdo->prepare("
-            SELECT billing_id FROM payment_db.billing 
+            SELECT billing_id FROM billing 
             WHERE student_id = :student_id 
             AND academic_year = :ay 
             AND semester = :sem
@@ -112,7 +112,7 @@ try {
             SUM(remaining_balance) as total_receivables,
             SUM(CASE WHEN billing_status != 'Paid' THEN 1 ELSE 0 END) as unpaid_count,
             SUM(CASE WHEN billing_status = 'Paid' THEN 1 ELSE 0 END) as paid_count
-        FROM payment_db.billing
+        FROM billing
     ");
     $summary = $summaryStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -120,13 +120,13 @@ try {
     $unpaidCount = $summary['unpaid_count'] ?? 0;
     $paidCount = $summary['paid_count'] ?? 0;
 
-    // Kunin ang Billing List (Fast Local Query gamit ang payment_db.students reference)
+    // Kunin ang Billing List (Fast Local Query gamit ang students reference)
     $stmt = $pdo->query("
         SELECT b.billing_id, b.billing_type, b.academic_year, b.semester, 
                b.total_amount, b.remaining_balance, b.billing_status, b.created_at,
                s.student_number, s.full_name
-        FROM payment_db.billing b
-        JOIN payment_db.students s ON b.student_id = s.student_id
+        FROM billing b
+        JOIN students s ON b.student_id = s.student_id
         ORDER BY b.created_at DESC
     ");
     $billingList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -134,8 +134,8 @@ try {
     // Kunin ang Active Fees kasama ang Category Details
     $stmtFees = $pdo->query("
         SELECT f.fee_id, f.fee_name, f.default_amount, f.is_required, c.category_name
-        FROM payment_db.fees f
-        JOIN payment_db.fee_categories c ON f.category_id = c.category_id
+        FROM fees f
+        JOIN fee_categories c ON f.category_id = c.category_id
         WHERE f.status = 'Active' 
         ORDER BY c.priority_order ASC, f.fee_name ASC
     ");
@@ -450,6 +450,6 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 </div>
 
 <script src="../../assets/js/billing-invoicing.js"></script>
-<script src="<?= BASE_URL ?>/assets/js/payment-search.js"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js"></script>
 
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

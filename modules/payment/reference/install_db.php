@@ -34,12 +34,12 @@ try {
 
     // Import PAYMENT_DB
     echo "Importing payment_db tables...<br>";
-    $payment_sql = file_get_contents(__DIR__ . '/modules/payment/database/payment_db.sql');
+    $payment_sql = file_get_contents(__DIR__ . '/modules/payment/database/sql');
     if ($payment_sql) {
         $pdo->exec($payment_sql);
         echo "<span style='color:green;'>Payment tables imported successfully!</span><br><br>";
     } else {
-        echo "<span style='color:red;'>Could not read payment_db.sql</span><br><br>";
+        echo "<span style='color:red;'>Could not read sql</span><br><br>";
     }
 
     echo "<h3>✅ Database Migration Complete!</h3>";

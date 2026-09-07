@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Request message for the `ImportProductSets` method.
@@ -21,31 +21,13 @@ class ImportProductSetsRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>string parent = 1 [(.google.api.field_behavior) = REQUIRED, (.google.api.resource_reference) = {</code>
      */
-    protected $parent = '';
+    private $parent = '';
     /**
      * Required. The input content for the list of requests.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImportProductSetsInputConfig input_config = 2 [(.google.api.field_behavior) = REQUIRED];</code>
      */
-    protected $input_config = null;
-
-    /**
-     * @param string                                               $parent      Required. The project in which the ProductSets should be imported.
-     *
-     *                                                                          Format is `projects/PROJECT_ID/locations/LOC_ID`. Please see
-     *                                                                          {@see ProductSearchClient::locationName()} for help formatting this field.
-     * @param \Google\Cloud\Vision\V1\ImportProductSetsInputConfig $inputConfig Required. The input content for the list of requests.
-     *
-     * @return \Google\Cloud\Vision\V1\ImportProductSetsRequest
-     *
-     * @experimental
-     */
-    public static function build(string $parent, \Google\Cloud\Vision\V1\ImportProductSetsInputConfig $inputConfig): self
-    {
-        return (new self())
-            ->setParent($parent)
-            ->setInputConfig($inputConfig);
-    }
+    private $input_config = null;
 
     /**
      * Constructor.
@@ -97,21 +79,11 @@ class ImportProductSetsRequest extends \Google\Protobuf\Internal\Message
      * Required. The input content for the list of requests.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImportProductSetsInputConfig input_config = 2 [(.google.api.field_behavior) = REQUIRED];</code>
-     * @return \Google\Cloud\Vision\V1\ImportProductSetsInputConfig|null
+     * @return \Google\Cloud\Vision\V1\ImportProductSetsInputConfig
      */
     public function getInputConfig()
     {
         return $this->input_config;
-    }
-
-    public function hasInputConfig()
-    {
-        return isset($this->input_config);
-    }
-
-    public function clearInputConfig()
-    {
-        unset($this->input_config);
     }
 
     /**

@@ -231,4 +231,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <?php endforeach; ?>
 <?php endif; ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Move all transaction details modals to the body to prevent backdrop freezing
+    document.querySelectorAll('.modal[id^="detailsModal"]').forEach(function(modalEl) {
+        document.body.appendChild(modalEl);
+    });
+});
+</script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js?v=2"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

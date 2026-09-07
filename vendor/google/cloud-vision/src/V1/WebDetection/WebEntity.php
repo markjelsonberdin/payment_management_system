@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1\WebDetection;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Entity deduced from similar images on the Internet.
@@ -20,20 +20,20 @@ class WebEntity extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>string entity_id = 1;</code>
      */
-    protected $entity_id = '';
+    private $entity_id = '';
     /**
      * Overall relevancy score for the entity.
      * Not normalized and not comparable across different image queries.
      *
      * Generated from protobuf field <code>float score = 2;</code>
      */
-    protected $score = 0.0;
+    private $score = 0.0;
     /**
      * Canonical description of the entity, in English.
      *
      * Generated from protobuf field <code>string description = 3;</code>
      */
-    protected $description = '';
+    private $description = '';
 
     /**
      * Constructor.
@@ -136,4 +136,7 @@ class WebEntity extends \Google\Protobuf\Internal\Message
     }
 
 }
+
+// Adding a class alias for backwards compatibility with the previous class name.
+class_alias(WebEntity::class, \Google\Cloud\Vision\V1\WebDetection_WebEntity::class);
 

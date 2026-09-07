@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Parameters for web detection request.
@@ -16,12 +16,11 @@ use Google\Protobuf\RepeatedField;
 class WebDetectionParams extends \Google\Protobuf\Internal\Message
 {
     /**
-     * This field has no effect on results.
+     * Whether to include results derived from the geo information in the image.
      *
-     * Generated from protobuf field <code>bool include_geo_results = 2 [deprecated = true];</code>
-     * @deprecated
+     * Generated from protobuf field <code>bool include_geo_results = 2;</code>
      */
-    protected $include_geo_results = false;
+    private $include_geo_results = false;
 
     /**
      * Constructor.
@@ -30,7 +29,7 @@ class WebDetectionParams extends \Google\Protobuf\Internal\Message
      *     Optional. Data for populating the Message object.
      *
      *     @type bool $include_geo_results
-     *           This field has no effect on results.
+     *           Whether to include results derived from the geo information in the image.
      * }
      */
     public function __construct($data = NULL) {
@@ -39,31 +38,25 @@ class WebDetectionParams extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * This field has no effect on results.
+     * Whether to include results derived from the geo information in the image.
      *
-     * Generated from protobuf field <code>bool include_geo_results = 2 [deprecated = true];</code>
+     * Generated from protobuf field <code>bool include_geo_results = 2;</code>
      * @return bool
-     * @deprecated
      */
     public function getIncludeGeoResults()
     {
-        if ($this->include_geo_results !== false) {
-            @trigger_error('include_geo_results is deprecated.', E_USER_DEPRECATED);
-        }
         return $this->include_geo_results;
     }
 
     /**
-     * This field has no effect on results.
+     * Whether to include results derived from the geo information in the image.
      *
-     * Generated from protobuf field <code>bool include_geo_results = 2 [deprecated = true];</code>
+     * Generated from protobuf field <code>bool include_geo_results = 2;</code>
      * @param bool $var
      * @return $this
-     * @deprecated
      */
     public function setIncludeGeoResults($var)
     {
-        @trigger_error('include_geo_results is deprecated.', E_USER_DEPRECATED);
         GPBUtil::checkBool($var);
         $this->include_geo_results = $var;
 

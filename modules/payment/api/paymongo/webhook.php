@@ -23,7 +23,7 @@ try {
     $rawPayload = file_get_contents('php://input');
     $signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'] ?? '';
 
-    $stmtMode = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+    $stmtMode = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
     $activeMode = $stmtMode->fetchColumn() ?: 'test';
 
     $securityService = new PayMongoWebhookSecurityService($pdo, $activeMode);
@@ -51,7 +51,7 @@ try {
         
         if (empty($checkoutSessionId)) throw new Exception("Missing checkout_session_id");
 
-        $stmt = $pdo->prepare("SELECT * FROM payment_db.payments WHERE checkout_session_id = :session_id");
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE checkout_session_id = :session_id");
         $stmt->execute([':session_id' => $checkoutSessionId]);
         $internalPayment = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -67,14 +67,14 @@ try {
         
         if (empty($paymentIntentId)) throw new Exception("Missing payment_intent_id in payment.paid event");
 
-        $stmt = $pdo->prepare("SELECT * FROM payment_db.payments WHERE payment_intent_id = :pi_id");
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE payment_intent_id = :pi_id");
         $stmt->execute([':pi_id' => $paymentIntentId]);
         $internalPayment = $stmt->fetch(PDO::FETCH_ASSOC);
 
     } elseif ($eventType === 'payment.failed') {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         if ($paymentIntentId) {
-            $stmt = $pdo->prepare("UPDATE payment_db.payments SET payment_status = 'Failed' WHERE payment_intent_id = :pi_id AND payment_status = 'Pending'");
+            $stmt = $pdo->prepare("UPDATE payments SET payment_status = 'Failed' WHERE payment_intent_id = :pi_id AND payment_status = 'Pending'");
             $stmt->execute([':pi_id' => $paymentIntentId]);
         }
         echo json_encode(['success' => true, 'message' => 'Payment marked failed']);
@@ -85,7 +85,7 @@ try {
         // We keep it 'Pending' so the student can resume it (regenerate QR).
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? $eventData['id'] ?? '';
         if ($paymentIntentId) {
-            $stmt = $pdo->prepare("UPDATE payment_db.payments SET remarks = CONCAT(IFNULL(remarks,''), ' [QR Expired]') WHERE payment_intent_id = :pi_id");
+            $stmt = $pdo->prepare("UPDATE payments SET remarks = CONCAT(IFNULL(remarks,''), ' [QR Expired]') WHERE payment_intent_id = :pi_id");
             $stmt->execute([':pi_id' => $paymentIntentId]);
         }
         echo json_encode(['success' => true, 'message' => 'QR Ph expired noted']);
@@ -134,7 +134,7 @@ try {
     $pdo->beginTransaction();
 
     $stmtUpdate = $pdo->prepare("
-        UPDATE payment_db.payments 
+        UPDATE payments 
         SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP 
         WHERE payment_id = :pid
     ");

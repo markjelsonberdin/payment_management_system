@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1\ProductSearchResults;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Information about a product.
@@ -20,21 +20,21 @@ class Result extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.Product product = 1;</code>
      */
-    protected $product = null;
+    private $product = null;
     /**
      * A confidence level on the match, ranging from 0 (no confidence) to
      * 1 (full confidence).
      *
      * Generated from protobuf field <code>float score = 2;</code>
      */
-    protected $score = 0.0;
+    private $score = 0.0;
     /**
      * The resource name of the image from the product that is the closest match
      * to the query.
      *
      * Generated from protobuf field <code>string image = 3;</code>
      */
-    protected $image = '';
+    private $image = '';
 
     /**
      * Constructor.
@@ -61,21 +61,11 @@ class Result extends \Google\Protobuf\Internal\Message
      * The Product.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.Product product = 1;</code>
-     * @return \Google\Cloud\Vision\V1\Product|null
+     * @return \Google\Cloud\Vision\V1\Product
      */
     public function getProduct()
     {
         return $this->product;
-    }
-
-    public function hasProduct()
-    {
-        return isset($this->product);
-    }
-
-    public function clearProduct()
-    {
-        unset($this->product);
     }
 
     /**
@@ -150,4 +140,7 @@ class Result extends \Google\Protobuf\Internal\Message
     }
 
 }
+
+// Adding a class alias for backwards compatibility with the previous class name.
+class_alias(Result::class, \Google\Cloud\Vision\V1\ProductSearchResults_Result::class);
 

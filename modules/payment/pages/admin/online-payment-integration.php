@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare("
-            INSERT INTO payment_db.payment_gateway_settings (setting_key, setting_value) 
+            INSERT INTO payment_gateway_settings (setting_key, setting_value) 
             VALUES (:key, :val) 
             ON DUPLICATE KEY UPDATE setting_value = :val
         ");
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
 
         // Kunin muna ang existing channels bago mag-save para sa audit log
         $existing = [];
-        $stmtEx = $pdo->query("SELECT setting_key, setting_value FROM payment_db.payment_gateway_settings WHERE setting_key LIKE '%_channel_%'");
+        $stmtEx = $pdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key LIKE '%_channel_%'");
         while ($row = $stmtEx->fetch(PDO::FETCH_ASSOC)) {
             $existing[$row['setting_key']] = $row['setting_value'];
         }
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
 // ==========================================
 $settings = [];
 try {
-    $stmt = $pdo->query("SELECT setting_key, setting_value FROM payment_db.payment_gateway_settings");
+    $stmt = $pdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }

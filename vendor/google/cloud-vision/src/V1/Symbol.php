@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * A single symbol representation.
@@ -20,7 +20,7 @@ class Symbol extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation.TextProperty property = 1;</code>
      */
-    protected $property = null;
+    private $property = null;
     /**
      * The bounding box for the symbol.
      * The vertices are in the order of top-left, top-right, bottom-right,
@@ -40,19 +40,19 @@ class Symbol extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_box = 2;</code>
      */
-    protected $bounding_box = null;
+    private $bounding_box = null;
     /**
      * The actual UTF-8 representation of the symbol.
      *
      * Generated from protobuf field <code>string text = 3;</code>
      */
-    protected $text = '';
+    private $text = '';
     /**
      * Confidence of the OCR results for the symbol. Range [0, 1].
      *
      * Generated from protobuf field <code>float confidence = 4;</code>
      */
-    protected $confidence = 0.0;
+    private $confidence = 0.0;
 
     /**
      * Constructor.
@@ -93,21 +93,11 @@ class Symbol extends \Google\Protobuf\Internal\Message
      * Additional information detected for the symbol.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation.TextProperty property = 1;</code>
-     * @return \Google\Cloud\Vision\V1\TextAnnotation\TextProperty|null
+     * @return \Google\Cloud\Vision\V1\TextAnnotation\TextProperty
      */
     public function getProperty()
     {
         return $this->property;
-    }
-
-    public function hasProperty()
-    {
-        return isset($this->property);
-    }
-
-    public function clearProperty()
-    {
-        unset($this->property);
     }
 
     /**
@@ -119,7 +109,7 @@ class Symbol extends \Google\Protobuf\Internal\Message
      */
     public function setProperty($var)
     {
-        GPBUtil::checkMessage($var, \Google\Cloud\Vision\V1\TextAnnotation\TextProperty::class);
+        GPBUtil::checkMessage($var, \Google\Cloud\Vision\V1\TextAnnotation_TextProperty::class);
         $this->property = $var;
 
         return $this;
@@ -143,21 +133,11 @@ class Symbol extends \Google\Protobuf\Internal\Message
      *   and the vertex order will still be (0, 1, 2, 3).
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_box = 2;</code>
-     * @return \Google\Cloud\Vision\V1\BoundingPoly|null
+     * @return \Google\Cloud\Vision\V1\BoundingPoly
      */
     public function getBoundingBox()
     {
         return $this->bounding_box;
-    }
-
-    public function hasBoundingBox()
-    {
-        return isset($this->bounding_box);
-    }
-
-    public function clearBoundingBox()
-    {
-        unset($this->bounding_box);
     }
 
     /**

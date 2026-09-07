@@ -12,7 +12,7 @@ try {
     global $pdo;
     
     // 1. Alamin kung Test o Live mode ang active
-    $stmt = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+    $stmt = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
     $mode = $stmt->fetchColumn() ?: 'test';
 
     // 2. Basahin ang .env file (Same path depth as admin pages)

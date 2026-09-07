@@ -140,10 +140,16 @@ class GoogleOCRService {
         // Also support reading from payment module .env if defined
         $envPath = ROOT_PATH . '/modules/payment/.env';
         if (file_exists($envPath)) {
-            $envVars = @parse_ini_file($envPath);
-            if ($envVars !== false && !empty($envVars['GOOGLE_APPLICATION_CREDENTIALS'])) {
-                // Remove any quotes
-                $credentialsPath = trim($envVars['GOOGLE_APPLICATION_CREDENTIALS'], '"\' ');
+            $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($envLines as $line) {
+                $line = trim($line);
+                if (strpos($line, '#') === 0) continue;
+                
+                $parts = explode('=', $line, 2);
+                if (count($parts) === 2 && trim($parts[0]) === 'GOOGLE_APPLICATION_CREDENTIALS') {
+                    $credentialsPath = trim($parts[1], '"\' ');
+                    break;
+                }
             }
         }
         

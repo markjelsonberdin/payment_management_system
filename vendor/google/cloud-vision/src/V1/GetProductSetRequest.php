@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Request message for the `GetProductSet` method.
@@ -18,28 +18,11 @@ class GetProductSetRequest extends \Google\Protobuf\Internal\Message
     /**
      * Required. Resource name of the ProductSet to get.
      * Format is:
-     * `projects/PROJECT_ID/locations/LOC_ID/productSets/PRODUCT_SET_ID`
+     * `projects/PROJECT_ID/locations/LOG_ID/productSets/PRODUCT_SET_ID`
      *
      * Generated from protobuf field <code>string name = 1 [(.google.api.field_behavior) = REQUIRED, (.google.api.resource_reference) = {</code>
      */
-    protected $name = '';
-
-    /**
-     * @param string $name Required. Resource name of the ProductSet to get.
-     *
-     *                     Format is:
-     *                     `projects/PROJECT_ID/locations/LOC_ID/productSets/PRODUCT_SET_ID`
-     *                     Please see {@see ProductSearchClient::productSetName()} for help formatting this field.
-     *
-     * @return \Google\Cloud\Vision\V1\GetProductSetRequest
-     *
-     * @experimental
-     */
-    public static function build(string $name): self
-    {
-        return (new self())
-            ->setName($name);
-    }
+    private $name = '';
 
     /**
      * Constructor.
@@ -50,7 +33,7 @@ class GetProductSetRequest extends \Google\Protobuf\Internal\Message
      *     @type string $name
      *           Required. Resource name of the ProductSet to get.
      *           Format is:
-     *           `projects/PROJECT_ID/locations/LOC_ID/productSets/PRODUCT_SET_ID`
+     *           `projects/PROJECT_ID/locations/LOG_ID/productSets/PRODUCT_SET_ID`
      * }
      */
     public function __construct($data = NULL) {
@@ -61,7 +44,7 @@ class GetProductSetRequest extends \Google\Protobuf\Internal\Message
     /**
      * Required. Resource name of the ProductSet to get.
      * Format is:
-     * `projects/PROJECT_ID/locations/LOC_ID/productSets/PRODUCT_SET_ID`
+     * `projects/PROJECT_ID/locations/LOG_ID/productSets/PRODUCT_SET_ID`
      *
      * Generated from protobuf field <code>string name = 1 [(.google.api.field_behavior) = REQUIRED, (.google.api.resource_reference) = {</code>
      * @return string
@@ -74,7 +57,7 @@ class GetProductSetRequest extends \Google\Protobuf\Internal\Message
     /**
      * Required. Resource name of the ProductSet to get.
      * Format is:
-     * `projects/PROJECT_ID/locations/LOC_ID/productSets/PRODUCT_SET_ID`
+     * `projects/PROJECT_ID/locations/LOG_ID/productSets/PRODUCT_SET_ID`
      *
      * Generated from protobuf field <code>string name = 1 [(.google.api.field_behavior) = REQUIRED, (.google.api.resource_reference) = {</code>
      * @param string $var

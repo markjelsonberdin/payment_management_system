@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * The input content for the `ImportProductSets` method.
@@ -38,16 +38,11 @@ class ImportProductSetsInputConfig extends \Google\Protobuf\Internal\Message
      * of ImportProductSetRequests in each line.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImportProductSetsGcsSource gcs_source = 1;</code>
-     * @return \Google\Cloud\Vision\V1\ImportProductSetsGcsSource|null
+     * @return \Google\Cloud\Vision\V1\ImportProductSetsGcsSource
      */
     public function getGcsSource()
     {
         return $this->readOneof(1);
-    }
-
-    public function hasGcsSource()
-    {
-        return $this->hasOneof(1);
     }
 
     /**

@@ -101,12 +101,12 @@ try {
     }
 
     // 2. DB Level Concurrency Lock (Stable parent record = students table)
-    $stmtLock = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_id = ? FOR UPDATE");
+    $stmtLock = $pdo->prepare("SELECT student_id FROM students WHERE student_id = ? FOR UPDATE");
     $stmtLock->execute([$studentId]);
 
     // 3. Check for conflicting pending attempts
     $stmtPending = $pdo->prepare("
-        SELECT payment_id FROM payment_db.payments 
+        SELECT payment_id FROM payments 
         WHERE student_id = ? AND billing_id = ? 
         AND payment_status = 'Pending' 
         AND payment_channel = 'QRPh'
@@ -126,7 +126,7 @@ try {
     }
 
     // Fee Calculation
-    $stmtFee = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'fee_policy'");
+    $stmtFee = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'fee_policy'");
     $feePolicyRow = $stmtFee->fetch(PDO::FETCH_ASSOC);
     $feePolicy = $feePolicyRow ? $feePolicyRow['setting_value'] : 'absorb_by_school';
 
@@ -139,7 +139,7 @@ try {
 
     // 4. Persist Placeholder Payment Attempt (Draft)
     $stmtInsert = $pdo->prepare("
-        INSERT INTO payment_db.payments 
+        INSERT INTO payments 
         (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date, expires_at)
         VALUES 
         (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, 'QRPh', :reference_number, 'Pending', CURDATE(), DATE_ADD(NOW(), INTERVAL 30 MINUTE))
@@ -190,7 +190,7 @@ try {
     }
 
     // 6. Update Payment Attempt with PayMongo Intent ID
-    $stmtUpdate = $pdo->prepare("UPDATE payment_db.payments SET payment_intent_id = :payment_intent_id WHERE payment_id = :payment_id");
+    $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_intent_id = :payment_intent_id WHERE payment_id = :payment_id");
     $stmtUpdate->execute([
         ':payment_intent_id' => $paymentIntentId,
         ':payment_id' => $paymentId
@@ -211,7 +211,7 @@ try {
     } elseif (isset($paymentId)) {
         // If PayMongo or subsequent steps failed, safely mark the placeholder as Failed
         try {
-            $stmtFail = $pdo->prepare("UPDATE payment_db.payments SET payment_status = 'Failed', remarks = :remarks WHERE payment_id = :payment_id");
+            $stmtFail = $pdo->prepare("UPDATE payments SET payment_status = 'Failed', remarks = :remarks WHERE payment_id = :payment_id");
             $stmtFail->execute([
                 ':remarks' => 'Error: ' . substr($e->getMessage(), 0, 200),
                 ':payment_id' => $paymentId

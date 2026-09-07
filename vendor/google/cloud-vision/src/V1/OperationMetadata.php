@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Contains metadata for the BatchAnnotateImages operation.
@@ -20,19 +20,19 @@ class OperationMetadata extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.OperationMetadata.State state = 1;</code>
      */
-    protected $state = 0;
+    private $state = 0;
     /**
      * The time when the batch request was received.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp create_time = 5;</code>
      */
-    protected $create_time = null;
+    private $create_time = null;
     /**
      * The time when the operation result was last updated.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp update_time = 6;</code>
      */
-    protected $update_time = null;
+    private $update_time = null;
 
     /**
      * Constructor.
@@ -73,7 +73,7 @@ class OperationMetadata extends \Google\Protobuf\Internal\Message
      */
     public function setState($var)
     {
-        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\OperationMetadata\State::class);
+        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\OperationMetadata_State::class);
         $this->state = $var;
 
         return $this;
@@ -83,21 +83,11 @@ class OperationMetadata extends \Google\Protobuf\Internal\Message
      * The time when the batch request was received.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp create_time = 5;</code>
-     * @return \Google\Protobuf\Timestamp|null
+     * @return \Google\Protobuf\Timestamp
      */
     public function getCreateTime()
     {
         return $this->create_time;
-    }
-
-    public function hasCreateTime()
-    {
-        return isset($this->create_time);
-    }
-
-    public function clearCreateTime()
-    {
-        unset($this->create_time);
     }
 
     /**
@@ -119,21 +109,11 @@ class OperationMetadata extends \Google\Protobuf\Internal\Message
      * The time when the operation result was last updated.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp update_time = 6;</code>
-     * @return \Google\Protobuf\Timestamp|null
+     * @return \Google\Protobuf\Timestamp
      */
     public function getUpdateTime()
     {
         return $this->update_time;
-    }
-
-    public function hasUpdateTime()
-    {
-        return isset($this->update_time);
-    }
-
-    public function clearUpdateTime()
-    {
-        unset($this->update_time);
     }
 
     /**

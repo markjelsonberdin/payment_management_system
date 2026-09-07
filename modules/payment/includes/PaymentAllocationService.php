@@ -54,9 +54,9 @@ class PaymentAllocationService {
             if ($allocationContext === 'GENERAL_PRIORITY') {
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM payment_db.billing_items bi
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
-                    JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+                    FROM billing_items bi
+                    JOIN fees f ON bi.fee_id = f.fee_id
+                    JOIN fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id 
                       AND bi.status != 'Paid'
                       AND bi.remaining_amount > 0
@@ -71,9 +71,9 @@ class PaymentAllocationService {
                 // Exclude Tuition entirely
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM payment_db.billing_items bi
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
-                    JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+                    FROM billing_items bi
+                    JOIN fees f ON bi.fee_id = f.fee_id
+                    JOIN fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id 
                       AND bi.source_context = 'Enrollment Assessment'
                       AND bi.status != 'Paid'
@@ -96,8 +96,8 @@ class PaymentAllocationService {
                 // Strict allocation only to the exact billing item
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM payment_db.billing_items bi
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    FROM billing_items bi
+                    JOIN fees f ON bi.fee_id = f.fee_id
                     WHERE bi.billing_id = :billing_id 
                       AND bi.billing_item_id = :item_id
                       AND bi.status != 'Paid'
@@ -115,8 +115,8 @@ class PaymentAllocationService {
 
                 $stmt = $this->pdo->prepare("
                     SELECT bi.billing_item_id, bi.remaining_amount
-                    FROM payment_db.billing_items bi
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    FROM billing_items bi
+                    JOIN fees f ON bi.fee_id = f.fee_id
                     WHERE bi.billing_id = :billing_id 
                       AND f.category_id = :cat_id
                       AND bi.status != 'Paid'

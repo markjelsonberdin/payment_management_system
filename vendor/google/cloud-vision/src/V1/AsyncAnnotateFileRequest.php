@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * An offline file annotation request.
@@ -20,7 +20,7 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
      */
-    protected $input_config = null;
+    private $input_config = null;
     /**
      * Required. Requested features.
      *
@@ -32,13 +32,13 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
      */
-    protected $image_context = null;
+    private $image_context = null;
     /**
      * Required. The desired output location and metadata (e.g. format).
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.OutputConfig output_config = 4;</code>
      */
-    protected $output_config = null;
+    private $output_config = null;
 
     /**
      * Constructor.
@@ -48,7 +48,7 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      *     @type \Google\Cloud\Vision\V1\InputConfig $input_config
      *           Required. Information about the input file.
-     *     @type \Google\Cloud\Vision\V1\Feature[] $features
+     *     @type \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $features
      *           Required. Requested features.
      *     @type \Google\Cloud\Vision\V1\ImageContext $image_context
      *           Additional context that may accompany the image(s) in the file.
@@ -65,21 +65,11 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Information about the input file.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
-     * @return \Google\Cloud\Vision\V1\InputConfig|null
+     * @return \Google\Cloud\Vision\V1\InputConfig
      */
     public function getInputConfig()
     {
         return $this->input_config;
-    }
-
-    public function hasInputConfig()
-    {
-        return isset($this->input_config);
-    }
-
-    public function clearInputConfig()
-    {
-        unset($this->input_config);
     }
 
     /**
@@ -101,7 +91,7 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\Feature>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getFeatures()
     {
@@ -112,7 +102,7 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @param \Google\Cloud\Vision\V1\Feature[] $var
+     * @param \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setFeatures($var)
@@ -127,21 +117,11 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Additional context that may accompany the image(s) in the file.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
-     * @return \Google\Cloud\Vision\V1\ImageContext|null
+     * @return \Google\Cloud\Vision\V1\ImageContext
      */
     public function getImageContext()
     {
         return $this->image_context;
-    }
-
-    public function hasImageContext()
-    {
-        return isset($this->image_context);
-    }
-
-    public function clearImageContext()
-    {
-        unset($this->image_context);
     }
 
     /**
@@ -163,21 +143,11 @@ class AsyncAnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. The desired output location and metadata (e.g. format).
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.OutputConfig output_config = 4;</code>
-     * @return \Google\Cloud\Vision\V1\OutputConfig|null
+     * @return \Google\Cloud\Vision\V1\OutputConfig
      */
     public function getOutputConfig()
     {
         return $this->output_config;
-    }
-
-    public function hasOutputConfig()
-    {
-        return isset($this->output_config);
-    }
-
-    public function clearOutputConfig()
-    {
-        unset($this->output_config);
     }
 
     /**

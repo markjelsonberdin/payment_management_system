@@ -512,12 +512,12 @@ $navNotificationUnreadCount = count(array_filter($navNotifications, static fn(ar
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <a class="btn btn-danger" href="<?= BASE_URL ?>/login/logout.php" id="logoutConfirmBtn">
+                <button type="button" class="btn btn-danger logout-confirm-btn-action" id="logoutConfirmBtn">
                     <span class="logout-confirm-idle"><i class="fas fa-check me-1"></i>Yes, logout</span>
                     <span class="logout-confirm-loading d-none">
                         <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Logging out...
                     </span>
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -657,28 +657,44 @@ document.addEventListener('DOMContentLoaded', function () {
     refreshNotifications();
     window.setInterval(refreshNotifications, 5000);
 
-    const logoutLink = document.querySelector('[data-logout-confirm]');
+    const logoutLinks = document.querySelectorAll('[data-logout-confirm]');
     const modalEl = document.getElementById('logoutConfirmModal');
-    const confirmBtn = document.getElementById('logoutConfirmBtn');
-    if (!logoutLink || !modalEl || typeof bootstrap === 'undefined') return;
+    
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        // Fix for modal backdrop blocking clicks: move modal to the very end of body
+        document.body.appendChild(modalEl);
+        
+        const logoutModal = new bootstrap.Modal(modalEl);
+        
+        // Bind to all logout links (in case of duplicate navbars)
+        logoutLinks.forEach(function(link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                logoutModal.show();
+            });
+        });
+    }
 
-    const logoutModal = new bootstrap.Modal(modalEl);
-    logoutLink.addEventListener('click', function (event) {
-        event.preventDefault();
-        logoutModal.show();
-    });
-
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function () {
+    // Delegated event listener for the confirm button
+    // This bypasses duplicate ID issues and works despite CSP blocking inline handlers.
+    document.addEventListener('click', function(e) {
+        const confirmBtn = e.target.closest('.logout-confirm-btn-action');
+        if (confirmBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            confirmBtn.classList.add('disabled');
+            confirmBtn.setAttribute('aria-disabled', 'true');
+            
             const idle = confirmBtn.querySelector('.logout-confirm-idle');
             const loading = confirmBtn.querySelector('.logout-confirm-loading');
             if (idle && loading) {
                 idle.classList.add('d-none');
                 loading.classList.remove('d-none');
             }
-            confirmBtn.classList.add('disabled');
-            confirmBtn.setAttribute('aria-disabled', 'true');
-        });
-    }
+            
+            window.location.assign('<?= BASE_URL ?>/login/logout.php');
+        }
+    });
 });
 </script>

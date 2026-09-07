@@ -35,10 +35,10 @@ try {
     $studentId = $_SESSION['user_id']; 
 
     if ($paymentIntentId) {
-        $stmt = $pdo->prepare("SELECT payment_status FROM payment_db.payments WHERE payment_intent_id = :id AND student_id = :student_id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT payment_status FROM payments WHERE payment_intent_id = :id AND student_id = :student_id LIMIT 1");
         $stmt->execute([':id' => $paymentIntentId, ':student_id' => $studentId]);
     } else {
-        $stmt = $pdo->prepare("SELECT payment_status FROM payment_db.payments WHERE reference_number = :ref AND student_id = :student_id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT payment_status FROM payments WHERE reference_number = :ref AND student_id = :student_id LIMIT 1");
         $stmt->execute([':ref' => $referenceNumber, ':student_id' => $studentId]);
     }
 
@@ -68,7 +68,7 @@ try {
             
             if ($isPaid) {
                 $pdo->beginTransaction();
-                $stmtUpdate = $pdo->prepare("UPDATE payment_db.payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
+                $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
                 $stmtUpdate->execute([':pid' => $payment['payment_id']]);
                 
                 if ($stmtUpdate->rowCount() > 0) {

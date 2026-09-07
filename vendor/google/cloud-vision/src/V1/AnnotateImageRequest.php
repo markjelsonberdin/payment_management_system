@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Request for performing Google Cloud Vision API tasks over a user-provided
@@ -21,7 +21,7 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.Image image = 1;</code>
      */
-    protected $image = null;
+    private $image = null;
     /**
      * Requested features.
      *
@@ -33,7 +33,7 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
      */
-    protected $image_context = null;
+    private $image_context = null;
 
     /**
      * Constructor.
@@ -43,7 +43,7 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      *
      *     @type \Google\Cloud\Vision\V1\Image $image
      *           The image to be processed.
-     *     @type \Google\Cloud\Vision\V1\Feature[] $features
+     *     @type \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $features
      *           Requested features.
      *     @type \Google\Cloud\Vision\V1\ImageContext $image_context
      *           Additional context that may accompany the image.
@@ -58,21 +58,11 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      * The image to be processed.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.Image image = 1;</code>
-     * @return \Google\Cloud\Vision\V1\Image|null
+     * @return \Google\Cloud\Vision\V1\Image
      */
     public function getImage()
     {
         return $this->image;
-    }
-
-    public function hasImage()
-    {
-        return isset($this->image);
-    }
-
-    public function clearImage()
-    {
-        unset($this->image);
     }
 
     /**
@@ -94,7 +84,7 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      * Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\Feature>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getFeatures()
     {
@@ -105,7 +95,7 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      * Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @param \Google\Cloud\Vision\V1\Feature[] $var
+     * @param \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setFeatures($var)
@@ -120,21 +110,11 @@ class AnnotateImageRequest extends \Google\Protobuf\Internal\Message
      * Additional context that may accompany the image.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
-     * @return \Google\Cloud\Vision\V1\ImageContext|null
+     * @return \Google\Cloud\Vision\V1\ImageContext
      */
     public function getImageContext()
     {
         return $this->image_context;
-    }
-
-    public function hasImageContext()
-    {
-        return isset($this->image_context);
-    }
-
-    public function clearImageContext()
-    {
-        unset($this->image_context);
     }
 
     /**

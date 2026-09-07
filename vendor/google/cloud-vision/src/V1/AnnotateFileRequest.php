@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * A request to annotate one single file, e.g. a PDF, TIFF or GIF file.
@@ -20,7 +20,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
      */
-    protected $input_config = null;
+    private $input_config = null;
     /**
      * Required. Requested features.
      *
@@ -32,7 +32,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
      */
-    protected $image_context = null;
+    private $image_context = null;
     /**
      * Pages of the file to perform image annotation.
      * Pages starts from 1, we assume the first page of the file is page 1.
@@ -57,11 +57,11 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      *
      *     @type \Google\Cloud\Vision\V1\InputConfig $input_config
      *           Required. Information about the input file.
-     *     @type \Google\Cloud\Vision\V1\Feature[] $features
+     *     @type \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $features
      *           Required. Requested features.
      *     @type \Google\Cloud\Vision\V1\ImageContext $image_context
      *           Additional context that may accompany the image(s) in the file.
-     *     @type int[] $pages
+     *     @type int[]|\Google\Protobuf\Internal\RepeatedField $pages
      *           Pages of the file to perform image annotation.
      *           Pages starts from 1, we assume the first page of the file is page 1.
      *           At most 5 pages are supported per request. Pages can be negative.
@@ -83,21 +83,11 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Information about the input file.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
-     * @return \Google\Cloud\Vision\V1\InputConfig|null
+     * @return \Google\Cloud\Vision\V1\InputConfig
      */
     public function getInputConfig()
     {
         return $this->input_config;
-    }
-
-    public function hasInputConfig()
-    {
-        return isset($this->input_config);
-    }
-
-    public function clearInputConfig()
-    {
-        unset($this->input_config);
     }
 
     /**
@@ -119,7 +109,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\Feature>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getFeatures()
     {
@@ -130,7 +120,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Required. Requested features.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Feature features = 2;</code>
-     * @param \Google\Cloud\Vision\V1\Feature[] $var
+     * @param \Google\Cloud\Vision\V1\Feature[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setFeatures($var)
@@ -145,21 +135,11 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * Additional context that may accompany the image(s) in the file.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageContext image_context = 3;</code>
-     * @return \Google\Cloud\Vision\V1\ImageContext|null
+     * @return \Google\Cloud\Vision\V1\ImageContext
      */
     public function getImageContext()
     {
         return $this->image_context;
-    }
-
-    public function hasImageContext()
-    {
-        return isset($this->image_context);
-    }
-
-    public function clearImageContext()
-    {
-        unset($this->image_context);
     }
 
     /**
@@ -190,7 +170,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * for the first 5 pages of the file.
      *
      * Generated from protobuf field <code>repeated int32 pages = 4;</code>
-     * @return RepeatedField<int>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getPages()
     {
@@ -210,7 +190,7 @@ class AnnotateFileRequest extends \Google\Protobuf\Internal\Message
      * for the first 5 pages of the file.
      *
      * Generated from protobuf field <code>repeated int32 pages = 4;</code>
-     * @param int[] $var
+     * @param int[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setPages($var)

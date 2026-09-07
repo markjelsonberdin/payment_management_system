@@ -28,7 +28,7 @@ try {
             $searchSn = 'S' . str_pad($searchSn, 9, '0', STR_PAD_LEFT);
         }
 
-        $stmt = $pdo->prepare("SELECT student_id, student_number, full_name, course, year_level FROM payment_db.students WHERE student_number = :student_number OR student_number = :raw_number LIMIT 1");
+        $stmt = $pdo->prepare("SELECT student_id, student_number, full_name, course, year_level FROM students WHERE student_number = :student_number OR student_number = :raw_number LIMIT 1");
         $stmt->execute([':student_number' => $searchSn, ':raw_number' => $studentId]);
         $studentRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -39,7 +39,7 @@ try {
             $course = $studentRow['course'];
             $yearLevel = $studentRow['year_level'];
 
-            $stmtBilling = $pdo->prepare("SELECT * FROM payment_db.billing WHERE student_id = :student_id ORDER BY billing_id DESC LIMIT 1");
+            $stmtBilling = $pdo->prepare("SELECT * FROM billing WHERE student_id = :student_id ORDER BY billing_id DESC LIMIT 1");
             $stmtBilling->execute([':student_id' => $dbStudentId]);
             $billingDetails = $stmtBilling->fetch(PDO::FETCH_ASSOC);
 
@@ -52,8 +52,8 @@ try {
 
                 $stmtItems = $pdo->prepare("
                     SELECT bi.*, f.fee_name 
-                    FROM payment_db.billing_items bi 
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id 
+                    FROM billing_items bi 
+                    JOIN fees f ON bi.fee_id = f.fee_id 
                     WHERE bi.billing_id = :billing_id
                 ");
                 $stmtItems->execute([':billing_id' => $billingDetails['billing_id']]);

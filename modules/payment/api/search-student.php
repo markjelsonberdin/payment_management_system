@@ -36,7 +36,7 @@ try {
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($student) {
-        // Sync to payment_db.students so foreign keys work
+        // Sync to students so foreign keys work
         $syncStmt = $pdo->prepare("
             INSERT INTO students (student_id, user_id, student_number, full_name, course, year_level, status)
             VALUES (:id, :uid, :sn, :name, 'Unknown', '1', 'Enrolled')

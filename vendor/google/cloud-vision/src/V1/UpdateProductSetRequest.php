@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Request message for the `UpdateProductSet` method.
@@ -20,7 +20,7 @@ class UpdateProductSetRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ProductSet product_set = 1 [(.google.api.field_behavior) = REQUIRED];</code>
      */
-    protected $product_set = null;
+    private $product_set = null;
     /**
      * The [FieldMask][google.protobuf.FieldMask] that specifies which fields to
      * update.
@@ -29,25 +29,7 @@ class UpdateProductSetRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.protobuf.FieldMask update_mask = 2;</code>
      */
-    protected $update_mask = null;
-
-    /**
-     * @param \Google\Cloud\Vision\V1\ProductSet $productSet Required. The ProductSet resource which replaces the one on the server.
-     * @param \Google\Protobuf\FieldMask         $updateMask The [FieldMask][google.protobuf.FieldMask] that specifies which fields to
-     *                                                       update.
-     *                                                       If update_mask isn't specified, all mutable fields are to be updated.
-     *                                                       Valid mask path is `display_name`.
-     *
-     * @return \Google\Cloud\Vision\V1\UpdateProductSetRequest
-     *
-     * @experimental
-     */
-    public static function build(\Google\Cloud\Vision\V1\ProductSet $productSet, \Google\Protobuf\FieldMask $updateMask): self
-    {
-        return (new self())
-            ->setProductSet($productSet)
-            ->setUpdateMask($updateMask);
-    }
+    private $update_mask = null;
 
     /**
      * Constructor.
@@ -73,21 +55,11 @@ class UpdateProductSetRequest extends \Google\Protobuf\Internal\Message
      * Required. The ProductSet resource which replaces the one on the server.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ProductSet product_set = 1 [(.google.api.field_behavior) = REQUIRED];</code>
-     * @return \Google\Cloud\Vision\V1\ProductSet|null
+     * @return \Google\Cloud\Vision\V1\ProductSet
      */
     public function getProductSet()
     {
         return $this->product_set;
-    }
-
-    public function hasProductSet()
-    {
-        return isset($this->product_set);
-    }
-
-    public function clearProductSet()
-    {
-        unset($this->product_set);
     }
 
     /**
@@ -112,21 +84,11 @@ class UpdateProductSetRequest extends \Google\Protobuf\Internal\Message
      * Valid mask path is `display_name`.
      *
      * Generated from protobuf field <code>.google.protobuf.FieldMask update_mask = 2;</code>
-     * @return \Google\Protobuf\FieldMask|null
+     * @return \Google\Protobuf\FieldMask
      */
     public function getUpdateMask()
     {
         return $this->update_mask;
-    }
-
-    public function hasUpdateMask()
-    {
-        return isset($this->update_mask);
-    }
-
-    public function clearUpdateMask()
-    {
-        unset($this->update_mask);
     }
 
     /**

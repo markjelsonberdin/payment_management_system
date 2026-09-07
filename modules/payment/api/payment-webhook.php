@@ -37,7 +37,7 @@ if ($eventType === 'payment.paid') {
 
         // 1. I-update ang billing status at remaining balance
         $stmtUpdateBilling = $pdo->prepare("
-            UPDATE payment_db.billing 
+            UPDATE billing 
             SET remaining_balance = GREATEST(0, remaining_balance - :paid),
                 billing_status = CASE WHEN (remaining_balance - :paid) <= 0 THEN 'Paid' ELSE 'Partial' END
             WHERE billing_id = :billing_id
@@ -49,7 +49,7 @@ if ($eventType === 'payment.paid') {
 
         // 2. Mag-insert sa collections/payment history table
         $stmtInsertCollection = $pdo->prepare("
-            INSERT INTO payment_db.collections (billing_id, amount_paid, payment_method, reference_no, status)
+            INSERT INTO collections (billing_id, amount_paid, payment_method, reference_no, status)
             VALUES (:billing_id, :amount, 'Online Gateway', :ref, 'Completed')
         ");
         $stmtInsertCollection->execute([

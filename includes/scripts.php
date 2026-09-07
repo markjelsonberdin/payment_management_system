@@ -53,5 +53,16 @@ if ($loadResearchProgressLive):
 })();
 </script>
 <?php endif; ?>
+
+<!-- Global fix for Bootstrap modal backdrop freezing -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.modal').forEach(function(modal) {
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+    });
+});
+</script>
 </body>
 </html>

@@ -37,7 +37,7 @@ class PaymentValidationService {
             }
 
             // 2. Billing existence and ownership check
-            $stmt = $this->pdo->prepare("SELECT student_id, remaining_balance, billing_status FROM payment_db.billing WHERE billing_id = :billing_id");
+            $stmt = $this->pdo->prepare("SELECT student_id, remaining_balance, billing_status FROM billing WHERE billing_id = :billing_id");
             $stmt->execute([':billing_id' => $billingId]);
             $billing = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -64,7 +64,7 @@ class PaymentValidationService {
                 // Verify exact billing item belongs to this billing and is unpaid
                 $stmtItem = $this->pdo->prepare("
                     SELECT remaining_amount 
-                    FROM payment_db.billing_items 
+                    FROM billing_items 
                     WHERE billing_item_id = :item_id AND billing_id = :billing_id
                 ");
                 $stmtItem->execute([
@@ -92,8 +92,8 @@ class PaymentValidationService {
                 // Sum all eligible enrollment assessment items (exclude tuition = 1)
                 $stmtEnrollment = $this->pdo->prepare("
                     SELECT SUM(bi.remaining_amount) 
-                    FROM payment_db.billing_items bi
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id
+                    FROM billing_items bi
+                    JOIN fees f ON bi.fee_id = f.fee_id
                     WHERE bi.billing_id = :billing_id 
                       AND bi.source_context = 'Enrollment Assessment'
                       AND f.category_id != 1

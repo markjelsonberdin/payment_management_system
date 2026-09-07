@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
                             $ocrRef = $_POST['ocr_reference'] ?? null;
                             
                             $stmtOcr = $pdo->prepare("
-                                INSERT INTO payment_db.ocr_results 
+                                INSERT INTO ocr_results 
                                 (concern_id, extracted_amount, reference_number, raw_json) 
                                 VALUES (?, ?, ?, ?)
                             ");
@@ -119,7 +119,7 @@ try {
     global $pdo;
     
     if ($pdo) {
-        $stmtStud = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_number = :snum LIMIT 1");
+        $stmtStud = $pdo->prepare("SELECT student_id FROM students WHERE student_number = :snum LIMIT 1");
         $stmtStud->execute([':snum' => $studentId]);
         $studRow = $stmtStud->fetch(PDO::FETCH_ASSOC);
         
