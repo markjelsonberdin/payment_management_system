@@ -38,6 +38,7 @@ $totalAssessment = 0.00;
 $totalPaid = 0.00;
 $remainingBalance = 0.00;
 $assessmentBreakdown = [];
+$groupedAssessment = [];
 $academicYear = 'N/A';
 $semester = 'N/A';
 
