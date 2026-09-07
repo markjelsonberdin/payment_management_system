@@ -23,7 +23,7 @@ class PaymentChannelService
      */
     public function getActiveEnvironment(): string
     {
-        $stmt = $this->pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+        $stmt = $this->pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
         return $stmt->fetchColumn() ?: 'test';
     }
 
@@ -38,7 +38,7 @@ class PaymentChannelService
 
         $prefix = ($env === 'live') ? 'live_' : 'test_';
         
-        $stmt = $this->pdo->prepare("SELECT setting_key, setting_value FROM payment_db.payment_gateway_settings WHERE setting_key LIKE :prefix");
+        $stmt = $this->pdo->prepare("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key LIKE :prefix");
         $stmt->execute([':prefix' => $prefix . 'channel_%']);
         
         $settings = [

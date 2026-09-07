@@ -64,9 +64,9 @@ try {
                 bi.remaining_amount, 
                 bi.source_context, 
                 fc.priority_order
-            FROM payment_db.billing_items bi
-            JOIN payment_db.fees f ON bi.fee_id = f.fee_id
-            JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+            FROM billing_items bi
+            JOIN fees f ON bi.fee_id = f.fee_id
+            JOIN fee_categories fc ON f.category_id = fc.category_id
             WHERE bi.billing_id = :billing_id 
               AND bi.status != 'Paid'
               AND bi.remaining_amount > 0

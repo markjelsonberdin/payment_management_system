@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Request message for the `PurgeProducts` method.
@@ -21,31 +21,15 @@ class PurgeProductsRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>string parent = 1 [(.google.api.field_behavior) = REQUIRED, (.google.api.resource_reference) = {</code>
      */
-    protected $parent = '';
+    private $parent = '';
     /**
      * The default value is false. Override this value to true to actually perform
      * the purge.
      *
      * Generated from protobuf field <code>bool force = 4;</code>
      */
-    protected $force = false;
+    private $force = false;
     protected $target;
-
-    /**
-     * @param string $parent Required. The project and location in which the Products should be deleted.
-     *
-     *                       Format is `projects/PROJECT_ID/locations/LOC_ID`. Please see
-     *                       {@see ProductSearchClient::locationName()} for help formatting this field.
-     *
-     * @return \Google\Cloud\Vision\V1\PurgeProductsRequest
-     *
-     * @experimental
-     */
-    public static function build(string $parent): self
-    {
-        return (new self())
-            ->setParent($parent);
-    }
 
     /**
      * Constructor.
@@ -75,16 +59,11 @@ class PurgeProductsRequest extends \Google\Protobuf\Internal\Message
      * Specify which ProductSet contains the Products to be deleted.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ProductSetPurgeConfig product_set_purge_config = 2;</code>
-     * @return \Google\Cloud\Vision\V1\ProductSetPurgeConfig|null
+     * @return \Google\Cloud\Vision\V1\ProductSetPurgeConfig
      */
     public function getProductSetPurgeConfig()
     {
         return $this->readOneof(2);
-    }
-
-    public function hasProductSetPurgeConfig()
-    {
-        return $this->hasOneof(2);
     }
 
     /**
@@ -112,11 +91,6 @@ class PurgeProductsRequest extends \Google\Protobuf\Internal\Message
     public function getDeleteOrphanProducts()
     {
         return $this->readOneof(3);
-    }
-
-    public function hasDeleteOrphanProducts()
-    {
-        return $this->hasOneof(3);
     }
 
     /**

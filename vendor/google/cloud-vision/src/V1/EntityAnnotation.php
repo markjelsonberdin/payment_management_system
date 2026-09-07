@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Set of detected entity features.
@@ -22,26 +22,26 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>string mid = 1;</code>
      */
-    protected $mid = '';
+    private $mid = '';
     /**
      * The language code for the locale in which the entity textual
      * `description` is expressed.
      *
      * Generated from protobuf field <code>string locale = 2;</code>
      */
-    protected $locale = '';
+    private $locale = '';
     /**
      * Entity textual description, expressed in its `locale` language.
      *
      * Generated from protobuf field <code>string description = 3;</code>
      */
-    protected $description = '';
+    private $description = '';
     /**
      * Overall score of the result. Range [0, 1].
      *
      * Generated from protobuf field <code>float score = 4;</code>
      */
-    protected $score = 0.0;
+    private $score = 0.0;
     /**
      * **Deprecated. Use `score` instead.**
      * The accuracy of the entity detection in an image.
@@ -50,9 +50,8 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * image. Range [0, 1].
      *
      * Generated from protobuf field <code>float confidence = 5 [deprecated = true];</code>
-     * @deprecated
      */
-    protected $confidence = 0.0;
+    private $confidence = 0.0;
     /**
      * The relevancy of the ICA (Image Content Annotation) label to the
      * image. For example, the relevancy of "tower" is likely higher to an image
@@ -62,14 +61,14 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>float topicality = 6;</code>
      */
-    protected $topicality = 0.0;
+    private $topicality = 0.0;
     /**
      * Image region to which this entity belongs. Not produced
      * for `LABEL_DETECTION` features.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_poly = 7;</code>
      */
-    protected $bounding_poly = null;
+    private $bounding_poly = null;
     /**
      * The location information for the detected entity. Multiple
      * `LocationInfo` elements can be present because one location may
@@ -120,13 +119,13 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      *     @type \Google\Cloud\Vision\V1\BoundingPoly $bounding_poly
      *           Image region to which this entity belongs. Not produced
      *           for `LABEL_DETECTION` features.
-     *     @type \Google\Cloud\Vision\V1\LocationInfo[] $locations
+     *     @type \Google\Cloud\Vision\V1\LocationInfo[]|\Google\Protobuf\Internal\RepeatedField $locations
      *           The location information for the detected entity. Multiple
      *           `LocationInfo` elements can be present because one location may
      *           indicate the location of the scene in the image, and another location
      *           may indicate the location of the place where the image was taken.
      *           Location information is usually present for landmarks.
-     *     @type \Google\Cloud\Vision\V1\Property[] $properties
+     *     @type \Google\Cloud\Vision\V1\Property[]|\Google\Protobuf\Internal\RepeatedField $properties
      *           Some entities may have optional user-supplied `Property` (name/value)
      *           fields, such a score or string that qualifies the entity.
      * }
@@ -255,13 +254,9 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>float confidence = 5 [deprecated = true];</code>
      * @return float
-     * @deprecated
      */
     public function getConfidence()
     {
-        if ($this->confidence !== 0.0) {
-            @trigger_error('confidence is deprecated.', E_USER_DEPRECATED);
-        }
         return $this->confidence;
     }
 
@@ -275,11 +270,9 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>float confidence = 5 [deprecated = true];</code>
      * @param float $var
      * @return $this
-     * @deprecated
      */
     public function setConfidence($var)
     {
-        @trigger_error('confidence is deprecated.', E_USER_DEPRECATED);
         GPBUtil::checkFloat($var);
         $this->confidence = $var;
 
@@ -325,21 +318,11 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * for `LABEL_DETECTION` features.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_poly = 7;</code>
-     * @return \Google\Cloud\Vision\V1\BoundingPoly|null
+     * @return \Google\Cloud\Vision\V1\BoundingPoly
      */
     public function getBoundingPoly()
     {
         return $this->bounding_poly;
-    }
-
-    public function hasBoundingPoly()
-    {
-        return isset($this->bounding_poly);
-    }
-
-    public function clearBoundingPoly()
-    {
-        unset($this->bounding_poly);
     }
 
     /**
@@ -366,7 +349,7 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * Location information is usually present for landmarks.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.LocationInfo locations = 8;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\LocationInfo>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getLocations()
     {
@@ -381,7 +364,7 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * Location information is usually present for landmarks.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.LocationInfo locations = 8;</code>
-     * @param \Google\Cloud\Vision\V1\LocationInfo[] $var
+     * @param \Google\Cloud\Vision\V1\LocationInfo[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setLocations($var)
@@ -397,7 +380,7 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * fields, such a score or string that qualifies the entity.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Property properties = 9;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\Property>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getProperties()
     {
@@ -409,7 +392,7 @@ class EntityAnnotation extends \Google\Protobuf\Internal\Message
      * fields, such a score or string that qualifies the entity.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Property properties = 9;</code>
-     * @param \Google\Cloud\Vision\V1\Property[] $var
+     * @param \Google\Cloud\Vision\V1\Property[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setProperties($var)

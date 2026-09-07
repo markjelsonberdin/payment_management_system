@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 29, 2026 at 02:17 PM
+-- Generation Time: Sep 07, 2026 at 07:46 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -2029,7 +2029,92 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `user_name`, `role_key`, `action`,
 (1993, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 18:26:50'),
 (1994, 784, 'Alwyn James Duma', 'cashier', 'view', 'payment', 'Opened Security Settings', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 18:26:53'),
 (1995, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 18:35:46'),
-(1996, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 18:35:57');
+(1996, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 18:35:57'),
+(1997, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-29 20:21:17'),
+(1998, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:24:50'),
+(1999, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:34:00'),
+(2000, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:34:11'),
+(2001, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:34:41'),
+(2002, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:34:52'),
+(2003, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:37:35'),
+(2004, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:37:43'),
+(2005, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:44:50'),
+(2006, 884, 'Kevin Durant', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:45:00'),
+(2007, 884, 'Kevin Durant', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:46:43'),
+(2008, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 20:46:51'),
+(2009, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:20:02'),
+(2010, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:20:12'),
+(2011, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:37:01'),
+(2012, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:37:13'),
+(2013, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:48:19'),
+(2014, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:48:41'),
+(2015, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 21:55:10'),
+(2016, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-02 22:12:01'),
+(2017, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-03 12:53:36'),
+(2018, 833, 'Mark Jelson Berdin', 'finance', 'payment_channel_updated', 'payment', '[TEST] QR Ph: ON -> OFF', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-03 12:56:06'),
+(2019, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-03 15:50:11'),
+(2020, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-03 20:21:19'),
+(2021, 833, 'Mark Jelson Berdin', 'finance', 'login_failed', 'System', 'Invalid password', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 18:48:11'),
+(2022, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 18:48:23'),
+(2023, 833, 'Mark Jelson Berdin', 'finance', 'payment_channel_updated', 'payment', '[TEST] QR Ph: OFF -> ON', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:20:11'),
+(2024, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:31:05'),
+(2025, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:31:14'),
+(2026, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:36:40'),
+(2027, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:36:53'),
+(2028, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:39:44'),
+(2029, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:39:57'),
+(2030, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:44:17'),
+(2031, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:44:27'),
+(2032, 833, 'Mark Jelson Berdin', 'finance', 'payment_channel_updated', 'payment', '[TEST] QR Ph: ON -> OFF', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:44:47'),
+(2033, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:44:53'),
+(2034, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 19:45:04'),
+(2035, 784, NULL, NULL, 'Process Walk-in Payment', 'Payment Management', 'Processed walk-in payment of ₱10.00 (Context: CATEGORY_PRIORITY) for Billing ID #1 with OR No: OR-20260904-1620', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:28:41'),
+(2036, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:46:48'),
+(2037, 850, 'Lebron James', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:46:59'),
+(2038, 850, 'Lebron James', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:55:53'),
+(2039, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:56:01'),
+(2040, 784, NULL, NULL, 'Process Walk-in Payment', 'Payment Management', 'Processed walk-in payment of ₱1,000.00 (Context: GENERAL_PRIORITY) for Billing ID #4 with OR No: OR-20260904-7348', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:56:24'),
+(2041, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:56:42'),
+(2042, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:56:51'),
+(2043, 833, 'Mark Jelson Berdin', 'finance', 'payment_channel_updated', 'payment', '[TEST] Card: ON -> OFF', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:56:59'),
+(2044, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:57:02'),
+(2045, 909, 'Justine Bonifacio', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:57:13'),
+(2046, 909, 'Justine Bonifacio', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:58:53'),
+(2047, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:59:01'),
+(2048, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:59:37'),
+(2049, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 20:59:45'),
+(2050, 784, 'Alwyn James Duma', 'cashier', 'append_billing', 'payment', 'Appended Assessment fees to existing SOA for Student: s230115570', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:00:06'),
+(2051, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:06:36'),
+(2052, 909, 'Justine Bonifacio', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:06:49'),
+(2053, 909, 'Justine Bonifacio', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:07:03'),
+(2054, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:07:13'),
+(2055, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:46:29'),
+(2056, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:46:37'),
+(2057, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 14:04:03'),
+(2058, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 14:32:07'),
+(2059, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:02:24'),
+(2060, 833, 'Mark Jelson Berdin', 'finance', 'payment_channel_updated', 'payment', '[TEST] Card: OFF -> ON', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:02:40'),
+(2061, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:21:03'),
+(2062, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:33:48'),
+(2063, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:34:05'),
+(2064, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:34:27'),
+(2065, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 15:51:02'),
+(2066, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 16:30:45'),
+(2067, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 17:17:46'),
+(2068, 1, 'Super Admin', 'superadmin', 'login', 'user-management', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-05 21:56:16'),
+(2069, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:26:30'),
+(2070, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:26:42'),
+(2071, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:26:46'),
+(2072, 784, 'Alwyn James Duma', 'cashier', 'view', 'payment', 'Opened Security Settings', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:29:08'),
+(2073, 784, 'Alwyn James Duma', 'cashier', 'logout', 'System', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:29:12'),
+(2074, 909, 'Justine Bonifacio', 'student', 'login', 'student_portal', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:29:22'),
+(2075, NULL, 'Unknown', NULL, 'login_failed', 'System', 'Invalid login attempt (unknown credentials)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:36:10'),
+(2076, NULL, 'Unknown', NULL, 'login_failed', 'System', 'Invalid login attempt (unknown credentials)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:37:41'),
+(2077, NULL, 'Unknown', NULL, 'login_failed', 'System', 'Invalid login attempt (unknown credentials)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 19:39:06'),
+(2078, 909, 'Justine Bonifacio', 'student', 'logout', 'student_portal', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 20:09:47'),
+(2079, 833, 'Mark Jelson Berdin', 'finance', 'login', 'payment', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 20:09:59'),
+(2080, 833, 'Mark Jelson Berdin', 'finance', 'logout', 'payment', 'Logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 20:22:04'),
+(2081, 784, 'Alwyn James Duma', 'cashier', 'login', 'System', 'Logged in successfully', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-06 20:22:08');
 
 -- --------------------------------------------------------
 
@@ -2062,7 +2147,22 @@ INSERT INTO `login_throttles` (`id`, `throttle_key`, `ip_address`, `attempts`, `
 (0, 'df654ce58972c644913e065793f1adef21955a02007341285ede614afdd49000', '::1', 1, NULL, '2026-08-28 19:52:14'),
 (0, 'df654ce58972c644913e065793f1adef21955a02007341285ede614afdd49000', '::1', 1, NULL, '2026-08-29 12:40:58'),
 (0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-08-29 18:08:49'),
-(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-08-29 18:36:39');
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-08-29 18:36:39'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:47:04'),
+(0, 'df3ce12639e0d4164035debffcec921653c1c1743e60b2b68def4dd9513949a2', '::1', 1, NULL, '2026-09-02 20:47:24'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:47:39'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:48:24'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:48:35'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:48:42'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:50:41'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:50:53'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 20:51:05'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 21:37:18'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 21:37:23'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 21:45:45'),
+(0, '1d31c3a902de6c0fbb9a213214785ab71fc0fef857a9afd3b5504e0bfb7f3877', '::1', 1, NULL, '2026-09-02 21:45:52'),
+(0, 'ce3f5b951ca2eeabea5c27b92c90dcf0fc3254ce9f96b6cde1de377d6767ab89', '::1', 1, NULL, '2026-09-04 20:57:29'),
+(0, 'ce3f5b951ca2eeabea5c27b92c90dcf0fc3254ce9f96b6cde1de377d6767ab89', '::1', 1, NULL, '2026-09-06 19:53:32');
 
 -- --------------------------------------------------------
 
@@ -2211,7 +2311,9 @@ INSERT INTO `role_permissions` (`id`, `role_key`, `module_key`, `granted`, `upda
 (881, 'finance', 'payment.online_payment_config', 1, '2026-08-19 10:12:32'),
 (933, 'finance', 'payment.transaction_history_view', 1, '2026-08-21 14:44:10'),
 (934, 'finance', 'payment.collection_analytics_view', 1, '2026-08-21 14:44:10'),
-(995, 'it_office', 'enrollment', 0, '2026-08-28 22:23:58');
+(995, 'it_office', 'enrollment', 0, '2026-08-28 22:23:58'),
+(1027, 'superadmin', 'payment.ledger', 1, '2026-09-05 21:51:03'),
+(1028, 'superadmin', 'payment', 1, '2026-09-05 21:51:03');
 
 -- --------------------------------------------------------
 
@@ -2340,10 +2442,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `full_name`, `role_key`, `student_id`, `status`, `must_change_password`, `failed_login_attempts`, `locked_until`, `password_changed_at`, `last_login_at`, `last_seen_at`, `last_login_ip`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'superadmin', 'kennethabejuela0308@gmail.com', '$2y$10$Vd8h.jtRRC.Wa5PPxODgue7QbKFM6Dx7ev7CG5eTWJUsMb80VTj8y', 'Super Admin', 'superadmin', NULL, 'active', 0, 0, NULL, '2026-08-09 19:46:23', '2026-08-28 22:23:50', NULL, '::1', NULL, '2026-07-22 22:53:59', '2026-08-28 22:26:09'),
+(1, 'superadmin', 'kennethabejuela0308@gmail.com', '$2y$10$Vd8h.jtRRC.Wa5PPxODgue7QbKFM6Dx7ev7CG5eTWJUsMb80VTj8y', 'Super Admin', 'superadmin', NULL, 'active', 0, 0, NULL, '2026-08-09 19:46:23', '2026-09-05 21:56:16', '2026-09-05 22:16:44', '::1', NULL, '2026-07-22 22:53:59', '2026-09-05 22:16:44'),
 (2, 'registrar', 'registrar@bestlink.edu.ph', '$2y$10$QSecEV1xm5HFRWv2awHzTuqi2pOS4v1dhBROvrCxKjVXoZHMbBov.', 'Registrar', 'registrar', NULL, 'active', 0, 0, NULL, '2026-08-08 22:01:25', '2026-08-08 22:06:54', NULL, '::1', NULL, '2026-07-22 22:53:59', '2026-08-08 22:06:59'),
 (3, 'cradofficer', 'cradofficer@bestlink.ph', '$2y$10$MpwtxHnKofWTxV5/axRiPuudxLEFIdLJChvSoykU9poFiH/W9wRPK', 'CRAD Officer', 'crad_officer', NULL, 'active', 0, 0, NULL, '2026-08-06 13:31:50', '2026-08-16 21:27:33', NULL, '::1', NULL, '2026-07-22 22:53:59', '2026-08-16 21:27:42'),
-(4, 'finance', 'monvictortesiorna@gmail.com', '$2y$10$mOPKz95hA/OlTNHGzzgLEuvYqMBNAE1RdQFThECQjfv94o.RbvIZq', 'Finance', 'finance', NULL, 'active', 0, 0, NULL, '2026-08-06 20:20:39', '2026-08-11 17:31:31', NULL, '::1', NULL, '2026-07-22 22:54:00', '2026-08-19 09:10:39'),
+(4, 'finance', 'monvictortesiorna@gmail.com', '$2y$10$mOPKz95hA/OlTNHGzzgLEuvYqMBNAE1RdQFThECQjfv94o.RbvIZq', 'Finance', 'finance', NULL, 'active', 0, 0, NULL, '2026-08-06 20:20:39', '2026-08-11 17:31:31', '2026-09-05 20:36:49', '::1', NULL, '2026-07-22 22:54:00', '2026-09-05 20:36:49'),
 (5, 'studentaffairs', 'studentaffairs@bestlink.edu.ph', '$2y$10$QSPLuT09VAB/X8J02CRi3erPEuhgAR2fKNCg.YLaOY.o2mnRuULii', 'Student Affairs', 'osa', NULL, 'active', 0, 0, NULL, '2026-08-08 01:38:23', NULL, NULL, NULL, NULL, '2026-07-22 22:54:00', '2026-08-08 01:38:23'),
 (6, 'itofficer', 'itofficer@bestlink.edu.ph', '$2y$10$fIFFgaSnSssf4ZdaYupnZ.fzX6dYDfE7escqc/GMedxVZUHCaqCPe', 'IT Officer', 'it_office', NULL, 'active', 0, 0, NULL, '2026-07-22 22:54:00', NULL, NULL, NULL, NULL, '2026-07-22 22:54:00', '2026-07-22 22:54:00'),
 (7, 'qualityassurance', 'qualityassurance@bestlink.edu.ph', '$2y$10$Bm/Te5m0uFyTRDhDDV.lf.9HuUEe7qIUOfZtHXF2eufIIXL1N3IVC', 'Quality Assurance', 'qa', NULL, 'active', 0, 0, NULL, '2026-07-22 22:54:00', NULL, NULL, NULL, NULL, '2026-07-22 22:54:00', '2026-07-22 22:54:00'),
@@ -2359,11 +2461,11 @@ INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `full_name`, `r
 (492, 'jonathan.estrada', 'jonathanestrada@bestlink.edu.ph', '$2y$10$W6tscCbx8atD4zerWYFc4evBkQcVQH.TF1jcXTfdpHX11u8F.6hu.', 'Dr. Jonathan Estrada', 'panel', NULL, 'active', 0, 0, NULL, '2026-08-15 17:12:09', '2026-08-16 21:48:27', NULL, '::1', NULL, '2026-08-15 17:07:16', '2026-08-16 22:05:04'),
 (493, 'michelle.guevarra', 'michelleguevarra@bestlink.edu.ph', '$2y$10$BtapXdVV4SKsd7b.RZtYOeyHh0IcShf6FSHYdYtHEN47yFywXxLR.', 'Dr. Michelle Guevarra', 'panel', NULL, 'active', 0, 0, NULL, '2026-08-15 17:12:15', '2026-08-16 22:05:45', NULL, '::1', NULL, '2026-08-15 17:07:16', '2026-08-16 22:07:39'),
 (758, 'admin', 'admin@bestlink.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'sms_admin', NULL, 'active', 0, 0, NULL, '2026-08-18 00:38:50', NULL, NULL, NULL, NULL, '2026-08-18 00:38:50', '2026-08-18 00:38:50'),
-(784, 'cashier', 'cashier@bestlinkedu.ph', '$2y$10$Z8wyZAIbhG52wTWT/uYC8uA2bSbry9Npj3xlhXHse.tp3way9SK0G', 'Alwyn James Duma', 'cashier', NULL, 'active', 0, 0, NULL, '2026-08-19 09:57:30', '2026-08-29 18:26:50', NULL, '::1', NULL, '2026-08-19 09:57:30', '2026-08-29 18:35:46'),
-(833, 'admin.finance', 'markjelsonberdin28@gmail.com', '$2y$10$SbZrlMGG86V/JwbHl91V0ugc3/iJKTk6.mg4upWHJ3m0ESlS/ekaW', 'Mark Jelson Berdin', 'finance', NULL, 'active', 0, 0, NULL, '2026-08-19 10:00:15', '2026-08-29 18:21:55', NULL, '::1', NULL, '2026-08-19 10:00:15', '2026-08-29 18:26:36'),
-(850, 's230115569', 'student@bestlink.edu.ph', '$2y$10$bckTH/WkjuT6UjRTOZyg1OEWPs0xf1Z2jNPhUnVHqPg8KNVWl5dLy', 'Lebron James', 'student', 'S230115569', 'active', 0, 0, NULL, '2026-08-19 10:18:25', '2026-08-29 18:35:57', '2026-08-29 18:59:22', '::1', 'nyahhahaha', '2026-08-19 10:18:25', '2026-08-29 18:59:22'),
-(884, 's230115570', 'student01@bestlink.edu.ph', '$2y$10$6Eo6lA7yUCDc1Pa4u/ZYCObaJvJ9Kv9Dfe/TkeXgz2MMHaxcp3nrO', 'Kevin Durant', 'student', 's230115570', 'active', 0, 0, NULL, '2026-08-24 18:28:37', '2026-08-29 16:32:03', NULL, '::1', NULL, '2026-08-24 18:28:37', '2026-08-29 17:48:47'),
-(909, 's230115571', 'test_ocr@gmail.com', '$2y$10$WOudU3q.vrQaErrKkXjuEunTf5zWwjGd1bXBrMgutYreTOrARF35i', 'Justine Bonifacio', 'student', 'S230115571', 'active', 0, 0, NULL, '2026-08-28 22:26:06', '2026-08-28 22:27:43', NULL, '::1', NULL, '2026-08-28 22:26:06', '2026-08-28 22:28:28');
+(784, 'cashier', 'cashier@bestlinkedu.ph', '$2y$10$Z8wyZAIbhG52wTWT/uYC8uA2bSbry9Npj3xlhXHse.tp3way9SK0G', 'Alwyn James Duma', 'cashier', NULL, 'active', 0, 0, NULL, '2026-08-19 09:57:30', '2026-09-06 20:22:08', '2026-09-06 21:27:16', '::1', NULL, '2026-08-19 09:57:30', '2026-09-06 21:27:16'),
+(833, 'admin.finance', 'markjelsonberdin28@gmail.com', '$2y$10$SbZrlMGG86V/JwbHl91V0ugc3/iJKTk6.mg4upWHJ3m0ESlS/ekaW', 'Mark Jelson Berdin', 'finance', NULL, 'active', 0, 0, NULL, '2026-08-19 10:00:15', '2026-09-06 20:09:59', NULL, '::1', NULL, '2026-08-19 10:00:15', '2026-09-06 20:22:04'),
+(850, 's230115569', 'student@bestlink.edu.ph', '$2y$10$bckTH/WkjuT6UjRTOZyg1OEWPs0xf1Z2jNPhUnVHqPg8KNVWl5dLy', 'Lebron James', 'student', 'S230115569', 'active', 0, 0, NULL, '2026-08-19 10:18:25', '2026-09-04 20:46:59', NULL, '::1', 'nyahhahaha', '2026-08-19 10:18:25', '2026-09-04 20:55:53'),
+(884, 's230115570', 'student01@bestlink.edu.ph', '$2y$10$6Eo6lA7yUCDc1Pa4u/ZYCObaJvJ9Kv9Dfe/TkeXgz2MMHaxcp3nrO', 'Kevin Durant', 'student', 's230115570', 'active', 0, 0, NULL, '2026-08-24 18:28:37', '2026-09-02 20:45:00', NULL, '::1', NULL, '2026-08-24 18:28:37', '2026-09-02 20:46:43'),
+(909, 's230115571', 'test_ocr@gmail.com', '$2y$10$WOudU3q.vrQaErrKkXjuEunTf5zWwjGd1bXBrMgutYreTOrARF35i', 'Justine Bonifacio', 'student', 'S230115571', 'active', 0, 0, NULL, '2026-08-28 22:26:06', '2026-09-06 19:29:22', NULL, '::1', NULL, '2026-08-28 22:26:06', '2026-09-06 20:09:47');
 
 -- --------------------------------------------------------
 
@@ -2496,7 +2598,7 @@ ALTER TABLE `user_passkeys`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1997;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2082;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -2520,7 +2622,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `role_permissions`
 --
 ALTER TABLE `role_permissions`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1027;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1029;
 
 --
 -- AUTO_INCREMENT for table `security_otps`

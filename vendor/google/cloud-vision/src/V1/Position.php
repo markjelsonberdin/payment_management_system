@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * A 3D position in the image, used primarily for Face detection landmarks.
@@ -22,19 +22,19 @@ class Position extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>float x = 1;</code>
      */
-    protected $x = 0.0;
+    private $x = 0.0;
     /**
      * Y coordinate.
      *
      * Generated from protobuf field <code>float y = 2;</code>
      */
-    protected $y = 0.0;
+    private $y = 0.0;
     /**
      * Z coordinate (or depth).
      *
      * Generated from protobuf field <code>float z = 3;</code>
      */
-    protected $z = 0.0;
+    private $z = 0.0;
 
     /**
      * Constructor.

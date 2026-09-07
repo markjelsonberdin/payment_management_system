@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Detected entity location information.
@@ -20,7 +20,7 @@ class LocationInfo extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.type.LatLng lat_lng = 1;</code>
      */
-    protected $lat_lng = null;
+    private $lat_lng = null;
 
     /**
      * Constructor.
@@ -41,21 +41,11 @@ class LocationInfo extends \Google\Protobuf\Internal\Message
      * lat/long location coordinates.
      *
      * Generated from protobuf field <code>.google.type.LatLng lat_lng = 1;</code>
-     * @return \Google\Type\LatLng|null
+     * @return \Google\Type\LatLng
      */
     public function getLatLng()
     {
         return $this->lat_lng;
-    }
-
-    public function hasLatLng()
-    {
-        return isset($this->lat_lng);
-    }
-
-    public function clearLatLng()
-    {
-        unset($this->lat_lng);
     }
 
     /**

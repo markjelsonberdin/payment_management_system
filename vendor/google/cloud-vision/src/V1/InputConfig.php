@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * The desired input location and metadata.
@@ -20,7 +20,7 @@ class InputConfig extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.GcsSource gcs_source = 1;</code>
      */
-    protected $gcs_source = null;
+    private $gcs_source = null;
     /**
      * File content, represented as a stream of bytes.
      * Note: As with all `bytes` fields, protobuffers use a pure binary
@@ -30,14 +30,14 @@ class InputConfig extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>bytes content = 3;</code>
      */
-    protected $content = '';
+    private $content = '';
     /**
      * The type of the file. Currently only "application/pdf", "image/tiff" and
      * "image/gif" are supported. Wildcards are not supported.
      *
      * Generated from protobuf field <code>string mime_type = 2;</code>
      */
-    protected $mime_type = '';
+    private $mime_type = '';
 
     /**
      * Constructor.
@@ -67,21 +67,11 @@ class InputConfig extends \Google\Protobuf\Internal\Message
      * The Google Cloud Storage location to read the input from.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.GcsSource gcs_source = 1;</code>
-     * @return \Google\Cloud\Vision\V1\GcsSource|null
+     * @return \Google\Cloud\Vision\V1\GcsSource
      */
     public function getGcsSource()
     {
         return $this->gcs_source;
-    }
-
-    public function hasGcsSource()
-    {
-        return isset($this->gcs_source);
-    }
-
-    public function clearGcsSource()
-    {
-        unset($this->gcs_source);
     }
 
     /**

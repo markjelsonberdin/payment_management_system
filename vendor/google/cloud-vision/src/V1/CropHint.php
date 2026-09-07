@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Single crop hint that is used to generate a new crop when serving an image.
@@ -21,20 +21,20 @@ class CropHint extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_poly = 1;</code>
      */
-    protected $bounding_poly = null;
+    private $bounding_poly = null;
     /**
      * Confidence of this being a salient region.  Range [0, 1].
      *
      * Generated from protobuf field <code>float confidence = 2;</code>
      */
-    protected $confidence = 0.0;
+    private $confidence = 0.0;
     /**
      * Fraction of importance of this salient region with respect to the original
      * image.
      *
      * Generated from protobuf field <code>float importance_fraction = 3;</code>
      */
-    protected $importance_fraction = 0.0;
+    private $importance_fraction = 0.0;
 
     /**
      * Constructor.
@@ -62,21 +62,11 @@ class CropHint extends \Google\Protobuf\Internal\Message
      * box are in the original image's scale.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_poly = 1;</code>
-     * @return \Google\Cloud\Vision\V1\BoundingPoly|null
+     * @return \Google\Cloud\Vision\V1\BoundingPoly
      */
     public function getBoundingPoly()
     {
         return $this->bounding_poly;
-    }
-
-    public function hasBoundingPoly()
-    {
-        return isset($this->bounding_poly);
-    }
-
-    public function clearBoundingPoly()
-    {
-        unset($this->bounding_poly);
     }
 
     /**

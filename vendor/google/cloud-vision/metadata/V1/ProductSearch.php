@@ -14,13 +14,53 @@ class ProductSearch
         if (static::$is_initialized == true) {
           return;
         }
-        \GPBMetadata\Google\Api\Resource::initOnce();
         \GPBMetadata\Google\Cloud\Vision\V1\Geometry::initOnce();
         \GPBMetadata\Google\Cloud\Vision\V1\ProductSearchService::initOnce();
         \GPBMetadata\Google\Protobuf\Timestamp::initOnce();
-        $pool->internalAddGeneratedFile(
-            "\x0A\x87\x09\x0A+google/cloud/vision/v1/product_search.proto\x12\x16google.cloud.vision.v1\x1A%google/cloud/vision/v1/geometry.proto\x1A3google/cloud/vision/v1/product_search_service.proto\x1A\x1Fgoogle/protobuf/timestamp.proto\"\xBA\x01\x0A\x13ProductSearchParams\x12;\x0A\x0Dbounding_poly\x18\x09 \x01(\x0B2\$.google.cloud.vision.v1.BoundingPoly\x12:\x0A\x0Bproduct_set\x18\x06 \x01(\x09B%\xFAA\"\x0A vision.googleapis.com/ProductSet\x12\x1A\x0A\x12product_categories\x18\x07 \x03(\x09\x12\x0E\x0A\x06filter\x18\x08 \x01(\x09\"\x88\x05\x0A\x14ProductSearchResults\x12.\x0A\x0Aindex_time\x18\x02 \x01(\x0B2\x1A.google.protobuf.Timestamp\x12D\x0A\x07results\x18\x05 \x03(\x0B23.google.cloud.vision.v1.ProductSearchResults.Result\x12[\x0A\x17product_grouped_results\x18\x06 \x03(\x0B2:.google.cloud.vision.v1.ProductSearchResults.GroupedResult\x1AX\x0A\x06Result\x120\x0A\x07product\x18\x01 \x01(\x0B2\x1F.google.cloud.vision.v1.Product\x12\x0D\x0A\x05score\x18\x02 \x01(\x02\x12\x0D\x0A\x05image\x18\x03 \x01(\x09\x1AS\x0A\x10ObjectAnnotation\x12\x0B\x0A\x03mid\x18\x01 \x01(\x09\x12\x15\x0A\x0Dlanguage_code\x18\x02 \x01(\x09\x12\x0C\x0A\x04name\x18\x03 \x01(\x09\x12\x0D\x0A\x05score\x18\x04 \x01(\x02\x1A\xED\x01\x0A\x0DGroupedResult\x12;\x0A\x0Dbounding_poly\x18\x01 \x01(\x0B2\$.google.cloud.vision.v1.BoundingPoly\x12D\x0A\x07results\x18\x02 \x03(\x0B23.google.cloud.vision.v1.ProductSearchResults.Result\x12Y\x0A\x12object_annotations\x18\x03 \x03(\x0B2=.google.cloud.vision.v1.ProductSearchResults.ObjectAnnotationBs\x0A\x1Acom.google.cloud.vision.v1B\x12ProductSearchProtoP\x01Z5cloud.google.com/go/vision/v2/apiv1/visionpb;visionpb\xF8\x01\x01\xA2\x02\x04GCVNb\x06proto3"
-        , true);
+        \GPBMetadata\Google\Api\Annotations::initOnce();
+        \GPBMetadata\Google\Api\Resource::initOnce();
+        $pool->internalAddGeneratedFile(hex2bin(
+            "0aa0090a2b676f6f676c652f636c6f75642f766973696f6e2f76312f7072" .
+            "6f647563745f7365617263682e70726f746f1216676f6f676c652e636c6f" .
+            "75642e766973696f6e2e76311a33676f6f676c652f636c6f75642f766973" .
+            "696f6e2f76312f70726f647563745f7365617263685f736572766963652e" .
+            "70726f746f1a1f676f6f676c652f70726f746f6275662f74696d65737461" .
+            "6d702e70726f746f1a1c676f6f676c652f6170692f616e6e6f746174696f" .
+            "6e732e70726f746f1a19676f6f676c652f6170692f7265736f757263652e" .
+            "70726f746f22ba010a1350726f64756374536561726368506172616d7312" .
+            "3b0a0d626f756e64696e675f706f6c7918092001280b32242e676f6f676c" .
+            "652e636c6f75642e766973696f6e2e76312e426f756e64696e67506f6c79" .
+            "123a0a0b70726f647563745f7365741806200128094225fa41220a207669" .
+            "73696f6e2e676f6f676c65617069732e636f6d2f50726f64756374536574" .
+            "121a0a1270726f647563745f63617465676f72696573180720032809120e" .
+            "0a0666696c7465721808200128092288050a1450726f6475637453656172" .
+            "6368526573756c7473122e0a0a696e6465785f74696d6518022001280b32" .
+            "1a2e676f6f676c652e70726f746f6275662e54696d657374616d7012440a" .
+            "07726573756c747318052003280b32332e676f6f676c652e636c6f75642e" .
+            "766973696f6e2e76312e50726f64756374536561726368526573756c7473" .
+            "2e526573756c74125b0a1770726f647563745f67726f757065645f726573" .
+            "756c747318062003280b323a2e676f6f676c652e636c6f75642e76697369" .
+            "6f6e2e76312e50726f64756374536561726368526573756c74732e47726f" .
+            "75706564526573756c741a580a06526573756c7412300a0770726f647563" .
+            "7418012001280b321f2e676f6f676c652e636c6f75642e766973696f6e2e" .
+            "76312e50726f64756374120d0a0573636f7265180220012802120d0a0569" .
+            "6d6167651803200128091a530a104f626a656374416e6e6f746174696f6e" .
+            "120b0a036d696418012001280912150a0d6c616e67756167655f636f6465" .
+            "180220012809120c0a046e616d65180320012809120d0a0573636f726518" .
+            "04200128021aed010a0d47726f75706564526573756c74123b0a0d626f75" .
+            "6e64696e675f706f6c7918012001280b32242e676f6f676c652e636c6f75" .
+            "642e766973696f6e2e76312e426f756e64696e67506f6c7912440a077265" .
+            "73756c747318022003280b32332e676f6f676c652e636c6f75642e766973" .
+            "696f6e2e76312e50726f64756374536561726368526573756c74732e5265" .
+            "73756c7412590a126f626a6563745f616e6e6f746174696f6e7318032003" .
+            "280b323d2e676f6f676c652e636c6f75642e766973696f6e2e76312e5072" .
+            "6f64756374536561726368526573756c74732e4f626a656374416e6e6f74" .
+            "6174696f6e427a0a1a636f6d2e676f6f676c652e636c6f75642e76697369" .
+            "6f6e2e7631421250726f6475637453656172636850726f746f50015a3c67" .
+            "6f6f676c652e676f6c616e672e6f72672f67656e70726f746f2f676f6f67" .
+            "6c65617069732f636c6f75642f766973696f6e2f76313b766973696f6ef8" .
+            "0101a202044743564e620670726f746f33"
+        ), true);
 
         static::$is_initialized = true;
     }

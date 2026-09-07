@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * A list of file annotation responses.
@@ -29,7 +29,7 @@ class BatchAnnotateFilesResponse extends \Google\Protobuf\Internal\Message
      * @param array $data {
      *     Optional. Data for populating the Message object.
      *
-     *     @type \Google\Cloud\Vision\V1\AnnotateFileResponse[] $responses
+     *     @type \Google\Cloud\Vision\V1\AnnotateFileResponse[]|\Google\Protobuf\Internal\RepeatedField $responses
      *           The list of file annotation responses, each response corresponding to each
      *           AnnotateFileRequest in BatchAnnotateFilesRequest.
      * }
@@ -44,7 +44,7 @@ class BatchAnnotateFilesResponse extends \Google\Protobuf\Internal\Message
      * AnnotateFileRequest in BatchAnnotateFilesRequest.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.AnnotateFileResponse responses = 1;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\AnnotateFileResponse>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getResponses()
     {
@@ -56,7 +56,7 @@ class BatchAnnotateFilesResponse extends \Google\Protobuf\Internal\Message
      * AnnotateFileRequest in BatchAnnotateFilesRequest.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.AnnotateFileResponse responses = 1;</code>
-     * @param \Google\Cloud\Vision\V1\AnnotateFileResponse[] $var
+     * @param \Google\Cloud\Vision\V1\AnnotateFileResponse[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setResponses($var)

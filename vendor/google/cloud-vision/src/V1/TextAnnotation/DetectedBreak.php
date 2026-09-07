@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1\TextAnnotation;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Detected start or end of a structural component.
@@ -20,13 +20,13 @@ class DetectedBreak extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation.DetectedBreak.BreakType type = 1;</code>
      */
-    protected $type = 0;
+    private $type = 0;
     /**
      * True if break prepends the element.
      *
      * Generated from protobuf field <code>bool is_prefix = 2;</code>
      */
-    protected $is_prefix = false;
+    private $is_prefix = false;
 
     /**
      * Constructor.
@@ -65,7 +65,7 @@ class DetectedBreak extends \Google\Protobuf\Internal\Message
      */
     public function setType($var)
     {
-        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\TextAnnotation\DetectedBreak\BreakType::class);
+        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\TextAnnotation_DetectedBreak_BreakType::class);
         $this->type = $var;
 
         return $this;
@@ -98,4 +98,7 @@ class DetectedBreak extends \Google\Protobuf\Internal\Message
     }
 
 }
+
+// Adding a class alias for backwards compatibility with the previous class name.
+class_alias(DetectedBreak::class, \Google\Cloud\Vision\V1\TextAnnotation_DetectedBreak::class);
 

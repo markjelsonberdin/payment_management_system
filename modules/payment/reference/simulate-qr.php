@@ -14,7 +14,7 @@ if (!$paymentIntentId) {
     echo "<h3>Recent Pending QR Ph Payments:</h3><ul>";
     
     global $pdo;
-    $stmt = $pdo->query("SELECT payment_intent_id, amount FROM payment_db.payments WHERE payment_channel = 'QRPh' AND payment_status = 'Pending' ORDER BY payment_id DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT payment_intent_id, amount FROM payments WHERE payment_channel = 'QRPh' AND payment_status = 'Pending' ORDER BY payment_id DESC LIMIT 5");
     while ($row = $stmt->fetch()) {
         $pi = $row['payment_intent_id'];
         echo "<li><a href='simulate-qr.php?pi={$pi}'>{$pi}</a> - PHP {$row['amount']}</li>";
@@ -24,7 +24,7 @@ if (!$paymentIntentId) {
 }
 
 global $pdo;
-$stmt = $pdo->prepare("SELECT amount FROM payment_db.payments WHERE payment_intent_id = :pi");
+$stmt = $pdo->prepare("SELECT amount FROM payments WHERE payment_intent_id = :pi");
 $stmt->execute([':pi' => $paymentIntentId]);
 $amount = $stmt->fetchColumn();
 

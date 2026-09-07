@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1\Product;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * A product label represented as a key-value pair.
@@ -21,14 +21,14 @@ class KeyValue extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>string key = 1;</code>
      */
-    protected $key = '';
+    private $key = '';
     /**
      * The value of the label attached to the product. Cannot be empty and
      * cannot exceed 128 bytes.
      *
      * Generated from protobuf field <code>string value = 2;</code>
      */
-    protected $value = '';
+    private $value = '';
 
     /**
      * Constructor.
@@ -106,4 +106,7 @@ class KeyValue extends \Google\Protobuf\Internal\Message
     }
 
 }
+
+// Adding a class alias for backwards compatibility with the previous class name.
+class_alias(KeyValue::class, \Google\Cloud\Vision\V1\Product_KeyValue::class);
 

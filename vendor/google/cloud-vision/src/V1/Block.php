@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Logical element on the page.
@@ -20,7 +20,7 @@ class Block extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation.TextProperty property = 1;</code>
      */
-    protected $property = null;
+    private $property = null;
     /**
      * The bounding box for the block.
      * The vertices are in the order of top-left, top-right, bottom-right,
@@ -40,7 +40,7 @@ class Block extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_box = 2;</code>
      */
-    protected $bounding_box = null;
+    private $bounding_box = null;
     /**
      * List of paragraphs in this block (if this blocks is of type text).
      *
@@ -52,13 +52,13 @@ class Block extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.Block.BlockType block_type = 4;</code>
      */
-    protected $block_type = 0;
+    private $block_type = 0;
     /**
      * Confidence of the OCR results on the block. Range [0, 1].
      *
      * Generated from protobuf field <code>float confidence = 5;</code>
      */
-    protected $confidence = 0.0;
+    private $confidence = 0.0;
 
     /**
      * Constructor.
@@ -84,7 +84,7 @@ class Block extends \Google\Protobuf\Internal\Message
      *                   |    |
      *                   1----0
      *             and the vertex order will still be (0, 1, 2, 3).
-     *     @type \Google\Cloud\Vision\V1\Paragraph[] $paragraphs
+     *     @type \Google\Cloud\Vision\V1\Paragraph[]|\Google\Protobuf\Internal\RepeatedField $paragraphs
      *           List of paragraphs in this block (if this blocks is of type text).
      *     @type int $block_type
      *           Detected block type (text, image etc) for this block.
@@ -101,21 +101,11 @@ class Block extends \Google\Protobuf\Internal\Message
      * Additional information detected for the block.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation.TextProperty property = 1;</code>
-     * @return \Google\Cloud\Vision\V1\TextAnnotation\TextProperty|null
+     * @return \Google\Cloud\Vision\V1\TextAnnotation\TextProperty
      */
     public function getProperty()
     {
         return $this->property;
-    }
-
-    public function hasProperty()
-    {
-        return isset($this->property);
-    }
-
-    public function clearProperty()
-    {
-        unset($this->property);
     }
 
     /**
@@ -127,7 +117,7 @@ class Block extends \Google\Protobuf\Internal\Message
      */
     public function setProperty($var)
     {
-        GPBUtil::checkMessage($var, \Google\Cloud\Vision\V1\TextAnnotation\TextProperty::class);
+        GPBUtil::checkMessage($var, \Google\Cloud\Vision\V1\TextAnnotation_TextProperty::class);
         $this->property = $var;
 
         return $this;
@@ -151,21 +141,11 @@ class Block extends \Google\Protobuf\Internal\Message
      *   and the vertex order will still be (0, 1, 2, 3).
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BoundingPoly bounding_box = 2;</code>
-     * @return \Google\Cloud\Vision\V1\BoundingPoly|null
+     * @return \Google\Cloud\Vision\V1\BoundingPoly
      */
     public function getBoundingBox()
     {
         return $this->bounding_box;
-    }
-
-    public function hasBoundingBox()
-    {
-        return isset($this->bounding_box);
-    }
-
-    public function clearBoundingBox()
-    {
-        unset($this->bounding_box);
     }
 
     /**
@@ -201,7 +181,7 @@ class Block extends \Google\Protobuf\Internal\Message
      * List of paragraphs in this block (if this blocks is of type text).
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Paragraph paragraphs = 3;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\Paragraph>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getParagraphs()
     {
@@ -212,7 +192,7 @@ class Block extends \Google\Protobuf\Internal\Message
      * List of paragraphs in this block (if this blocks is of type text).
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.Paragraph paragraphs = 3;</code>
-     * @param \Google\Cloud\Vision\V1\Paragraph[] $var
+     * @param \Google\Cloud\Vision\V1\Paragraph[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setParagraphs($var)
@@ -243,7 +223,7 @@ class Block extends \Google\Protobuf\Internal\Message
      */
     public function setBlockType($var)
     {
-        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\Block\BlockType::class);
+        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\Block_BlockType::class);
         $this->block_type = $var;
 
         return $this;

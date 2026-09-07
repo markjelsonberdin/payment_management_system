@@ -36,11 +36,11 @@ try {
         // Naka-join tayo sa billing para makuha ang description (hal. Enrollment for 1st Sem)
         $stmtPayments = $pdo->prepare("
             SELECT p.*, b.academic_year, b.semester, b.billing_type, fc.category_name, bi.fee_name as specific_fee_name
-            FROM payment_db.payments p
-            JOIN payment_db.students s ON p.student_id = s.student_id
-            LEFT JOIN payment_db.billing b ON p.billing_id = b.billing_id
-            LEFT JOIN payment_db.fee_categories fc ON p.category_id = fc.category_id
-            LEFT JOIN payment_db.billing_items bi ON p.billing_item_id = bi.billing_item_id
+            FROM payments p
+            JOIN students s ON p.student_id = s.student_id
+            LEFT JOIN billing b ON p.billing_id = b.billing_id
+            LEFT JOIN fee_categories fc ON p.category_id = fc.category_id
+            LEFT JOIN billing_items bi ON p.billing_item_id = bi.billing_item_id
             WHERE s.student_number = :student_number
             ORDER BY p.created_at DESC
         ");

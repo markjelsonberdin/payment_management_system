@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Stores image properties, such as dominant colors.
@@ -20,7 +20,7 @@ class ImageProperties extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.DominantColorsAnnotation dominant_colors = 1;</code>
      */
-    protected $dominant_colors = null;
+    private $dominant_colors = null;
 
     /**
      * Constructor.
@@ -41,21 +41,11 @@ class ImageProperties extends \Google\Protobuf\Internal\Message
      * If present, dominant colors completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.DominantColorsAnnotation dominant_colors = 1;</code>
-     * @return \Google\Cloud\Vision\V1\DominantColorsAnnotation|null
+     * @return \Google\Cloud\Vision\V1\DominantColorsAnnotation
      */
     public function getDominantColors()
     {
         return $this->dominant_colors;
-    }
-
-    public function hasDominantColors()
-    {
-        return isset($this->dominant_colors);
-    }
-
-    public function clearDominantColors()
-    {
-        unset($this->dominant_colors);
     }
 
     /**

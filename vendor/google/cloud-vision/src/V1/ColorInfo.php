@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Color information consists of RGB channels, score, and the fraction of
@@ -21,20 +21,20 @@ class ColorInfo extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.type.Color color = 1;</code>
      */
-    protected $color = null;
+    private $color = null;
     /**
      * Image-specific score for this color. Value in range [0, 1].
      *
      * Generated from protobuf field <code>float score = 2;</code>
      */
-    protected $score = 0.0;
+    private $score = 0.0;
     /**
      * The fraction of pixels the color occupies in the image.
      * Value in range [0, 1].
      *
      * Generated from protobuf field <code>float pixel_fraction = 3;</code>
      */
-    protected $pixel_fraction = 0.0;
+    private $pixel_fraction = 0.0;
 
     /**
      * Constructor.
@@ -60,21 +60,11 @@ class ColorInfo extends \Google\Protobuf\Internal\Message
      * RGB components of the color.
      *
      * Generated from protobuf field <code>.google.type.Color color = 1;</code>
-     * @return \Google\Type\Color|null
+     * @return \Google\Type\Color
      */
     public function getColor()
     {
         return $this->color;
-    }
-
-    public function hasColor()
-    {
-        return isset($this->color);
-    }
-
-    public function clearColor()
-    {
-        unset($this->color);
     }
 
     /**

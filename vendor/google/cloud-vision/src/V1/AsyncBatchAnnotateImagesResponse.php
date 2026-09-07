@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Response to an async batch image annotation request.
@@ -20,7 +20,7 @@ class AsyncBatchAnnotateImagesResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.OutputConfig output_config = 1;</code>
      */
-    protected $output_config = null;
+    private $output_config = null;
 
     /**
      * Constructor.
@@ -41,21 +41,11 @@ class AsyncBatchAnnotateImagesResponse extends \Google\Protobuf\Internal\Message
      * The output location and metadata from AsyncBatchAnnotateImagesRequest.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.OutputConfig output_config = 1;</code>
-     * @return \Google\Cloud\Vision\V1\OutputConfig|null
+     * @return \Google\Cloud\Vision\V1\OutputConfig
      */
     public function getOutputConfig()
     {
         return $this->output_config;
-    }
-
-    public function hasOutputConfig()
-    {
-        return isset($this->output_config);
-    }
-
-    public function clearOutputConfig()
-    {
-        unset($this->output_config);
     }
 
     /**

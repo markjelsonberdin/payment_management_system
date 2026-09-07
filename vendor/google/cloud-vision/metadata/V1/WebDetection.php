@@ -14,9 +14,45 @@ class WebDetection
         if (static::$is_initialized == true) {
           return;
         }
-        $pool->internalAddGeneratedFile(
-            "\x0A\x97\x08\x0A*google/cloud/vision/v1/web_detection.proto\x12\x16google.cloud.vision.v1\"\xD4\x06\x0A\x0CWebDetection\x12D\x0A\x0Cweb_entities\x18\x01 \x03(\x0B2..google.cloud.vision.v1.WebDetection.WebEntity\x12K\x0A\x14full_matching_images\x18\x02 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebImage\x12N\x0A\x17partial_matching_images\x18\x03 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebImage\x12P\x0A\x1Apages_with_matching_images\x18\x04 \x03(\x0B2,.google.cloud.vision.v1.WebDetection.WebPage\x12N\x0A\x17visually_similar_images\x18\x06 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebImage\x12H\x0A\x11best_guess_labels\x18\x08 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebLabel\x1AB\x0A\x09WebEntity\x12\x11\x0A\x09entity_id\x18\x01 \x01(\x09\x12\x0D\x0A\x05score\x18\x02 \x01(\x02\x12\x13\x0A\x0Bdescription\x18\x03 \x01(\x09\x1A&\x0A\x08WebImage\x12\x0B\x0A\x03url\x18\x01 \x01(\x09\x12\x0D\x0A\x05score\x18\x02 \x01(\x02\x1A\xD6\x01\x0A\x07WebPage\x12\x0B\x0A\x03url\x18\x01 \x01(\x09\x12\x0D\x0A\x05score\x18\x02 \x01(\x02\x12\x12\x0A\x0Apage_title\x18\x03 \x01(\x09\x12K\x0A\x14full_matching_images\x18\x04 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebImage\x12N\x0A\x17partial_matching_images\x18\x05 \x03(\x0B2-.google.cloud.vision.v1.WebDetection.WebImage\x1A0\x0A\x08WebLabel\x12\x0D\x0A\x05label\x18\x01 \x01(\x09\x12\x15\x0A\x0Dlanguage_code\x18\x02 \x01(\x09Br\x0A\x1Acom.google.cloud.vision.v1B\x11WebDetectionProtoP\x01Z5cloud.google.com/go/vision/v2/apiv1/visionpb;visionpb\xF8\x01\x01\xA2\x02\x04GCVNb\x06proto3"
-        , true);
+        \GPBMetadata\Google\Api\Annotations::initOnce();
+        $pool->internalAddGeneratedFile(hex2bin(
+            "0a9e080a2a676f6f676c652f636c6f75642f766973696f6e2f76312f7765" .
+            "625f646574656374696f6e2e70726f746f1216676f6f676c652e636c6f75" .
+            "642e766973696f6e2e763122d4060a0c576562446574656374696f6e1244" .
+            "0a0c7765625f656e74697469657318012003280b322e2e676f6f676c652e" .
+            "636c6f75642e766973696f6e2e76312e576562446574656374696f6e2e57" .
+            "6562456e74697479124b0a1466756c6c5f6d61746368696e675f696d6167" .
+            "657318022003280b322d2e676f6f676c652e636c6f75642e766973696f6e" .
+            "2e76312e576562446574656374696f6e2e576562496d616765124e0a1770" .
+            "61727469616c5f6d61746368696e675f696d6167657318032003280b322d" .
+            "2e676f6f676c652e636c6f75642e766973696f6e2e76312e576562446574" .
+            "656374696f6e2e576562496d61676512500a1a70616765735f776974685f" .
+            "6d61746368696e675f696d6167657318042003280b322c2e676f6f676c65" .
+            "2e636c6f75642e766973696f6e2e76312e576562446574656374696f6e2e" .
+            "57656250616765124e0a1776697375616c6c795f73696d696c61725f696d" .
+            "6167657318062003280b322d2e676f6f676c652e636c6f75642e76697369" .
+            "6f6e2e76312e576562446574656374696f6e2e576562496d61676512480a" .
+            "11626573745f67756573735f6c6162656c7318082003280b322d2e676f6f" .
+            "676c652e636c6f75642e766973696f6e2e76312e57656244657465637469" .
+            "6f6e2e5765624c6162656c1a420a09576562456e7469747912110a09656e" .
+            "746974795f6964180120012809120d0a0573636f72651802200128021213" .
+            "0a0b6465736372697074696f6e1803200128091a260a08576562496d6167" .
+            "65120b0a0375726c180120012809120d0a0573636f72651802200128021a" .
+            "d6010a0757656250616765120b0a0375726c180120012809120d0a057363" .
+            "6f726518022001280212120a0a706167655f7469746c6518032001280912" .
+            "4b0a1466756c6c5f6d61746368696e675f696d6167657318042003280b32" .
+            "2d2e676f6f676c652e636c6f75642e766973696f6e2e76312e5765624465" .
+            "74656374696f6e2e576562496d616765124e0a177061727469616c5f6d61" .
+            "746368696e675f696d6167657318052003280b322d2e676f6f676c652e63" .
+            "6c6f75642e766973696f6e2e76312e576562446574656374696f6e2e5765" .
+            "62496d6167651a300a085765624c6162656c120d0a056c6162656c180120" .
+            "01280912150a0d6c616e67756167655f636f646518022001280942790a1a" .
+            "636f6d2e676f6f676c652e636c6f75642e766973696f6e2e763142115765" .
+            "62446574656374696f6e50726f746f50015a3c676f6f676c652e676f6c61" .
+            "6e672e6f72672f67656e70726f746f2f676f6f676c65617069732f636c6f" .
+            "75642f766973696f6e2f76313b766973696f6ef80101a202044743564e62" .
+            "0670726f746f33"
+        ), true);
 
         static::$is_initialized = true;
     }

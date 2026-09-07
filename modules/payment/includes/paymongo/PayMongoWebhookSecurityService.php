@@ -12,7 +12,7 @@ class PayMongoWebhookSecurityService {
         $this->pdo = $pdo;
         
         $settingKey = ($env === 'live') ? 'webhook_secret_live' : 'webhook_secret_test';
-        $stmt = $this->pdo->prepare("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = :key");
+        $stmt = $this->pdo->prepare("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = :key");
         $stmt->execute([':key' => $settingKey]);
         
         $this->webhookSecret = $stmt->fetchColumn() ?: '';

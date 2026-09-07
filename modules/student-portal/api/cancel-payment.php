@@ -43,8 +43,8 @@ try {
     // Fetch the payment and validate ownership
     $stmt = $pdo->prepare("
         SELECT p.*, s.user_id 
-        FROM payment_db.payments p
-        JOIN payment_db.students s ON p.student_id = s.student_id
+        FROM payments p
+        JOIN students s ON p.student_id = s.student_id
         WHERE p.payment_id = :payment_id
     ");
     $stmt->execute([':payment_id' => $paymentId]);
@@ -72,7 +72,7 @@ try {
 
     // Cancel the payment
     $stmtUpdate = $pdo->prepare("
-        UPDATE payment_db.payments 
+        UPDATE payments 
         SET payment_status = 'Cancelled', payment_date = NOW() 
         WHERE payment_id = :payment_id
     ");

@@ -28,7 +28,6 @@ try {
     require_once ROOT_PATH . '/config/database.php';
     
     $pdo = getDatabaseConnection();
-    $pdo->exec('USE payment_db');
 } catch (Exception $e) {
     die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]));
 }

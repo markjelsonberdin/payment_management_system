@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Response to a single file annotation request. A file may contain one or more
@@ -21,7 +21,7 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
      */
-    protected $input_config = null;
+    private $input_config = null;
     /**
      * Individual responses to images found within the file. This field will be
      * empty if the `error` field is set.
@@ -34,14 +34,14 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>int32 total_pages = 3;</code>
      */
-    protected $total_pages = 0;
+    private $total_pages = 0;
     /**
      * If set, represents the error message for the failed request. The
      * `responses` field will not be set in this case.
      *
      * Generated from protobuf field <code>.google.rpc.Status error = 4;</code>
      */
-    protected $error = null;
+    private $error = null;
 
     /**
      * Constructor.
@@ -51,7 +51,7 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      *
      *     @type \Google\Cloud\Vision\V1\InputConfig $input_config
      *           Information about the file for which this response is generated.
-     *     @type \Google\Cloud\Vision\V1\AnnotateImageResponse[] $responses
+     *     @type \Google\Cloud\Vision\V1\AnnotateImageResponse[]|\Google\Protobuf\Internal\RepeatedField $responses
      *           Individual responses to images found within the file. This field will be
      *           empty if the `error` field is set.
      *     @type int $total_pages
@@ -70,21 +70,11 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      * Information about the file for which this response is generated.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.InputConfig input_config = 1;</code>
-     * @return \Google\Cloud\Vision\V1\InputConfig|null
+     * @return \Google\Cloud\Vision\V1\InputConfig
      */
     public function getInputConfig()
     {
         return $this->input_config;
-    }
-
-    public function hasInputConfig()
-    {
-        return isset($this->input_config);
-    }
-
-    public function clearInputConfig()
-    {
-        unset($this->input_config);
     }
 
     /**
@@ -107,7 +97,7 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      * empty if the `error` field is set.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.AnnotateImageResponse responses = 2;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\AnnotateImageResponse>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getResponses()
     {
@@ -119,7 +109,7 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      * empty if the `error` field is set.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.AnnotateImageResponse responses = 2;</code>
-     * @param \Google\Cloud\Vision\V1\AnnotateImageResponse[] $var
+     * @param \Google\Cloud\Vision\V1\AnnotateImageResponse[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setResponses($var)
@@ -161,21 +151,11 @@ class AnnotateFileResponse extends \Google\Protobuf\Internal\Message
      * `responses` field will not be set in this case.
      *
      * Generated from protobuf field <code>.google.rpc.Status error = 4;</code>
-     * @return \Google\Rpc\Status|null
+     * @return \Google\Rpc\Status
      */
     public function getError()
     {
         return $this->error;
-    }
-
-    public function hasError()
-    {
-        return isset($this->error);
-    }
-
-    public function clearError()
-    {
-        unset($this->error);
     }
 
     /**

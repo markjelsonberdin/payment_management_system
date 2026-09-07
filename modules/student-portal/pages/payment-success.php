@@ -31,9 +31,9 @@ if ($studentId && $referenceNumber) {
             // Secure query: Only fetch if it belongs to the logged-in student
             $stmt = $pdo->prepare("
                 SELECT p.*, b.remaining_balance 
-                FROM payment_db.payments p
-                JOIN payment_db.students s ON p.student_id = s.student_id
-                LEFT JOIN payment_db.billing b ON p.billing_id = b.billing_id
+                FROM payments p
+                JOIN students s ON p.student_id = s.student_id
+                LEFT JOIN billing b ON p.billing_id = b.billing_id
                 WHERE p.reference_number = :ref AND s.student_number = :sid
             ");
             $stmt->execute([
@@ -48,7 +48,7 @@ if ($studentId && $referenceNumber) {
                 $accessDenied = true;
             } elseif ($paymentData['payment_status'] === 'Pending' && !empty($paymentData['checkout_session_id'])) {
                 // Fallback: Check PayMongo API directly (Useful for localhost testing without webhooks)
-                require_once ROOT_PATH . '/modules/payment/includes/paymongo/paymongo/PayMongoService.php';
+                require_once ROOT_PATH . '/modules/payment/includes/paymongo/PayMongoService.php';
                 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
                 global $pdo; // $pdo from db_connect.php has full write privileges
                 
@@ -67,7 +67,7 @@ if ($studentId && $referenceNumber) {
                     
                     if ($isPaid) {
                         $pdo->beginTransaction();
-                        $stmtUpdate = $pdo->prepare("UPDATE payment_db.payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
+                        $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
                         $stmtUpdate->execute([':pid' => $paymentData['payment_id']]);
                         
                         if ($stmtUpdate->rowCount() > 0) {
@@ -84,7 +84,7 @@ if ($studentId && $referenceNumber) {
                             $paymentData['payment_status'] = 'Verified';
                             
                             // Refetch remaining balance
-                            $stmtRefetch = $pdo->prepare("SELECT remaining_balance FROM payment_db.billing WHERE billing_id = :bid");
+                            $stmtRefetch = $pdo->prepare("SELECT remaining_balance FROM billing WHERE billing_id = :bid");
                             $stmtRefetch->execute([':bid' => $paymentData['billing_id']]);
                             $paymentData['remaining_balance'] = $stmtRefetch->fetchColumn();
                         }

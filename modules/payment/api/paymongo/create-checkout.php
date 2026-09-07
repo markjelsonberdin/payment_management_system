@@ -99,11 +99,11 @@ try {
     
     if (!$forceNewAttempt) {
         if ($allocationContext === 'SPECIFIC_ITEM') {
-            $stmtDup = $pdo->prepare("SELECT * FROM payment_db.payments WHERE student_id = ? AND allocation_context = ? AND billing_item_id = ? AND payment_status = 'Pending' LIMIT 1");
+            $stmtDup = $pdo->prepare("SELECT * FROM payments WHERE student_id = ? AND allocation_context = ? AND billing_item_id = ? AND payment_status = 'Pending' LIMIT 1");
             $stmtDup->execute([$studentId, $allocationContext, $billingItemId]);
         } else {
             // ENROLLMENT_PRIORITY
-            $stmtDup = $pdo->prepare("SELECT * FROM payment_db.payments WHERE student_id = ? AND allocation_context = ? AND billing_id = ? AND payment_status = 'Pending' LIMIT 1");
+            $stmtDup = $pdo->prepare("SELECT * FROM payments WHERE student_id = ? AND allocation_context = ? AND billing_id = ? AND payment_status = 'Pending' LIMIT 1");
             $stmtDup->execute([$studentId, $allocationContext, $billingId]);
         }
         
@@ -146,7 +146,7 @@ try {
     }
 
     // 3. Get Fee Policy
-    $stmtFee = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'fee_policy'");
+    $stmtFee = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'fee_policy'");
     $feePolicyRow = $stmtFee->fetch(PDO::FETCH_ASSOC);
     $feePolicy = $feePolicyRow ? $feePolicyRow['setting_value'] : 'absorb_by_school';
 
@@ -206,7 +206,7 @@ try {
 
     // 6. Create Pending Payment Record with full transaction context (Phase 8 Revised)
     $stmtInsert = $pdo->prepare("
-        INSERT INTO payment_db.payments 
+        INSERT INTO payments 
         (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, checkout_session_id, payment_status, payment_date)
         VALUES 
         (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, :payment_channel, :reference_number, :checkout_session_id, 'Pending', CURDATE())

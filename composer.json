@@ -1,5 +1,5 @@
 {
     "require": {
-        "google/cloud-vision": "^2.3"
+        "google/cloud-vision": "1.0"
     }
 }

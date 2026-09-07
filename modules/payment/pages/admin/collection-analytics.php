@@ -32,7 +32,7 @@ try {
     $failedOnline = $pdo->query("SELECT COUNT(*) FROM payments WHERE payment_status IN ('Failed', 'Rejected') AND payment_method = 'PayMongo'")->fetchColumn() ?: 0;
     
     // Get gateway environment
-    $stmtEnv = $pdo->query("SELECT setting_value FROM payment_db.payment_gateway_settings WHERE setting_key = 'gateway_mode'");
+    $stmtEnv = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
     $env = $stmtEnv->fetchColumn() ?: 'test';
 
 } catch (PDOException $e) {

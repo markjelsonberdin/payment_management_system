@@ -416,6 +416,5 @@ function scanConcernOCR(concernId, btnElement) {
     });
 </script>
 
-<script src="<?= BASE_URL ?>/assets/js/payment-search.js"></script>
-
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

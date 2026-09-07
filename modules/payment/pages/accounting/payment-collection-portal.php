@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
 
         // 4. Immutable Audit Log (SMS2 centralized activity_logs)
         $stmtLog = $pdo->prepare("
-            INSERT INTO sms2_db.activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
+            INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
             VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip, :ua)
         ");
         $stmtLog->execute([
@@ -311,5 +311,5 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <!-- Dinagdagan ng ?v=time() para laging fresh ang basahin ng browser na JavaScript file -->
 <script src="../../assets/js/payment-collection.js?v=<?= time() ?>"></script>
-<script src="<?= BASE_URL ?>/assets/js/payment-search.js"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

@@ -3,7 +3,7 @@ require_once __DIR__ . '/config/config.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 
 // 1. Insert dummy pending payment
-$stmt = $pdo->query("SELECT student_id, billing_id FROM payment_db.billing LIMIT 1");
+$stmt = $pdo->query("SELECT student_id, billing_id FROM billing LIMIT 1");
 $billing = $stmt->fetch();
 
 $paymentIntentId = 'pi_test_' . time();
@@ -11,7 +11,7 @@ $referenceNumber = 'PM-TEST-' . time();
 $amount = 1000.00;
 
 $stmtInsert = $pdo->prepare("
-    INSERT INTO payment_db.payments 
+    INSERT INTO payments 
     (student_id, billing_id, allocation_context, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_intent_id, payment_status, payment_date)
     VALUES 
     (:student_id, :billing_id, 'ENROLLMENT_PRIORITY', 'Online', 'Online', :amount, 0, :checkout_total, 'QRPh', :reference_number, :payment_intent_id, 'Pending', CURDATE())
@@ -72,11 +72,11 @@ echo "Webhook Response Code: $httpCode\n";
 echo "Webhook Response: $response\n";
 
 // 3. Verify Payment Status
-$stmtCheck = $pdo->prepare("SELECT payment_status FROM payment_db.payments WHERE payment_intent_id = :pi_id");
+$stmtCheck = $pdo->prepare("SELECT payment_status FROM payments WHERE payment_intent_id = :pi_id");
 $stmtCheck->execute([':pi_id' => $paymentIntentId]);
 $status = $stmtCheck->fetchColumn();
 
 echo "Final Payment Status: $status\n";
 
 // Clean up
-$pdo->exec("DELETE FROM payment_db.payments WHERE payment_intent_id = '$paymentIntentId'");
+$pdo->exec("DELETE FROM payments WHERE payment_intent_id = '$paymentIntentId'");

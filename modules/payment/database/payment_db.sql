@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 29, 2026 at 02:17 PM
+-- Generation Time: Sep 07, 2026 at 07:45 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,43 @@ SET time_zone = "+00:00";
 --
 -- Database: `payment_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_statements`
+--
+
+CREATE TABLE `bank_statements` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `source_bank` varchar(50) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `file_hash` varchar(64) NOT NULL,
+  `uploaded_by` int(10) UNSIGNED NOT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Pending','Processed','Failed') DEFAULT 'Pending',
+  `row_count` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_statement_rows`
+--
+
+CREATE TABLE `bank_statement_rows` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `statement_id` int(10) UNSIGNED NOT NULL,
+  `transaction_date` date NOT NULL,
+  `transaction_time` time DEFAULT NULL,
+  `reference_number` varchar(100) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `currency` varchar(10) DEFAULT 'PHP',
+  `transaction_type` varchar(50) DEFAULT NULL,
+  `status` enum('Unmatched','Matched','Ignored') DEFAULT 'Unmatched',
+  `raw_row_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`raw_row_data`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -47,9 +84,9 @@ CREATE TABLE `billing` (
 --
 
 INSERT INTO `billing` (`billing_id`, `student_id`, `generated_by`, `billing_type`, `academic_year`, `semester`, `total_amount`, `discount_amount`, `remaining_balance`, `billing_status`, `created_at`, `updated_at`) VALUES
-(1, 850, 784, 'Enrollment', '2026-2027', '1st', 12885.00, 0.00, 3585.00, 'Partial', '2026-08-20 02:59:18', '2026-08-29 10:36:49'),
-(3, 884, 784, 'Enrollment', '2026-2027', '1st', 12635.00, 0.00, 0.00, 'Paid', '2026-08-24 10:35:47', '2026-08-29 04:41:20'),
-(4, 909, 784, 'Assessment', '2026-2027', '1st', 3110.00, 0.00, 3110.00, 'Unpaid', '2026-08-28 14:27:20', '2026-08-29 03:57:55');
+(1, 850, 784, 'Enrollment', '2026-2027', '1st', 12885.00, 0.00, 2100.00, 'Partial', '2026-08-20 02:59:18', '2026-09-04 12:28:41'),
+(3, 884, 784, 'Enrollment', '2026-2027', '1st', 13135.00, 0.00, 500.00, 'Partial', '2026-08-24 10:35:47', '2026-09-04 13:00:06'),
+(4, 909, 784, 'Assessment', '2026-2027', '1st', 3110.00, 0.00, 0.00, 'Paid', '2026-08-28 14:27:20', '2026-09-06 11:56:33');
 
 --
 -- Triggers `billing`
@@ -99,10 +136,10 @@ INSERT INTO `billing_items` (`billing_item_id`, `billing_id`, `fee_id`, `fee_nam
 (4, 1, 35, 'Cultural Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
 (5, 1, 36, 'Guidance & Counseling', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
 (6, 1, 37, 'Energy Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 1000.00, 1000.00, 0.00, 'Paid'),
-(7, 1, 38, 'Laboratory Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 150.00, 450.00, 'Partial'),
-(8, 1, 39, 'Community & Student Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 0.00, 600.00, 'Unpaid'),
-(9, 1, 40, 'Insurance', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 25.00, 0.00, 25.00, 'Unpaid'),
-(10, 1, 41, 'Medical and Dental', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 0.00, 400.00, 'Unpaid'),
+(7, 1, 38, 'Laboratory Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 600.00, 0.00, 'Paid'),
+(8, 1, 39, 'Community & Student Dev. Fee', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 600.00, 600.00, 0.00, 'Paid'),
+(9, 1, 40, 'Insurance', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 25.00, 25.00, 0.00, 'Paid'),
+(10, 1, 41, 'Medical and Dental', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 400.00, 400.00, 0.00, 'Paid'),
 (11, 1, 42, 'Student Handbook', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 250.00, 250.00, 0.00, 'Paid'),
 (12, 1, 43, 'RFID', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 500.00, 500.00, 0.00, 'Paid'),
 (13, 1, 45, 'Research Forum 2026', 'Enrollment Assessment', NULL, '2026-08-24 20:59:40', 200.00, 200.00, 0.00, 'Paid'),
@@ -126,11 +163,12 @@ INSERT INTO `billing_items` (`billing_item_id`, `billing_id`, `fee_id`, `fee_nam
 (31, 1, 42, 'Student Handbook', 'Assessment', 784, '2026-08-26 20:08:19', 250.00, 250.00, 0.00, 'Paid'),
 (32, 1, 48, 'Basketball Share', 'Assessment', 784, '2026-08-26 20:48:04', 2500.00, 2500.00, 0.00, 'Paid'),
 (33, 3, 48, 'Basketball Share', 'Enrollment', 784, '2026-08-26 21:08:13', 2500.00, 2500.00, 0.00, 'Paid'),
-(34, 4, 46, 'Pre Oral Defense', 'Assessment', 784, '2026-08-28 22:27:20', 2100.00, 0.00, 2100.00, 'Unpaid'),
-(35, 4, 49, 'adadadadada', 'Assessment', 784, '2026-08-29 11:57:55', 1000.00, 0.00, 1000.00, 'Unpaid'),
-(36, 4, 50, 'test', 'Assessment', 784, '2026-08-29 11:57:55', 10.00, 0.00, 10.00, 'Unpaid'),
-(37, 1, 51, 'test', 'Enrollment', 784, '2026-08-29 12:38:52', 10.00, 0.00, 10.00, 'Unpaid'),
-(38, 3, 51, 'test', 'Assessment', 784, '2026-08-29 12:40:13', 10.00, 10.00, 0.00, 'Paid');
+(34, 4, 46, 'Pre Oral Defense', 'Assessment', 784, '2026-08-28 22:27:20', 2100.00, 2100.00, 0.00, 'Paid'),
+(35, 4, 49, 'adadadadada', 'Assessment', 784, '2026-08-29 11:57:55', 1000.00, 1000.00, 0.00, 'Paid'),
+(36, 4, 50, 'test', 'Assessment', 784, '2026-08-29 11:57:55', 10.00, 10.00, 0.00, 'Paid'),
+(37, 1, 51, 'test', 'Enrollment', 784, '2026-08-29 12:38:52', 10.00, 10.00, 0.00, 'Paid'),
+(38, 3, 51, 'test', 'Assessment', 784, '2026-08-29 12:40:13', 10.00, 10.00, 0.00, 'Paid'),
+(39, 3, 52, 'Stage Play Rizal', 'Assessment', 784, '2026-09-04 21:00:06', 500.00, 0.00, 500.00, 'Unpaid');
 
 --
 -- Triggers `billing_items`
@@ -219,7 +257,8 @@ INSERT INTO `fees` (`fee_id`, `category_id`, `fee_name`, `default_amount`, `is_r
 (48, 6, 'Basketball Share', 2500.00, 1, 'Active', NULL, '2026-08-26 12:46:59', '2026-08-26 12:46:59'),
 (49, 2, 'adadadadada', 1000.00, 1, 'Inactive', NULL, '2026-08-29 03:41:58', '2026-08-29 04:37:27'),
 (50, 2, 'test', 10.00, 1, 'Inactive', NULL, '2026-08-29 03:51:58', '2026-08-29 04:37:24'),
-(51, 2, 'test', 10.00, 1, 'Inactive', NULL, '2026-08-29 04:37:59', '2026-08-29 09:53:25');
+(51, 2, 'test', 10.00, 1, 'Inactive', NULL, '2026-08-29 04:37:59', '2026-08-29 09:53:25'),
+(52, 6, 'Stage Play Rizal', 500.00, 1, 'Active', NULL, '2026-09-04 12:59:24', '2026-09-04 12:59:24');
 
 -- --------------------------------------------------------
 
@@ -275,44 +314,7 @@ CREATE TABLE `ocr_results` (
 --
 
 INSERT INTO `ocr_results` (`ocr_result_id`, `concern_id`, `scan_attempt`, `extracted_amount`, `bank_name`, `confidence_score`, `reference_number`, `transaction_date`, `transaction_time`, `raw_json`, `extraction_status`, `extraction_notes`, `scanned_by`, `created_at`, `updated_at`) VALUES
-(3, 2, 1, 1500.00, 'GCash', NULL, '1029384756', '2026-08-26', '14:30:00', '{\"text\":\"MOCK OCR SOURCE\\nGCash\\nAmount Paid: PHP 1,500.00\\nRef No. 1029384756\\nDate: 08\\/26\\/2026 14:30\"}', 'COMPLETE', '', NULL, current_timestamp(), NULL);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `bank_statements`
---
-
-CREATE TABLE `bank_statements` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `source_bank` varchar(50) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `file_hash` varchar(64) NOT NULL,
-  `uploaded_by` int(10) UNSIGNED NOT NULL,
-  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` enum('Pending','Processed','Failed') DEFAULT 'Pending',
-  `row_count` int(11) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `bank_statement_rows`
---
-
-CREATE TABLE `bank_statement_rows` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `statement_id` int(10) UNSIGNED NOT NULL,
-  `transaction_date` date NOT NULL,
-  `transaction_time` time DEFAULT NULL,
-  `reference_number` varchar(100) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `currency` varchar(10) DEFAULT 'PHP',
-  `transaction_type` varchar(50) DEFAULT NULL,
-  `status` enum('Unmatched','Matched','Ignored') DEFAULT 'Unmatched',
-  `raw_row_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`raw_row_data`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(3, 2, 1, 1500.00, 'GCash', NULL, '1029384756', '2026-08-26', '14:30:00', '{\"text\":\"MOCK OCR SOURCE\\nGCash\\nAmount Paid: PHP 1,500.00\\nRef No. 1029384756\\nDate: 08\\/26\\/2026 14:30\"}', 'COMPLETE', '', NULL, '2026-09-03 12:12:13', NULL);
 
 -- --------------------------------------------------------
 
@@ -344,7 +346,6 @@ CREATE TABLE `payments` (
   `remarks` text DEFAULT NULL,
   `receipt_number` varchar(50) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL COMMENT 'Used for QR payment 30-min expiry',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ;
 
@@ -367,7 +368,17 @@ INSERT INTO `payments` (`payment_id`, `student_id`, `billing_id`, `verified_by`,
 (31, 884, 3, NULL, 'Online', 'Online', 1475.00, 33.64, 1508.64, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_90db85d2948fe34dba458faa', NULL, NULL, NULL, 'GCash', 'PM-1787917934-2146', 'Verified', '2026-08-28', NULL, NULL, '2026-08-28 11:56:15', '2026-08-28 11:52:15'),
 (36, 884, 3, NULL, 'Online', 'Online', 10.00, 0.23, 10.23, NULL, 'SPECIFIC_ITEM', 38, 'cs_cde4b36d54b435032dddc139', NULL, NULL, NULL, 'GCash', 'PM-1787978458-8882', 'Verified', '2026-08-29', NULL, NULL, '2026-08-29 04:41:20', '2026-08-29 04:40:58'),
 (37, 850, 1, NULL, 'Online', 'Online', 2100.00, 47.90, 2147.90, NULL, 'SPECIFIC_ITEM', 27, 'cs_d8759420d532491738ebcb91', NULL, NULL, NULL, 'GCash', 'PM-1787998130-7781', 'Verified', '2026-08-29', NULL, NULL, '2026-08-29 10:09:00', '2026-08-29 10:08:51'),
-(42, 850, 1, NULL, 'Online', 'Online', 250.00, 5.70, 255.70, NULL, 'SPECIFIC_ITEM', 31, 'cs_d416d18ec2f0ed4dd58dcda9', NULL, NULL, NULL, 'GCash', 'PM-1787999799-1618', 'Verified', '2026-08-29', NULL, NULL, '2026-08-29 10:36:49', '2026-08-29 10:36:40');
+(42, 850, 1, NULL, 'Online', 'Online', 250.00, 5.70, 255.70, NULL, 'SPECIFIC_ITEM', 31, 'cs_d416d18ec2f0ed4dd58dcda9', NULL, NULL, NULL, 'GCash', 'PM-1787999799-1618', 'Verified', '2026-08-29', NULL, NULL, '2026-08-29 10:36:49', '2026-08-29 10:36:40'),
+(45, 850, 1, NULL, 'Online', 'Online', 1475.00, 61.40, 1536.40, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_a3a48d55740458f694fcc8bc', NULL, NULL, NULL, 'Visa', 'PM-1788353225-4792', '', '2026-09-02', NULL, NULL, NULL, '2026-09-02 12:47:06'),
+(46, 850, 1, NULL, 'Online', 'Online', 1475.00, 20.03, 1495.03, NULL, 'ENROLLMENT_PRIORITY', NULL, NULL, 'pi_hAWeMk8oUtidZh6iFNxgEFb1', NULL, NULL, 'QRPh', 'PM-1788353245-2121', '', '2026-09-02', NULL, NULL, NULL, '2026-09-02 12:47:26'),
+(47, 850, 1, NULL, 'Online', 'Online', 1475.00, 33.64, 1508.64, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_0f34f6e3aaf15551f841f2b0', NULL, NULL, NULL, 'GCash', 'PM-1788353323-8552', '', '2026-09-02', NULL, NULL, NULL, '2026-09-02 12:48:43'),
+(48, 850, 1, NULL, 'Online', 'Online', 1000.00, 22.81, 1022.81, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_6858af4cca2018b3515a43c9', NULL, NULL, NULL, 'GCash', 'PM-1788353466-1311', '', '2026-09-02', NULL, NULL, NULL, '2026-09-02 12:51:06'),
+(49, 850, 1, NULL, 'Online', 'Online', 1475.00, 33.64, 1508.64, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_fe9e91c1469e08d9772cd7d8', NULL, NULL, NULL, 'GCash', 'PM-1788356244-3157', '', '2026-09-02', NULL, NULL, NULL, '2026-09-02 13:37:24'),
+(50, 850, 1, NULL, 'Online', 'Online', 1475.00, 33.64, 1508.64, NULL, 'ENROLLMENT_PRIORITY', NULL, 'cs_63189fdc12823acffeb8008d', NULL, NULL, NULL, 'GCash', 'PM-1788356752-1211', 'Verified', '2026-09-02', NULL, NULL, '2026-09-02 13:46:21', '2026-09-02 13:45:53'),
+(56, 850, 1, 784, 'Walk-in', 'Walk-in', 10.00, NULL, NULL, NULL, 'ENROLLMENT_PRIORITY', NULL, NULL, NULL, 10.00, 0.00, 'Cash', 'OR-20260904-1620', 'Verified', '2026-09-04', '', 'OR-20260904-1620', '2026-09-04 12:28:41', '2026-09-04 12:28:41'),
+(57, 909, 4, 784, 'Walk-in', 'Walk-in', 1000.00, NULL, NULL, NULL, 'ENROLLMENT_PRIORITY', NULL, NULL, NULL, 1500.00, 500.00, 'Cash', 'OR-20260904-7348', 'Verified', '2026-09-04', '', 'OR-20260904-7348', '2026-09-04 12:56:24', '2026-09-04 12:56:24'),
+(58, 909, 4, NULL, 'Online', 'Online', 10.00, 0.23, 10.23, NULL, 'SPECIFIC_ITEM', 36, 'cs_5dbed47b75eebe5065a94005', NULL, NULL, NULL, 'GCash', 'PM-1788526649-4169', 'Verified', '2026-09-04', NULL, NULL, '2026-09-04 12:57:39', '2026-09-04 12:57:30'),
+(59, 909, 4, NULL, 'Online', 'Online', 2100.00, 47.90, 2147.90, NULL, 'SPECIFIC_ITEM', 34, 'cs_cded4f853a7fdd508ba04b85', NULL, NULL, NULL, 'GCash', 'PM-1788695613-6167', 'Verified', '2026-09-06', NULL, NULL, '2026-09-06 11:56:33', '2026-09-06 11:53:34');
 
 -- --------------------------------------------------------
 
@@ -423,7 +434,15 @@ INSERT INTO `payment_allocations` (`allocation_id`, `payment_id`, `billing_item_
 (41, 31, 23, 400.00, '2026-08-28 11:56:15'),
 (42, 36, 38, 10.00, '2026-08-29 04:41:20'),
 (43, 37, 27, 2100.00, '2026-08-29 10:09:00'),
-(48, 42, 31, 250.00, '2026-08-29 10:36:49');
+(48, 42, 31, 250.00, '2026-08-29 10:36:49'),
+(53, 50, 7, 450.00, '2026-09-02 13:46:21'),
+(54, 50, 8, 600.00, '2026-09-02 13:46:21'),
+(55, 50, 9, 25.00, '2026-09-02 13:46:21'),
+(56, 50, 10, 400.00, '2026-09-02 13:46:21'),
+(68, 56, 37, 10.00, '2026-09-04 12:28:41'),
+(69, 57, 35, 1000.00, '2026-09-04 12:56:24'),
+(70, 58, 36, 10.00, '2026-09-04 12:57:39'),
+(71, 59, 34, 2100.00, '2026-09-06 11:56:33');
 
 --
 -- Triggers `payment_allocations`
@@ -464,7 +483,7 @@ CREATE TABLE `payment_concerns` (
 
 INSERT INTO `payment_concerns` (`concern_id`, `student_id`, `payment_id`, `receipt_path`, `verification_status`, `ocr_status`, `remarks`, `reviewed_by`, `submitted_at`, `reviewed_at`) VALUES
 (1, 884, NULL, 'uploads/receipts/7eefbe98fd3676412fb1d57c6dc63bc9.jpg', 'Pending', 'Processing', '[wrong_amount] ', NULL, '2026-08-28 13:18:39', NULL),
-(2, 909, NULL, 'uploads/receipts/f1db252b83638ed55a0145cfe2c1077d.jpg', 'Pending', 'Completed', '[wrong_amount] Pa-verify ako niyan ya', NULL, '2026-08-28 14:28:25', NULL);
+(2, 909, NULL, 'uploads/receipts/f1db252b83638ed55a0145cfe2c1077d.jpg', 'Rejected', 'Completed', 'tanginamo mali yan tatrantado', 784, '2026-08-28 14:28:25', '2026-09-04 13:06:30');
 
 -- --------------------------------------------------------
 
@@ -485,7 +504,7 @@ CREATE TABLE `payment_gateway_settings` (
 
 INSERT INTO `payment_gateway_settings` (`setting_key`, `setting_value`, `description`, `updated_at`) VALUES
 ('fee_policy', 'pass_to_student', 'pass_to_student or absorb_by_school', '2026-08-12 12:49:45'),
-('gateway_mode', 'test', 'Set to live or test mode', '2026-08-29 10:25:55'),
+('gateway_mode', 'test', 'Set to live or test mode', '2026-09-04 11:44:47'),
 ('live_channel_card', '0', '1 to Enable, 0 to Disable Credit/Debit Cards (Live)', '2026-08-21 03:51:32'),
 ('live_channel_gcash', '0', '1 to Enable, 0 to Disable GCash (Live)', '2026-08-21 03:51:32'),
 ('live_channel_maya', '0', '1 to Enable, 0 to Disable Maya (Live)', '2026-08-21 03:51:32'),
@@ -493,10 +512,10 @@ INSERT INTO `payment_gateway_settings` (`setting_key`, `setting_value`, `descrip
 ('paymongo_public_key', '', 'PayMongo Public Key (Stored in .env)', '2026-08-12 12:49:45'),
 ('paymongo_secret_key', '', 'PayMongo Secret Key (Stored in .env)', '2026-08-12 12:49:45'),
 ('paymongo_webhook_secret', '', 'Webhook Secret (Stored in .env)', '2026-08-12 12:49:45'),
-('test_channel_card', '1', '1 to Enable, 0 to Disable Credit/Debit Cards', '2026-08-22 04:39:18'),
+('test_channel_card', '1', '1 to Enable, 0 to Disable Credit/Debit Cards', '2026-09-05 07:02:40'),
 ('test_channel_gcash', '1', '1 to Enable, 0 to Disable GCash', '2026-08-22 04:39:18'),
 ('test_channel_maya', '1', '1 to Enable, 0 to Disable Maya', '2026-08-21 03:51:32'),
-('test_channel_qrph', '1', '1 to Enable, 0 to Disable QR Ph (Test)', '2026-08-26 14:16:34'),
+('test_channel_qrph', '0', '1 to Enable, 0 to Disable QR Ph (Test)', '2026-09-04 11:44:47'),
 ('webhook_secret_live', '', NULL, '2026-08-21 06:05:13'),
 ('webhook_secret_test', 'whsk_o5adgJEYQ8HTZBYQftSVYay9', NULL, '2026-08-22 06:06:17');
 
@@ -589,13 +608,28 @@ CREATE TABLE `students` (
 
 INSERT INTO `students` (`student_id`, `user_id`, `student_number`, `full_name`, `course`, `year_level`, `section`, `contact_number`, `status`, `created_at`, `last_sync_at`) VALUES
 (9, 9, 'S230000001', 'Student User', 'Unknown', '1', NULL, NULL, '', '2026-08-18 09:57:26', '2026-08-18 09:57:26'),
-(850, 850, 'S230115569', 'Lebron James', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-20 02:59:11', '2026-08-29 10:34:00'),
-(884, 884, 's230115570', 'Kevin Durant', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-24 10:35:37', '2026-08-29 10:01:35'),
-(909, 909, 'S230115571', 'Justine Bonifacio', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-28 14:26:41', '2026-08-29 04:02:07');
+(850, 850, 'S230115569', 'Lebron James', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-20 02:59:11', '2026-09-06 13:20:39'),
+(884, 884, 's230115570', 'Kevin Durant', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-24 10:35:37', '2026-09-06 13:20:42'),
+(909, 909, 'S230115571', 'Justine Bonifacio', 'Unknown', '1', NULL, NULL, 'Enrolled', '2026-08-28 14:26:41', '2026-09-06 13:20:44');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `bank_statements`
+--
+ALTER TABLE `bank_statements`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_file_hash` (`file_hash`);
+
+--
+-- Indexes for table `bank_statement_rows`
+--
+ALTER TABLE `bank_statement_rows`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_statement_id` (`statement_id`),
+  ADD KEY `idx_reference_number` (`reference_number`);
 
 --
 -- Indexes for table `billing`
@@ -712,6 +746,18 @@ ALTER TABLE `students`
 --
 
 --
+-- AUTO_INCREMENT for table `bank_statements`
+--
+ALTER TABLE `bank_statements`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `bank_statement_rows`
+--
+ALTER TABLE `bank_statement_rows`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `billing`
 --
 ALTER TABLE `billing`
@@ -727,7 +773,7 @@ ALTER TABLE `billing_items`
 -- AUTO_INCREMENT for table `fees`
 --
 ALTER TABLE `fees`
-  MODIFY `fee_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `fee_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
 
 --
 -- AUTO_INCREMENT for table `fee_categories`
@@ -786,6 +832,12 @@ ALTER TABLE `students`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `bank_statement_rows`
+--
+ALTER TABLE `bank_statement_rows`
+  ADD CONSTRAINT `fk_bank_statement_rows_statement` FOREIGN KEY (`statement_id`) REFERENCES `bank_statements` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `billing`

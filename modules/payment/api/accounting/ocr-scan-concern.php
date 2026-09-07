@@ -95,7 +95,7 @@ try {
     }
     
     $stmtLog = $pdo->prepare("
-        INSERT INTO sms2_db.activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
+        INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
         VALUES (:uid, 'Trigger OCR Scan', 'Payment Management', :desc, :ip, :ua)
     ");
     $stmtLog->execute([
@@ -107,7 +107,7 @@ try {
 
     echo json_encode($result);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     error_log("OCR Processing Failed for Concern ID {$concernId}: " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => 'OCR_PROCESSING_FAILED', 'message' => $e->getMessage()]);

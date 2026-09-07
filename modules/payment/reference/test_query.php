@@ -5,9 +5,9 @@ require_once __DIR__ . '/modules/student-portal/config/config.php';
 $pdo = studentPortalDb();
 $stmtItems = $pdo->prepare("
     SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name 
-    FROM payment_db.billing_items bi 
-    JOIN payment_db.fees f ON bi.fee_id = f.fee_id 
-    LEFT JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+    FROM billing_items bi 
+    JOIN fees f ON bi.fee_id = f.fee_id 
+    LEFT JOIN fee_categories fc ON f.category_id = fc.category_id
     WHERE bi.billing_id = 2
 ");
 $stmtItems->execute();

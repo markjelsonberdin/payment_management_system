@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * The desired output location and metadata.
@@ -20,7 +20,7 @@ class OutputConfig extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.GcsDestination gcs_destination = 1;</code>
      */
-    protected $gcs_destination = null;
+    private $gcs_destination = null;
     /**
      * The max number of response protos to put into each output JSON file on
      * Google Cloud Storage.
@@ -34,7 +34,7 @@ class OutputConfig extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>int32 batch_size = 2;</code>
      */
-    protected $batch_size = 0;
+    private $batch_size = 0;
 
     /**
      * Constructor.
@@ -65,21 +65,11 @@ class OutputConfig extends \Google\Protobuf\Internal\Message
      * The Google Cloud Storage location to write the output(s) to.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.GcsDestination gcs_destination = 1;</code>
-     * @return \Google\Cloud\Vision\V1\GcsDestination|null
+     * @return \Google\Cloud\Vision\V1\GcsDestination
      */
     public function getGcsDestination()
     {
         return $this->gcs_destination;
-    }
-
-    public function hasGcsDestination()
-    {
-        return isset($this->gcs_destination);
-    }
-
-    public function clearGcsDestination()
-    {
-        unset($this->gcs_destination);
     }
 
     /**

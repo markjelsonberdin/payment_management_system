@@ -115,7 +115,7 @@ if ($isStudentPortal && isset($sidebarCrad) && $sidebarCrad instanceof PDO) {
         $checkGroupStmt = $sidebarCrad->prepare("
             SELECT COUNT(*) FROM research_groups 
             WHERE status = 'Approved'
-              AND (leader_id = :student_id OR leader_id = (SELECT student_id FROM sms2_db.users WHERE id = :user_id LIMIT 1))
+              AND (leader_id = :student_id OR leader_id = (SELECT student_id FROM users WHERE id = :user_id LIMIT 1))
             LIMIT 1
         ");
         $checkGroupStmt->execute([

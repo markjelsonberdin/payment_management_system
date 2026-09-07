@@ -62,7 +62,7 @@ class RegistrarStudentClient {
             return null;
         }
         
-        // 2. Sync to Local Reference Cache (payment_db.students)
+        // 2. Sync to Local Reference Cache (students)
         $this->syncLocalReference($student);
 
         return $student;

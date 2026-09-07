@@ -53,7 +53,7 @@ try {
         }
 
         // Kunin ang internal student_id gamit ang student_number mula sa session
-        $stmt = $pdo->prepare("SELECT student_id FROM payment_db.students WHERE student_number = :student_number OR student_number = :raw_number LIMIT 1");
+        $stmt = $pdo->prepare("SELECT student_id FROM students WHERE student_number = :student_number OR student_number = :raw_number LIMIT 1");
         
         $stmt->execute([
             ':student_number' => $searchSn,
@@ -65,7 +65,7 @@ try {
             $dbStudentId = $studentRow['student_id'];
 
             // Kunin ang pinakabagong billing record ng estudyante
-            $stmtBilling = $pdo->prepare("SELECT * FROM payment_db.billing WHERE student_id = :student_id ORDER BY billing_id DESC LIMIT 1");
+            $stmtBilling = $pdo->prepare("SELECT * FROM billing WHERE student_id = :student_id ORDER BY billing_id DESC LIMIT 1");
             $stmtBilling->execute([':student_id' => $dbStudentId]);
             $billingDetails = $stmtBilling->fetch(PDO::FETCH_ASSOC);
 
@@ -80,9 +80,9 @@ try {
                 // Kunin ang breakdown ng fees naka-join sa fees table at fee_categories
                 $stmtItems = $pdo->prepare("
                     SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name, bi.source_context 
-                    FROM payment_db.billing_items bi 
-                    JOIN payment_db.fees f ON bi.fee_id = f.fee_id 
-                    LEFT JOIN payment_db.fee_categories fc ON f.category_id = fc.category_id
+                    FROM billing_items bi 
+                    JOIN fees f ON bi.fee_id = f.fee_id 
+                    LEFT JOIN fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id
                 ");
                 $stmtItems->execute([':billing_id' => $billingDetails['billing_id']]);
@@ -453,6 +453,9 @@ function updatePaymongoAmount() {
 document.addEventListener('DOMContentLoaded', function() {
     const modalEl = document.getElementById('paymongoModal');
     if (modalEl) {
+        // Fix for modal backdrop blocking clicks: move modal to the very end of body
+        document.body.appendChild(modalEl);
+        
         modalEl.addEventListener('show.bs.modal', function () {
             updatePaymongoAmount();
         });

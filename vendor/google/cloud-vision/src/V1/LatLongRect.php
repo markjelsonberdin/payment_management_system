@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Rectangle determined by min and max `LatLng` pairs.
@@ -20,13 +20,13 @@ class LatLongRect extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.type.LatLng min_lat_lng = 1;</code>
      */
-    protected $min_lat_lng = null;
+    private $min_lat_lng = null;
     /**
      * Max lat/long pair.
      *
      * Generated from protobuf field <code>.google.type.LatLng max_lat_lng = 2;</code>
      */
-    protected $max_lat_lng = null;
+    private $max_lat_lng = null;
 
     /**
      * Constructor.
@@ -49,21 +49,11 @@ class LatLongRect extends \Google\Protobuf\Internal\Message
      * Min lat/long pair.
      *
      * Generated from protobuf field <code>.google.type.LatLng min_lat_lng = 1;</code>
-     * @return \Google\Type\LatLng|null
+     * @return \Google\Type\LatLng
      */
     public function getMinLatLng()
     {
         return $this->min_lat_lng;
-    }
-
-    public function hasMinLatLng()
-    {
-        return isset($this->min_lat_lng);
-    }
-
-    public function clearMinLatLng()
-    {
-        unset($this->min_lat_lng);
     }
 
     /**
@@ -85,21 +75,11 @@ class LatLongRect extends \Google\Protobuf\Internal\Message
      * Max lat/long pair.
      *
      * Generated from protobuf field <code>.google.type.LatLng max_lat_lng = 2;</code>
-     * @return \Google\Type\LatLng|null
+     * @return \Google\Type\LatLng
      */
     public function getMaxLatLng()
     {
         return $this->max_lat_lng;
-    }
-
-    public function hasMaxLatLng()
-    {
-        return isset($this->max_lat_lng);
-    }
-
-    public function clearMaxLatLng()
-    {
-        unset($this->max_lat_lng);
     }
 
     /**

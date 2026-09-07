@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Metadata for the batch operations such as the current state.
@@ -22,21 +22,20 @@ class BatchOperationMetadata extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.BatchOperationMetadata.State state = 1;</code>
      */
-    protected $state = 0;
+    private $state = 0;
     /**
      * The time when the batch request was submitted to the server.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp submit_time = 2;</code>
      */
-    protected $submit_time = null;
+    private $submit_time = null;
     /**
      * The time when the batch request is finished and
-     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is
-     * set to true.
+     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is set to true.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp end_time = 3;</code>
      */
-    protected $end_time = null;
+    private $end_time = null;
 
     /**
      * Constructor.
@@ -50,8 +49,7 @@ class BatchOperationMetadata extends \Google\Protobuf\Internal\Message
      *           The time when the batch request was submitted to the server.
      *     @type \Google\Protobuf\Timestamp $end_time
      *           The time when the batch request is finished and
-     *           [google.longrunning.Operation.done][google.longrunning.Operation.done] is
-     *           set to true.
+     *           [google.longrunning.Operation.done][google.longrunning.Operation.done] is set to true.
      * }
      */
     public function __construct($data = NULL) {
@@ -79,7 +77,7 @@ class BatchOperationMetadata extends \Google\Protobuf\Internal\Message
      */
     public function setState($var)
     {
-        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\BatchOperationMetadata\State::class);
+        GPBUtil::checkEnum($var, \Google\Cloud\Vision\V1\BatchOperationMetadata_State::class);
         $this->state = $var;
 
         return $this;
@@ -89,21 +87,11 @@ class BatchOperationMetadata extends \Google\Protobuf\Internal\Message
      * The time when the batch request was submitted to the server.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp submit_time = 2;</code>
-     * @return \Google\Protobuf\Timestamp|null
+     * @return \Google\Protobuf\Timestamp
      */
     public function getSubmitTime()
     {
         return $this->submit_time;
-    }
-
-    public function hasSubmitTime()
-    {
-        return isset($this->submit_time);
-    }
-
-    public function clearSubmitTime()
-    {
-        unset($this->submit_time);
     }
 
     /**
@@ -123,31 +111,19 @@ class BatchOperationMetadata extends \Google\Protobuf\Internal\Message
 
     /**
      * The time when the batch request is finished and
-     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is
-     * set to true.
+     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is set to true.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp end_time = 3;</code>
-     * @return \Google\Protobuf\Timestamp|null
+     * @return \Google\Protobuf\Timestamp
      */
     public function getEndTime()
     {
         return $this->end_time;
     }
 
-    public function hasEndTime()
-    {
-        return isset($this->end_time);
-    }
-
-    public function clearEndTime()
-    {
-        unset($this->end_time);
-    }
-
     /**
      * The time when the batch request is finished and
-     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is
-     * set to true.
+     * [google.longrunning.Operation.done][google.longrunning.Operation.done] is set to true.
      *
      * Generated from protobuf field <code>.google.protobuf.Timestamp end_time = 3;</code>
      * @param \Google\Protobuf\Timestamp $var

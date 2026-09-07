@@ -5,8 +5,8 @@
 namespace Google\Cloud\Vision\V1;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
-use Google\Protobuf\RepeatedField;
 
 /**
  * Response to an image annotation request.
@@ -60,37 +60,37 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation full_text_annotation = 12;</code>
      */
-    protected $full_text_annotation = null;
+    private $full_text_annotation = null;
     /**
      * If present, safe-search annotation has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.SafeSearchAnnotation safe_search_annotation = 6;</code>
      */
-    protected $safe_search_annotation = null;
+    private $safe_search_annotation = null;
     /**
      * If present, image properties were extracted successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageProperties image_properties_annotation = 8;</code>
      */
-    protected $image_properties_annotation = null;
+    private $image_properties_annotation = null;
     /**
      * If present, crop hints have completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.CropHintsAnnotation crop_hints_annotation = 11;</code>
      */
-    protected $crop_hints_annotation = null;
+    private $crop_hints_annotation = null;
     /**
      * If present, web detection has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.WebDetection web_detection = 13;</code>
      */
-    protected $web_detection = null;
+    private $web_detection = null;
     /**
      * If present, product search has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ProductSearchResults product_search_results = 14;</code>
      */
-    protected $product_search_results = null;
+    private $product_search_results = null;
     /**
      * If set, represents the error message for the operation.
      * Note that filled-in image annotations are guaranteed to be
@@ -98,14 +98,14 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.google.rpc.Status error = 9;</code>
      */
-    protected $error = null;
+    private $error = null;
     /**
      * If present, contextual information is needed to understand where this image
      * comes from.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageAnnotationContext context = 21;</code>
      */
-    protected $context = null;
+    private $context = null;
 
     /**
      * Constructor.
@@ -113,18 +113,18 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * @param array $data {
      *     Optional. Data for populating the Message object.
      *
-     *     @type \Google\Cloud\Vision\V1\FaceAnnotation[] $face_annotations
+     *     @type \Google\Cloud\Vision\V1\FaceAnnotation[]|\Google\Protobuf\Internal\RepeatedField $face_annotations
      *           If present, face detection has completed successfully.
-     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[] $landmark_annotations
+     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $landmark_annotations
      *           If present, landmark detection has completed successfully.
-     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[] $logo_annotations
+     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $logo_annotations
      *           If present, logo detection has completed successfully.
-     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[] $label_annotations
+     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $label_annotations
      *           If present, label detection has completed successfully.
-     *     @type \Google\Cloud\Vision\V1\LocalizedObjectAnnotation[] $localized_object_annotations
+     *     @type \Google\Cloud\Vision\V1\LocalizedObjectAnnotation[]|\Google\Protobuf\Internal\RepeatedField $localized_object_annotations
      *           If present, localized object detection has completed successfully.
      *           This will be sorted descending by confidence score.
-     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[] $text_annotations
+     *     @type \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $text_annotations
      *           If present, text (OCR) detection has completed successfully.
      *     @type \Google\Cloud\Vision\V1\TextAnnotation $full_text_annotation
      *           If present, text (OCR) detection or document (OCR) text detection has
@@ -159,7 +159,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, face detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.FaceAnnotation face_annotations = 1;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\FaceAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getFaceAnnotations()
     {
@@ -170,7 +170,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, face detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.FaceAnnotation face_annotations = 1;</code>
-     * @param \Google\Cloud\Vision\V1\FaceAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\FaceAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setFaceAnnotations($var)
@@ -185,7 +185,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, landmark detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation landmark_annotations = 2;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\EntityAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getLandmarkAnnotations()
     {
@@ -196,7 +196,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, landmark detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation landmark_annotations = 2;</code>
-     * @param \Google\Cloud\Vision\V1\EntityAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setLandmarkAnnotations($var)
@@ -211,7 +211,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, logo detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation logo_annotations = 3;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\EntityAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getLogoAnnotations()
     {
@@ -222,7 +222,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, logo detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation logo_annotations = 3;</code>
-     * @param \Google\Cloud\Vision\V1\EntityAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setLogoAnnotations($var)
@@ -237,7 +237,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, label detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation label_annotations = 4;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\EntityAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getLabelAnnotations()
     {
@@ -248,7 +248,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, label detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation label_annotations = 4;</code>
-     * @param \Google\Cloud\Vision\V1\EntityAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setLabelAnnotations($var)
@@ -264,7 +264,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * This will be sorted descending by confidence score.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.LocalizedObjectAnnotation localized_object_annotations = 22;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\LocalizedObjectAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getLocalizedObjectAnnotations()
     {
@@ -276,7 +276,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * This will be sorted descending by confidence score.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.LocalizedObjectAnnotation localized_object_annotations = 22;</code>
-     * @param \Google\Cloud\Vision\V1\LocalizedObjectAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\LocalizedObjectAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setLocalizedObjectAnnotations($var)
@@ -291,7 +291,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, text (OCR) detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation text_annotations = 5;</code>
-     * @return RepeatedField<\Google\Cloud\Vision\V1\EntityAnnotation>
+     * @return \Google\Protobuf\Internal\RepeatedField
      */
     public function getTextAnnotations()
     {
@@ -302,7 +302,7 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, text (OCR) detection has completed successfully.
      *
      * Generated from protobuf field <code>repeated .google.cloud.vision.v1.EntityAnnotation text_annotations = 5;</code>
-     * @param \Google\Cloud\Vision\V1\EntityAnnotation[] $var
+     * @param \Google\Cloud\Vision\V1\EntityAnnotation[]|\Google\Protobuf\Internal\RepeatedField $var
      * @return $this
      */
     public function setTextAnnotations($var)
@@ -320,21 +320,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * text.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.TextAnnotation full_text_annotation = 12;</code>
-     * @return \Google\Cloud\Vision\V1\TextAnnotation|null
+     * @return \Google\Cloud\Vision\V1\TextAnnotation
      */
     public function getFullTextAnnotation()
     {
         return $this->full_text_annotation;
-    }
-
-    public function hasFullTextAnnotation()
-    {
-        return isset($this->full_text_annotation);
-    }
-
-    public function clearFullTextAnnotation()
-    {
-        unset($this->full_text_annotation);
     }
 
     /**
@@ -359,21 +349,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, safe-search annotation has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.SafeSearchAnnotation safe_search_annotation = 6;</code>
-     * @return \Google\Cloud\Vision\V1\SafeSearchAnnotation|null
+     * @return \Google\Cloud\Vision\V1\SafeSearchAnnotation
      */
     public function getSafeSearchAnnotation()
     {
         return $this->safe_search_annotation;
-    }
-
-    public function hasSafeSearchAnnotation()
-    {
-        return isset($this->safe_search_annotation);
-    }
-
-    public function clearSafeSearchAnnotation()
-    {
-        unset($this->safe_search_annotation);
     }
 
     /**
@@ -395,21 +375,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, image properties were extracted successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageProperties image_properties_annotation = 8;</code>
-     * @return \Google\Cloud\Vision\V1\ImageProperties|null
+     * @return \Google\Cloud\Vision\V1\ImageProperties
      */
     public function getImagePropertiesAnnotation()
     {
         return $this->image_properties_annotation;
-    }
-
-    public function hasImagePropertiesAnnotation()
-    {
-        return isset($this->image_properties_annotation);
-    }
-
-    public function clearImagePropertiesAnnotation()
-    {
-        unset($this->image_properties_annotation);
     }
 
     /**
@@ -431,21 +401,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, crop hints have completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.CropHintsAnnotation crop_hints_annotation = 11;</code>
-     * @return \Google\Cloud\Vision\V1\CropHintsAnnotation|null
+     * @return \Google\Cloud\Vision\V1\CropHintsAnnotation
      */
     public function getCropHintsAnnotation()
     {
         return $this->crop_hints_annotation;
-    }
-
-    public function hasCropHintsAnnotation()
-    {
-        return isset($this->crop_hints_annotation);
-    }
-
-    public function clearCropHintsAnnotation()
-    {
-        unset($this->crop_hints_annotation);
     }
 
     /**
@@ -467,21 +427,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, web detection has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.WebDetection web_detection = 13;</code>
-     * @return \Google\Cloud\Vision\V1\WebDetection|null
+     * @return \Google\Cloud\Vision\V1\WebDetection
      */
     public function getWebDetection()
     {
         return $this->web_detection;
-    }
-
-    public function hasWebDetection()
-    {
-        return isset($this->web_detection);
-    }
-
-    public function clearWebDetection()
-    {
-        unset($this->web_detection);
     }
 
     /**
@@ -503,21 +453,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * If present, product search has completed successfully.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ProductSearchResults product_search_results = 14;</code>
-     * @return \Google\Cloud\Vision\V1\ProductSearchResults|null
+     * @return \Google\Cloud\Vision\V1\ProductSearchResults
      */
     public function getProductSearchResults()
     {
         return $this->product_search_results;
-    }
-
-    public function hasProductSearchResults()
-    {
-        return isset($this->product_search_results);
-    }
-
-    public function clearProductSearchResults()
-    {
-        unset($this->product_search_results);
     }
 
     /**
@@ -541,21 +481,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * correct, even when `error` is set.
      *
      * Generated from protobuf field <code>.google.rpc.Status error = 9;</code>
-     * @return \Google\Rpc\Status|null
+     * @return \Google\Rpc\Status
      */
     public function getError()
     {
         return $this->error;
-    }
-
-    public function hasError()
-    {
-        return isset($this->error);
-    }
-
-    public function clearError()
-    {
-        unset($this->error);
     }
 
     /**
@@ -580,21 +510,11 @@ class AnnotateImageResponse extends \Google\Protobuf\Internal\Message
      * comes from.
      *
      * Generated from protobuf field <code>.google.cloud.vision.v1.ImageAnnotationContext context = 21;</code>
-     * @return \Google\Cloud\Vision\V1\ImageAnnotationContext|null
+     * @return \Google\Cloud\Vision\V1\ImageAnnotationContext
      */
     public function getContext()
     {
         return $this->context;
-    }
-
-    public function hasContext()
-    {
-        return isset($this->context);
-    }
-
-    public function clearContext()
-    {
-        unset($this->context);
     }
 
     /**
