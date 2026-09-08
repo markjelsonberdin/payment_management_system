@@ -91,6 +91,9 @@ class BillingService {
 
             $billingId = $this->pdo->lastInsertId();
 
+            // Keep the stored item context compatible with payment allocation rules.
+            $sourceContext = $billingType === 'Enrollment' ? 'Enrollment Assessment' : $billingType;
+
             // 7. Create Historical Snapshot (billing_items)
             $stmtItems = $this->pdo->prepare("
                 INSERT INTO billing_items 
@@ -106,7 +109,7 @@ class BillingService {
                     ':fname' => $fee['fee_name'], // Historical Snapshot!
                     ':amt' => $fee['default_amount'],
                     ':rem' => $fee['default_amount'],
-                    ':ctx' => $billingType,
+                    ':ctx' => $sourceContext,
                     ':addedby' => $generatedBy
                 ]);
             }
@@ -168,6 +171,8 @@ class BillingService {
             $added = [];
             $skipped = [];
 
+            $sourceContext = $context === 'Enrollment' ? 'Enrollment Assessment' : $context;
+
             // 4. Insert new items
             $stmtInsert = $this->pdo->prepare("
                 INSERT INTO billing_items 
@@ -188,7 +193,7 @@ class BillingService {
                     ':fname' => $fee['fee_name'],
                     ':amt' => $fee['default_amount'],
                     ':rem' => $fee['default_amount'],
-                    ':ctx' => $context,
+                    ':ctx' => $sourceContext,
                     ':addedby' => $addedBy
                 ]);
                 

@@ -8,8 +8,8 @@
 // Main System Config (para sa ROOT_PATH at BASE_URL)
 require_once __DIR__ . '/../../../config/config.php';
 
-// Student Portal Module Config (para sa studentPortalDb() function)
-require_once __DIR__ . '/../config/config.php';
+// Use the payment database as the authoritative source for billing data.
+require_once __DIR__ . '/../../payment/database/db_connect.php';
 
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
@@ -35,6 +35,7 @@ $breadcrumbs = [
 $studentId = $_SESSION['student_id'] ?? 'S230106713'; // Default fallback based on your DB
 
 $totalAssessment = 0.00;
+$discountAmount = 0.00;
 $totalPaid = 0.00;
 $remainingBalance = 0.00;
 $assessmentBreakdown = [];
@@ -43,10 +44,7 @@ $academicYear = 'N/A';
 $semester = 'N/A';
 
 try {
-    // Kunin ang PDO connection gamit ang function mula sa config.php
-    $pdo = studentPortalDb(); 
-    
-    if ($pdo) {
+    if (isset($pdo) && $pdo instanceof PDO) {
         // Minsan ang nasa session ay numeric lang (e.g. 230115569) pero sa database ay 'S230115569'
         $searchSn = strtoupper(trim($studentId));
         if (!str_starts_with($searchSn, 'S') && is_numeric($searchSn)) {
@@ -72,22 +70,29 @@ try {
 
             if ($billingDetails) {
                 $totalAssessment = (float)$billingDetails['total_amount'];
+                $discountAmount = (float)$billingDetails['discount_amount'];
                 $remainingBalance = (float)$billingDetails['remaining_balance'];
-                $totalPaid = $totalAssessment - $remainingBalance;
                 
                 $academicYear = $billingDetails['academic_year'];
                 $semester = $billingDetails['semester'];
 
                 // Kunin ang breakdown ng fees naka-join sa fees table at fee_categories
                 $stmtItems = $pdo->prepare("
-                    SELECT bi.*, f.fee_name, f.description, f.category_id, fc.category_name, bi.source_context 
-                    FROM billing_items bi 
-                    JOIN fees f ON bi.fee_id = f.fee_id 
+                    SELECT bi.*, COALESCE(f.fee_name, bi.fee_name) AS fee_name,
+                           f.description, f.category_id, fc.category_name, bi.source_context
+                    FROM billing_items bi
+                    LEFT JOIN fees f ON bi.fee_id = f.fee_id
                     LEFT JOIN fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id
                 ");
                 $stmtItems->execute([':billing_id' => $billingDetails['billing_id']]);
                 $assessmentBreakdown = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+                // Calculate Total Paid based on actual allocated payments in billing_items
+                $totalPaid = 0.00;
+                foreach ($assessmentBreakdown as $item) {
+                    $totalPaid += (float)$item['paid_amount'];
+                }
 
                 // Group assessment by category for accordion UI
                 $groupedAssessment = [];
@@ -102,8 +107,8 @@ try {
                         ];
                     }
                     $groupedAssessment[$catName]['items'][] = $item;
-                    $groupedAssessment[$catName]['total_amount'] += $item['amount'];
-                    $groupedAssessment[$catName]['paid_amount'] += ($item['amount'] - $item['remaining_amount']);
+                    $groupedAssessment[$catName]['total_amount'] += (float)$item['amount'];
+                    $groupedAssessment[$catName]['paid_amount'] += (float)$item['paid_amount'];
                 }
                 
                 // Evaluate category status
@@ -127,7 +132,7 @@ try {
                     if ($item['category_id'] == 1) continue; // Skip Tuition
                     if ($item['remaining_amount'] <= 0) continue;
                     
-                    if ($item['source_context'] === 'Enrollment Assessment') {
+                    if (in_array($item['source_context'], ['Enrollment Assessment', 'Enrollment'], true)) {
                         $enrollmentTotal += (float)$item['remaining_amount'];
                     }
                 }
@@ -147,7 +152,7 @@ try {
                     if ($item['category_id'] == 1) continue; // Skip Tuition
                     if ($item['remaining_amount'] <= 0) continue;
                     
-                    if ($item['source_context'] !== 'Enrollment Assessment') {
+                    if (!in_array($item['source_context'], ['Enrollment Assessment', 'Enrollment'], true)) {
                         $payableOptions[] = [
                             'value_id' => $item['billing_item_id'],
                             'allocation_context' => 'SPECIFIC_ITEM',
@@ -160,7 +165,6 @@ try {
             }
         }
     }
-} catch (PDOException $e) {
 } catch (PDOException $e) {
     // Silently handle errors para hindi masira ang UI
 }
@@ -210,13 +214,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <?php endif; ?>
 
     <div class="row g-3 mb-3 dashboard-stats">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <section class="card stat-card warning"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('file-invoice-dollar') ?></div><div><h6 class="text-muted">Total Assessment</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalAssessment, 2) ?></h4></div></div></section>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <section class="card stat-card secondary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('discount-2') ?></div><div><h6 class="text-muted">Discount</h6><h4 class="fw-bold mb-0">PHP <?= number_format($discountAmount, 2) ?></h4></div></div></section>
+        </div>
+        <div class="col-md-3">
             <section class="card stat-card success"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('check-circle') ?></div><div><h6 class="text-muted">Total Paid</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalPaid, 2) ?></h4></div></div></section>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <section class="card stat-card primary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('wallet') ?></div><div><h6 class="text-muted">Balance</h6><h4 class="fw-bold mb-0">PHP <?= number_format($remainingBalance, 2) ?></h4></div></div></section>
         </div>
     </div>
@@ -285,7 +292,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                                         <?php endif; ?>
                                                     </td>
                                                     <td class="py-3 text-end text-dark">PHP <?= number_format($item['amount'], 2) ?></td>
-                                                    <td class="py-3 text-end pe-4 text-success fw-bold">PHP <?= number_format($item['amount'] - $item['remaining_amount'], 2) ?></td>
+                                                    <td class="py-3 text-end pe-4 text-success fw-bold">PHP <?= number_format($item['paid_amount'], 2) ?></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>

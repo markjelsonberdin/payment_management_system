@@ -39,6 +39,7 @@ if (!function_exists('smsTablerIconName')) {
             'star-half-alt' => 'star-half-filled',
             'user-graduate' => 'school',
             'peso-sign' => 'currency-peso',
+            'discount-2' => 'discount',
             'file-invoice-dollar' => 'file-invoice',
             'chalkboard-teacher' => 'chalkboard',
             'hand-holding-heart' => 'heart-handshake',

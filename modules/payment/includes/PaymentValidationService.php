@@ -95,7 +95,7 @@ class PaymentValidationService {
                     FROM billing_items bi
                     JOIN fees f ON bi.fee_id = f.fee_id
                     WHERE bi.billing_id = :billing_id 
-                      AND bi.source_context = 'Enrollment Assessment'
+                      AND bi.source_context IN ('Enrollment Assessment', 'Enrollment')
                       AND f.category_id != 1
                       AND bi.remaining_amount > 0
                 ");
