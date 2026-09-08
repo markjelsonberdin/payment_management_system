@@ -567,7 +567,19 @@ function initiatePayMongoCheckout(channel) {
             force_new_attempt: window.forceNewAttempt || false
         })
     })
-    .then(response => response.json())
+    .then(response => response.text().then(text => {
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (parseError) {
+            throw new Error('Payment service returned an invalid response (HTTP ' + response.status + ').');
+        }
+        if (!response.ok) {
+            const detail = data.provider_message ? ' [' + data.provider_message + ']' : '';
+            throw new Error((data.message || data.error || 'Payment service request failed.') + detail);
+        }
+        return data;
+    }))
     .then(data => {
         // Reset force flag after use
         window.forceNewAttempt = false;
@@ -589,7 +601,9 @@ function initiatePayMongoCheckout(channel) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert("A network error occurred while generating the payment link.");
+        alert(error && error.message
+            ? error.message
+            : "A network error occurred while generating the payment link.");
         resetCheckoutUI();
     });
 }

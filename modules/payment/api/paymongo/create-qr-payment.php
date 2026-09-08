@@ -110,6 +110,7 @@ if (!$studentId || !$billingId || !$amount || $channel !== 'qrph') {
 }
 
 try {
+    $providerStage = 'validation';
     $pdo->beginTransaction();
     $dbLocked = true;
 
@@ -138,6 +139,7 @@ try {
         throw new Exception("You already have an active pending QR payment for this billing. Please complete it or wait for it to expire.");
     }
 
+    $providerStage = 'configuration';
     $payMongo = new PayMongoService();
     $channelService = new PaymentChannelService($pdo);
     $env = $channelService->getActiveEnvironment();
@@ -185,6 +187,7 @@ try {
     $dbLocked = false;
 
     // 5. Call PayMongo API
+    $providerStage = 'create_payment_intent';
     $intentRes = $payMongo->createPaymentIntent($checkoutTotal, $description, [
         'reference_number' => $referenceNumber
     ]);
@@ -196,13 +199,15 @@ try {
         throw new Exception("Failed to generate Payment Intent from PayMongo.");
     }
 
-    $methodRes = $payMongo->createQrPaymentMethod();
+    $providerStage = 'create_qr_payment_method';
+    $methodRes = $payMongo->createQrPaymentMethod(1800);
     $paymentMethodId = $methodRes['data']['id'] ?? null;
 
     if (!$paymentMethodId) {
         throw new Exception("Failed to create QR Ph Payment Method.");
     }
 
+    $providerStage = 'attach_payment_method';
     $attachRes = $payMongo->attachPaymentIntent($paymentIntentId, $paymentMethodId, $clientKey);
     $qrImage = $attachRes['data']['attributes']['next_action']['code']['image_url'] ?? null;
 
@@ -211,6 +216,7 @@ try {
     }
 
     // 6. Update Payment Attempt with PayMongo Intent ID
+    $providerStage = 'save_payment_intent';
     $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_intent_id = :payment_intent_id WHERE payment_id = :payment_id");
     $stmtUpdate->execute([
         ':payment_intent_id' => $paymentIntentId,
@@ -246,12 +252,14 @@ try {
             error_log("Secondary error while marking payment as failed: " . $innerE->getMessage());
         }
     }
-    error_log("QR Creation Error: " . $e->getMessage());
+    error_log("QR Creation Error [$providerStage]: " . $e->getMessage());
     http_response_code(400);
     echo json_encode([
         'success' => false,
         'error' => 'QR_PAYMENT_CREATION_FAILED',
-        'message' => 'Unable to create the QR payment right now. Please try again.'
+        'message' => 'Unable to create the QR payment right now. Please try again.',
+        'stage' => $providerStage,
+        'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
     ]);
 }
 

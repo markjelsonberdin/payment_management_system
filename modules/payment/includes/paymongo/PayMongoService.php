@@ -162,11 +162,12 @@ class PayMongoService {
     /**
      * Creates a QR Ph Payment Method (Uses Public Key)
      */
-    public function createQrPaymentMethod() {
+    public function createQrPaymentMethod(int $expirySeconds = 1800) {
         $payload = [
             'data' => [
                 'attributes' => [
-                    'type' => 'qrph'
+                    'type' => 'qrph',
+                    'expiry_seconds' => $expirySeconds
                 ]
             ]
         ];
