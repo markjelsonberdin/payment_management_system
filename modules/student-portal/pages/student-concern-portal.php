@@ -149,10 +149,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     </div>
 
     <?php if (!empty($successMsg)): ?>
-        <div class="alert alert-success shadow-sm border-0"><i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($successMsg) ?></div>
+        <div class="alert alert-success shadow-sm border-0"><i class="ti ti-circle-check me-2"></i> <?= htmlspecialchars($successMsg) ?></div>
     <?php endif; ?>
     <?php if (!empty($errorMsg)): ?>
-        <div class="alert alert-danger shadow-sm border-0"><i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($errorMsg) ?></div>
+        <div class="alert alert-danger shadow-sm border-0"><i class="ti ti-alert-triangle me-2"></i> <?= htmlspecialchars($errorMsg) ?></div>
     <?php endif; ?>
 
     <div class="row g-4">
@@ -262,7 +262,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 <?php else: ?>
                                     <tr>
                                         <td colspan="3" class="py-5 text-center text-muted">
-                                            <i class="fas fa-check-circle fs-3 mb-2 text-success opacity-50 d-block"></i>
+                                            <i class="ti ti-circle-check fs-3 mb-2 text-success opacity-50 d-block"></i>
                                             You have no active payment concerns.
                                         </td>
                                     </tr>
@@ -290,7 +290,7 @@ document.getElementById('receiptImageInput').addEventListener('change', function
 
     const badge = document.getElementById('ocrStatusBadge');
     badge.className = 'badge bg-primary ms-2';
-    badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning AI...';
+    badge.innerHTML = '<i class="ti ti-loader"></i> Scanning AI...';
     badge.classList.remove('d-none');
 
     const formData = new FormData();
@@ -330,7 +330,7 @@ document.getElementById('receiptImageInput').addEventListener('change', function
             }
         } else {
             badge.className = 'badge bg-warning text-dark ms-2';
-            badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> OCR Failed';
+            badge.innerHTML = '<i class="ti ti-alert-triangle"></i> OCR Failed';
             console.warn("OCR Failed:", data.error, data.message);
         }
     })

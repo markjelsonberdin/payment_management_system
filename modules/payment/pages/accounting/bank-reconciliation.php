@@ -53,7 +53,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
             <a href="payment-concern-portal.php" class="btn btn-outline-secondary shadow-sm">
-                <i class="fas fa-arrow-left me-1"></i> Back to Concerns
+                <i class="ti ti-arrow-left me-1"></i> Back to Concerns
             </a>
         </div>
     </div>
@@ -83,7 +83,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <input type="file" class="form-control" name="statement_file" accept=".csv" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" id="btnUpload">
-                            <i class="fas fa-upload me-1"></i> Import Records
+                            <i class="ti ti-upload me-1"></i> Import Records
                         </button>
                     </form>
                 </div>
@@ -130,7 +130,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <?php else: ?>
                                     <tr>
                                         <td colspan="5" class="py-5 text-center text-muted">
-                                            <i class="fas fa-folder-open fs-3 mb-2 text-secondary opacity-50 d-block"></i>
+                                            <i class="ti ti-folder-open fs-3 mb-2 text-secondary opacity-50 d-block"></i>
                                             No bank statements uploaded yet.
                                         </td>
                                     </tr>
@@ -149,7 +149,7 @@ document.getElementById('uploadCsvForm').addEventListener('submit', function(e) 
     e.preventDefault();
     const btn = document.getElementById('btnUpload');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Uploading...';
+    btn.innerHTML = '<i class="ti ti-loader me-2"></i> Uploading...';
     btn.disabled = true;
 
     const formData = new FormData(this);

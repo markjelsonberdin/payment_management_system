@@ -17,25 +17,22 @@ if (!in_array($roleKey, ['admin', 'superadmin', 'finance', 'cashier'])) {
 }
 
 $paymentDb = null;
-$smsDb = null;
 try {
     $host = getenv('DB_HOST') ?: '127.0.0.1';
     $port = getenv('DB_PORT') ?: '3307';
     $paymentDbName = getenv('DB_DATABASE') ?: 'payment_db';
-    $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
     $username = getenv('DB_USERNAME') ?: 'root';
     $password = getenv('DB_PASSWORD') ?: '';
 
     $paymentDb = new PDO("mysql:host=$host;port=$port;dbname=$paymentDbName;charset=utf8mb4", $username, $password);
     $paymentDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $smsDb = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
-    $smsDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed']);
     exit;
 }
+
 
 $data = [
     'kpis' => [
@@ -146,14 +143,32 @@ try {
     }
 
     // --- 6. Recent Payment Activity ---
-    $stmt = $smsDb->query("
-        SELECT detail, created_at 
-        FROM activity_logs 
-        WHERE module_key = 'payment' 
-        ORDER BY created_at DESC 
-        LIMIT 10
-    ");
-    $data['recent_activity'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // On HostForge: all tables in one DB. On local: activity_logs is in sms2_db.
+    try {
+        $stmt = $paymentDb->query("
+            SELECT detail, created_at 
+            FROM activity_logs 
+            WHERE module_key = 'payment' 
+            ORDER BY created_at DESC 
+            LIMIT 10
+        ");
+        $data['recent_activity'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Fallback: try cross-database query for local dev (sms2_db)
+        try {
+            $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
+            $stmt = $paymentDb->query("
+                SELECT detail, created_at 
+                FROM {$smsDbName}.activity_logs 
+                WHERE module_key = 'payment' 
+                ORDER BY created_at DESC 
+                LIMIT 10
+            ");
+            $data['recent_activity'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e2) {
+            $data['recent_activity'] = [];
+        }
+    }
 
     echo json_encode($data);
 

@@ -27,7 +27,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-sms-primary shadow-sm fw-bold px-4" onclick="fetchDashboardData()">
-            <i class="fas fa-sync-alt me-2"></i> Refresh
+            <i class="ti ti-refresh me-2"></i> Refresh
         </button>
     </div>
 </div>
@@ -44,7 +44,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi-collections-today">₱0.00</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-peso-sign fa-2x text-gray-300 opacity-25"></i>
+                        <i class="ti ti-currency-dollar fa-2x text-gray-300 opacity-25" style="font-size: 2rem;"></i>
                     </div>
                 </div>
             </div>
@@ -61,7 +61,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi-collected-month">₱0.00</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-wallet fa-2x text-gray-300 opacity-25"></i>
+                        <i class="ti ti-wallet fa-2x text-gray-300 opacity-25" style="font-size: 2rem;"></i>
                     </div>
                 </div>
             </div>
@@ -78,7 +78,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi-pending-payments">0</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-clock fa-2x text-gray-300 opacity-25"></i>
+                        <i class="ti ti-clock fa-2x text-gray-300 opacity-25" style="font-size: 2rem;"></i>
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="kpi-outstanding-balance">₱0.00</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-file-invoice-dollar fa-2x text-gray-300 opacity-25"></i>
+                        <i class="ti ti-file-invoice fa-2x text-gray-300 opacity-25" style="font-size: 2rem;"></i>
                     </div>
                 </div>
             </div>

@@ -224,7 +224,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <div class="d-flex justify-content-md-end gap-2">
                 <div class="input-group w-auto shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                     <input type="text" class="form-control border-start-0 ps-0 custom-accordion-search" placeholder="Search fee name...">
                 </div>
                 <button class="btn btn-light border shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#archivedFeesModal">
@@ -234,7 +234,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <?php endif; ?>
                 </button>
                 <button class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#addFeeModal">
-                    <i class="fas fa-plus me-1"></i> Add Fee
+                    <i class="ti ti-plus me-1"></i> Add Fee
                 </button>
             </div>
         </div>
@@ -254,14 +254,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         };
         ?>
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="fas fa-check-circle me-2"></i> <strong>Success!</strong> <?= htmlspecialchars($successMsg) ?>
+            <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> <?= htmlspecialchars($successMsg) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
+            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -275,7 +275,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <button class="accordion-button <?= $accIndex === 1 ? '' : 'collapsed' ?> bg-white fw-bold d-flex align-items-center p-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $accIndex ?>" aria-expanded="<?= $accIndex === 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $accIndex ?>" style="box-shadow: none;">
                             <div class="d-flex w-100 align-items-center pe-5">
                                 <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
-                                    <i class="fas fa-layer-group text-primary me-2 opacity-75"></i><span class="category-name"><?= htmlspecialchars($catName) ?></span>
+                                    <i class="ti ti-stack-2 text-primary me-2 opacity-75"></i><span class="category-name"><?= htmlspecialchars($catName) ?></span>
                                     <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
                                         PHP <?= number_format($group['total_amount'], 2) ?> Total &bull; <?= count($group['items']) ?> Items
                                     </div>
@@ -312,7 +312,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             </td>
                                             <td class="py-3 text-center">
                                                 <?php if ($fee['is_required']): ?>
-                                                    <i class="fas fa-check-circle text-success fs-5" data-bs-toggle="tooltip" title="Required"></i>
+                                                    <i class="ti ti-circle-check text-success fs-5" data-bs-toggle="tooltip" title="Required"></i>
                                                 <?php else: ?>
                                                     <i class="fas fa-minus-circle text-muted fs-5" data-bs-toggle="tooltip" title="Optional"></i>
                                                 <?php endif; ?>
@@ -330,7 +330,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                                     data-category="<?= $fee['category_id'] ?>" 
                                                     data-amount="<?= $fee['default_amount'] ?>" 
                                                     data-required="<?= $fee['is_required'] ?>" title="Edit Configuration">
-                                                    <i class="fas fa-edit"></i>
+                                                    <i class="ti ti-edit"></i>
                                                 </button>
                                                 <!-- ARCHIVE BUTTON -->
                                                 <button type="button" class="btn btn-sm btn-light text-danger shadow-sm btn-archive-trigger" 
@@ -349,7 +349,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <?php endforeach; ?>
         <?php else: ?>
             <div class="alert alert-light text-center text-muted mb-0 border shadow-sm rounded-4">
-                <i class="fas fa-folder-open fs-4 d-block mb-2 text-secondary"></i>
+                <i class="ti ti-folder-open fs-4 d-block mb-2 text-secondary"></i>
                 No fee configurations found. Click "Add Fee" to create one.
             </div>
         <?php endif; ?>
@@ -365,7 +365,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white border-0 pb-3">
-                <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Add New Fee</h5>
+                <h5 class="modal-title fw-bold"><i class="ti ti-plus-circle me-2"></i>Add New Fee</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -412,7 +412,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-white border-bottom pb-3">
-                <h5 class="modal-title fw-bold text-primary"><i class="fas fa-edit me-2"></i>Edit Fee Configuration</h5>
+                <h5 class="modal-title fw-bold text-primary"><i class="ti ti-edit me-2"></i>Edit Fee Configuration</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="" method="POST">
@@ -485,7 +485,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <?= csrfField(); ?>
                 <input type="hidden" name="category_id" id="archiveCategoryId">
                 <div class="modal-body text-center p-4">
-                    <i class="fas fa-exclamation-triangle text-danger mb-3" style="font-size: 3rem;"></i>
+                    <i class="ti ti-alert-triangle text-danger mb-3" style="font-size: 3rem;"></i>
                     <h5 class="fw-bold">Archive Category?</h5>
                     <p class="text-muted small">
                         Archive all <strong id="archiveCategoryCount"></strong> fees under <strong id="archiveCategoryName"></strong>?
@@ -534,7 +534,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <form action="" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this fee?');">
                                             <?= csrfField(); ?>
                                             <input type="hidden" name="fee_id" value="<?= $fee['fee_id'] ?>">
-                                            <button type="submit" name="delete_fee" class="btn btn-sm btn-light text-danger shadow-sm"><i class="fas fa-trash-alt"></i></button>
+                                            <button type="submit" name="delete_fee" class="btn btn-sm btn-light text-danger shadow-sm"><i class="ti ti-trash-alt"></i></button>
                                         </form>
                                     </td>
                                 </tr>
@@ -549,7 +549,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <?php if (count($archivedFeesList) > 0): ?>
                     <form action="" method="POST" class="m-0" onsubmit="return confirm('Delete ALL archived fees?');">
                         <?= csrfField(); ?>
-                        <button type="submit" name="delete_all_archived" class="btn btn-outline-danger shadow-sm"><i class="fas fa-trash-alt me-1"></i> Delete All Permanently</button>
+                        <button type="submit" name="delete_all_archived" class="btn btn-outline-danger shadow-sm"><i class="ti ti-trash-alt me-1"></i> Delete All Permanently</button>
                     </form>
                 <?php else: ?>
                     <div></div>

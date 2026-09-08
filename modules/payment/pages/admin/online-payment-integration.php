@@ -139,7 +139,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-globe text-primary me-2"></i>Online Payment Integration</h2>
+            <h2 class="mb-1 fw-bolder"><i class="ti ti-world text-primary me-2"></i>Online Payment Integration</h2>
             <p class="text-muted mb-0 fs-6">Configure payment gateway credentials, active digital channels, and processing fee rules.</p>
         </div>
     </div>
@@ -147,14 +147,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Alerts -->
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="fas fa-check-circle me-2"></i> <strong>Success!</strong> Payment gateway settings updated successfully.
+            <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> Payment gateway settings updated successfully.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
+            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -163,7 +163,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="d-flex justify-content-between align-items-end mb-3">
         <h5 class="fw-bold mb-0 text-dark">Integration Health</h5>
         <button type="button" class="btn btn-sm btn-outline-primary fw-bold shadow-sm" id="btnRefreshStatus">
-            <i class="fas fa-sync-alt me-1" id="iconRefreshStatus"></i> Refresh Status
+            <i class="ti ti-refresh me-1" id="iconRefreshStatus"></i> Refresh Status
         </button>
     </div>
 
@@ -175,7 +175,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Online Payment Gateway</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="gatewayStatusText">
-                        <i class="fas fa-spinner fa-spin me-2" id="gatewayStatusIcon"></i>Checking...
+                        <i class="ti ti-loader me-2" id="gatewayStatusIcon"></i>Checking...
                     </h4>
                     <small class="text-muted mt-2 d-block" id="gatewayStatusSubtext">Fetching readiness state...</small>
                 </div>
@@ -188,7 +188,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">PayMongo API Connection</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="apiConnectionText">
-                        <i class="fas fa-spinner fa-spin me-2" id="apiConnectionIcon"></i>Checking...
+                        <i class="ti ti-loader me-2" id="apiConnectionIcon"></i>Checking...
                     </h4>
                     <small class="text-muted mt-2 d-block" id="apiConnectionSubtext">Verifying credentials...</small>
                 </div>
@@ -201,7 +201,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Webhook Status</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="webhookStatusText">
-                        <i class="fas fa-spinner fa-spin me-2" id="webhookStatusIcon"></i>Checking...
+                        <i class="ti ti-loader me-2" id="webhookStatusIcon"></i>Checking...
                     </h4>
                     <small class="text-muted mt-2 d-block" id="webhookStatusSubtext">Inspecting remote registration...</small>
                 </div>
@@ -216,7 +216,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <div class="col-lg-7 mb-4">
                 <div class="card border-0 shadow-sm rounded-4 h-100">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-key me-2"></i>PayMongo API Configuration</h5>
+                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-key me-2"></i>PayMongo API Configuration</h5>
                     </div>
                     <div class="card-body p-4">
                         
@@ -259,7 +259,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     // Password toggles are automatically handled by sms-security-ui.js
                                 });
                             </script>
-                            <small class="d-block mt-3" id="keyHintText"><i class="fas fa-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.</small>
+                            <small class="d-block mt-3" id="keyHintText"><i class="ti ti-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.</small>
                         </div>
 
                     </div>
@@ -272,7 +272,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <!-- Payment Channels Card -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-toggle-on me-2"></i>Active Payment Channels</h5>
+                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-toggle-right me-2"></i>Active Payment Channels</h5>
                     </div>
                     <div class="card-body p-4">
                         <p class="text-muted small mb-3">Enable or disable channels available to students in their portal payment gateway interface.</p>
@@ -302,7 +302,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         </div>
                         
                         <div id="hidden_channels_msg" class="text-muted small mt-3" style="display: none;">
-                            <i class="fas fa-info-circle me-1"></i> Some channels are hidden because they are not active in your PayMongo account.
+                            <i class="ti ti-info-circle me-1"></i> Some channels are hidden because they are not active in your PayMongo account.
                         </div>
                     </div>
                 </div>
@@ -310,7 +310,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <!-- Convenience Fee Policy Card -->
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-hand-holding-usd me-2"></i>Convenience Fee Policy</h5>
+                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-cash me-2"></i>Convenience Fee Policy</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="mb-3">
@@ -320,7 +320,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             </select>
                         </div>
                         <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
-                            <i class="fas fa-save me-1"></i> Save Gateway Configuration
+                            <i class="ti ti-device-floppy me-1"></i> Save Gateway Configuration
                         </button>
                     </div>
                 </div>
@@ -428,7 +428,7 @@ document.addEventListener("DOMContentLoaded", function () {
             displaySK.classList.add('border-danger');
             displayWH.classList.add('border-danger');
             
-            keyHint.innerHTML = '<i class="fas fa-shield-alt me-1"></i>Live keys are locked in the <code>.env</code> file for maximum security.';
+            keyHint.innerHTML = '<i class="ti ti-shield-check me-1"></i>Live keys are locked in the <code>.env</code> file for maximum security.';
             keyHint.className = 'd-block mt-3 text-danger';
         } else {
             lblPK.textContent = 'Test Public Key';
@@ -440,7 +440,7 @@ document.addEventListener("DOMContentLoaded", function () {
             displaySK.classList.remove('border-danger');
             displayWH.classList.remove('border-danger');
             
-            keyHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.';
+            keyHint.innerHTML = '<i class="ti ti-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.';
             keyHint.className = 'd-block mt-3 text-muted';
         }
     }
@@ -470,40 +470,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // API CARD
                 if (data.api.connected) {
-                    setCardState(ui.api, 'Connected', 'success', 'fas fa-wifi', data.api.message);
+                    setCardState(ui.api, 'Connected', 'success', 'ti ti-wifi', data.api.message);
                 } else if (data.api.status === 'auth_failed') {
-                    setCardState(ui.api, 'Auth Failed', 'danger', 'fas fa-times-circle', data.api.message);
+                    setCardState(ui.api, 'Auth Failed', 'danger', 'ti ti-circle-x', data.api.message);
                 } else {
-                    setCardState(ui.api, 'Unavailable', 'secondary', 'fas fa-plug', data.api.message);
+                    setCardState(ui.api, 'Unavailable', 'secondary', 'ti ti-plug', data.api.message);
                 }
 
                 // WEBHOOK CARD
                 if (data.webhook.status === 'ready') {
-                    setCardState(ui.webhook, 'Ready', 'success', 'fas fa-satellite-dish', data.webhook.message);
+                    setCardState(ui.webhook, 'Ready', 'success', 'ti ti-antenna', data.webhook.message);
                 } else if (data.webhook.status === 'configured_but_invalid') {
-                    setCardState(ui.webhook, 'Invalid Config', 'warning', 'fas fa-exclamation-triangle', data.webhook.message);
+                    setCardState(ui.webhook, 'Invalid Config', 'warning', 'ti ti-alert-triangle', data.webhook.message);
                 } else {
-                    setCardState(ui.webhook, 'Not Ready', 'secondary', 'fas fa-unlink', data.webhook.message);
+                    setCardState(ui.webhook, 'Not Ready', 'secondary', 'ti ti-link-off', data.webhook.message);
                 }
 
                 // GATEWAY CARD
                 if (data.gateway.status === 'TEST ACTIVE') {
-                    setCardState(ui.gateway, 'TEST ACTIVE', 'success', 'fas fa-play-circle', data.gateway.message);
+                    setCardState(ui.gateway, 'TEST ACTIVE', 'success', 'ti ti-player-play', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE READY') {
-                    setCardState(ui.gateway, 'LIVE READY', 'primary', 'fas fa-rocket', data.gateway.message);
+                    setCardState(ui.gateway, 'LIVE READY', 'primary', 'ti ti-rocket', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE ACTIVE') {
-                    setCardState(ui.gateway, 'LIVE ACTIVE', 'success', 'fas fa-check-double', data.gateway.message);
+                    setCardState(ui.gateway, 'LIVE ACTIVE', 'success', 'ti ti-checks', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE NOT READY') {
-                    setCardState(ui.gateway, 'LIVE NOT READY', 'danger', 'fas fa-ban', data.gateway.message);
+                    setCardState(ui.gateway, 'LIVE NOT READY', 'danger', 'ti ti-ban', data.gateway.message);
                 } else {
-                    setCardState(ui.gateway, 'NOT READY', 'secondary', 'fas fa-stop-circle', data.gateway.message);
+                    setCardState(ui.gateway, 'NOT READY', 'secondary', 'ti ti-player-stop', data.gateway.message);
                 }
 
             })
             .catch(err => {
-                setCardState(ui.api, 'Error', 'danger', 'fas fa-exclamation-triangle', 'Failed to fetch status.');
-                setCardState(ui.webhook, 'Error', 'danger', 'fas fa-exclamation-triangle', 'Failed to fetch status.');
-                setCardState(ui.gateway, 'Error', 'danger', 'fas fa-exclamation-triangle', 'Failed to fetch status.');
+                setCardState(ui.api, 'Error', 'danger', 'ti ti-alert-triangle', 'Failed to fetch status.');
+                setCardState(ui.webhook, 'Error', 'danger', 'ti ti-alert-triangle', 'Failed to fetch status.');
+                setCardState(ui.gateway, 'Error', 'danger', 'ti ti-alert-triangle', 'Failed to fetch status.');
             })
             .finally(() => {
                 if (force) {
@@ -520,13 +520,13 @@ document.addEventListener("DOMContentLoaded", function () {
         
         let html = '';
         if (statusData.status === 'AVAILABLE') {
-            html = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Available in PayMongo & Enabled for students</span>`;
+            html = `<span class="text-success"><i class="ti ti-circle-check me-1"></i>Available in PayMongo & Enabled for students</span>`;
         } else if (statusData.status === 'DISABLED_BY_ADMIN') {
-            html = `<span class="text-muted"><i class="fas fa-toggle-off me-1"></i>${statusData.message}</span>`;
+            html = `<span class="text-muted"><i class="ti ti-toggle-left me-1"></i>${statusData.message}</span>`;
         } else if (statusData.status === 'NOT_ACTIVE_IN_PAYMONGO') {
-            html = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${statusData.message}</span>`;
+            html = `<span class="text-danger"><i class="ti ti-circle-x me-1"></i>${statusData.message}</span>`;
         } else {
-            html = `<span class="text-secondary"><i class="fas fa-ban me-1"></i>${statusData.message}</span>`;
+            html = `<span class="text-secondary"><i class="ti ti-ban me-1"></i>${statusData.message}</span>`;
         }
         div.innerHTML = html;
 
@@ -548,7 +548,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
             const div = document.getElementById('status_' + c);
             const container = document.getElementById('container_' + c);
-            if (div) div.innerHTML = `<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Checking...</span>`;
+            if (div) div.innerHTML = `<span class="text-muted"><i class="ti ti-loader me-1"></i>Checking...</span>`;
             if (container) container.style.display = 'block'; // reset visibility
         });
         
@@ -575,7 +575,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(err => {
                 ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
                     const div = document.getElementById('status_' + c);
-                    if (div) div.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Error checking capability</span>`;
+                    if (div) div.innerHTML = `<span class="text-danger"><i class="ti ti-alert-triangle me-1"></i>Error checking capability</span>`;
                 });
             });
     }
@@ -594,7 +594,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Since it's complicated, we just let them save. But let's show a "Not saved" indicator.
             const channel = this.id.replace('Switch', '');
             const div = document.getElementById('status_' + channel);
-            if (div) div.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-circle me-1"></i>Unsaved change. Click save to apply.</span>`;
+            if (div) div.innerHTML = `<span class="text-warning"><i class="ti ti-alert-circle me-1"></i>Unsaved change. Click save to apply.</span>`;
         });
     });
 

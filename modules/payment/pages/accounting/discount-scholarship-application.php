@@ -73,10 +73,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <!-- Alerts -->
     <?php if (isset($_GET['success'])): ?>
-        <div class="alert alert-success alert-dismissible shadow-sm"><i class="fas fa-check-circle me-2"></i> Discount successfully applied! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <div class="alert alert-success alert-dismissible shadow-sm"><i class="ti ti-circle-check me-2"></i> Discount successfully applied! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-danger alert-dismissible shadow-sm"><i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?> <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <div class="alert alert-danger alert-dismissible shadow-sm"><i class="ti ti-alert-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?> <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
 
     <div class="row">
@@ -87,7 +87,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <h5 class="fw-bold mb-3">1. Select Student</h5>
                     
                     <div class="input-group mb-3">
-                        <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                        <span class="input-group-text bg-light"><i class="ti ti-search"></i></span>
                         <input type="text" class="form-control" id="searchStudentDiscount" placeholder="Enter Student Number" autocomplete="off">
                         <button class="btn btn-primary" type="button" id="btnSearchBilling">Search</button>
                     </div>
@@ -179,7 +179,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <div class="col-md-6">
                                 <div class="card scholarship-card border rounded-3 p-3 cursor-pointer" data-name="Sibling Discount" data-type="Percentage" data-value="10">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded"><i class="fas fa-user-friends"></i></div>
+                                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded"><i class="ti ti-user-friends"></i></div>
                                         <span class="badge bg-success bg-opacity-10 text-success">Active</span>
                                     </div>
                                     <h6 class="fw-bold mb-0">Sibling Discount</h6>

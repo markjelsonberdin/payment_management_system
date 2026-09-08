@@ -88,7 +88,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <p class="text-muted mb-0">Manage access to the Payment Management module.</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openAddModal()">
-        <i class="fas fa-plus me-2"></i> Add Account
+        <i class="ti ti-plus me-2"></i> Add Account
     </button>
 </div>
 
@@ -134,9 +134,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 </td>
                                 <td>
                                     <?php if ($u['status'] === 'active'): ?>
-                                        <span class="text-success"><i class="fas fa-circle fa-xs me-1"></i> Active</span>
+                                        <span class="text-success"><i class="ti ti-circle-filled fa-xs me-1"></i> Active</span>
                                     <?php else: ?>
-                                        <span class="text-muted"><i class="fas fa-circle fa-xs me-1"></i> <?= ucfirst($u['status']) ?></span>
+                                        <span class="text-muted"><i class="ti ti-circle-filled fa-xs me-1"></i> <?= ucfirst($u['status']) ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-muted small">
@@ -144,14 +144,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-light text-primary me-1" onclick="openEditModal(<?= htmlspecialchars(json_encode($u)) ?>)">
-                                        <i class="fas fa-edit"></i> Edit
+                                        <i class="ti ti-edit"></i> Edit
                                     </button>
                                     <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this account?');">
                                         <?= csrfField(); ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-light text-danger">
-                                            <i class="fas fa-trash"></i>
+                                            <i class="ti ti-trash"></i>
                                         </button>
                                     </form>
                                 </td>

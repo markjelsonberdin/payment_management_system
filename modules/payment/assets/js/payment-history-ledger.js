@@ -29,13 +29,13 @@ document.addEventListener('DOMContentLoaded', function () {
     function statusBadge(status) {
         switch (status) {
             case 'Verified':
-                return '<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-semibold"><i class="fas fa-check-circle me-1"></i>Verified</span>';
+                return '<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-semibold"><i class="ti ti-circle-check me-1"></i>Verified</span>';
             case 'Pending':
-                return '<span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fw-semibold"><i class="fas fa-clock me-1"></i>Pending</span>';
+                return '<span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 fw-semibold"><i class="ti ti-clock me-1"></i>Pending</span>';
             case 'Rejected':
-                return '<span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold"><i class="fas fa-times-circle me-1"></i>Rejected</span>';
+                return '<span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold"><i class="ti ti-circle-x me-1"></i>Rejected</span>';
             case 'Failed':
-                return '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold"><i class="fas fa-exclamation-circle me-1"></i>Failed</span>';
+                return '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold"><i class="ti ti-alert-circle me-1"></i>Failed</span>';
             default:
                 return '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fw-semibold">' + text(status, 'Unknown') + '</span>';
         }
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="col-md-6">' +
                     '<div class="card border-0 shadow-sm rounded-3 h-100 bg-white">' +
                         '<div class="card-body p-3">' +
-                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="fas fa-user-graduate me-1 text-primary"></i> Student & Details</h6>' +
+                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-user-graduate me-1 text-primary"></i> Student & Details</h6>' +
                             modalRow('Student Name', data.full_name) +
                             modalRow('Student No.', data.student_number) +
                             modalRow('Course / Program', data.course || '—') +
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Allocations breakdown
             '<div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">' +
                 '<div class="card-body p-3">' +
-                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="fas fa-list-check me-1 text-primary"></i> Fee Allocation Breakdown</h6>' +
+                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-list-check me-1 text-primary"></i> Fee Allocation Breakdown</h6>' +
                     allocationHtml +
                 '</div>' +
             '</div>' +
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Audit Trail
             '<div class="card border-0 shadow-sm rounded-3 bg-white">' +
                 '<div class="card-body p-3">' +
-                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="fas fa-shield-alt me-1 text-primary"></i> Audit Information</h6>' +
+                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-shield-check me-1 text-primary"></i> Audit Information</h6>' +
                     modalRow('Payment Date', text(data.payment_date, '—')) +
                     modalRow('Recorded At', formatStamp(data.created_at)) +
                     modalRow('Verified At', data.verified_at ? formatStamp(data.verified_at) : 'Pending Verification') +

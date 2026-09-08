@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 row.className = "live-search-no-results text-center py-4";
                 cell.colSpan = columns;
                 cell.className = "text-muted py-5";
-                cell.innerHTML = '<i class="fas fa-search fs-3 mb-2 d-block"></i>';
+                cell.innerHTML = '<i class="ti ti-search fs-3 mb-2 d-block"></i>';
                 cell.append("No matching records found for ");
 
                 const queryLabel = document.createElement("strong");
