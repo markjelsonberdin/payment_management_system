@@ -75,7 +75,7 @@ class PaymentAllocationService {
                     JOIN fees f ON bi.fee_id = f.fee_id
                     JOIN fee_categories fc ON f.category_id = fc.category_id
                     WHERE bi.billing_id = :billing_id 
-                      AND bi.source_context = 'Enrollment Assessment'
+                      AND bi.source_context IN ('Enrollment Assessment', 'Enrollment')
                       AND bi.status != 'Paid'
                       AND bi.remaining_amount > 0
                       AND fc.category_id != :tuition_cat
@@ -205,20 +205,26 @@ class PaymentAllocationService {
      */
     private function updateBillingSummary($billingId) {
         $stmt = $this->pdo->prepare("
-            SELECT COALESCE(SUM(remaining_amount), 0) AS total_remaining
+            SELECT COALESCE(SUM(remaining_amount), 0) AS total_items_remaining
             FROM billing_items
             WHERE billing_id = :billing_id
         ");
         $stmt->execute([':billing_id' => $billingId]);
-        $totalRemaining = (float)$stmt->fetchColumn();
+        $totalItemsRemaining = (float)$stmt->fetchColumn();
 
-        $stmtOriginal = $this->pdo->prepare("SELECT total_amount FROM billing WHERE billing_id = :billing_id");
+        $stmtOriginal = $this->pdo->prepare("SELECT total_amount, discount_amount FROM billing WHERE billing_id = :billing_id");
         $stmtOriginal->execute([':billing_id' => $billingId]);
-        $totalAmount = (float)$stmtOriginal->fetchColumn();
+        $billing = $stmtOriginal->fetch(PDO::FETCH_ASSOC);
 
-        if ($totalRemaining <= 0) {
+        $totalAmount = (float)$billing['total_amount'];
+        $discountAmount = (float)$billing['discount_amount'];
+
+        $actualRemainingBalance = max(0, $totalItemsRemaining - $discountAmount);
+        $netPayable = max(0, $totalAmount - $discountAmount);
+
+        if ($actualRemainingBalance <= 0) {
             $status = 'Paid';
-        } elseif ($totalRemaining < $totalAmount) {
+        } elseif ($actualRemainingBalance < $netPayable) {
             $status = 'Partial';
         } else {
             $status = 'Unpaid';
@@ -230,7 +236,7 @@ class PaymentAllocationService {
             WHERE billing_id = :billing_id
         ");
         $stmtUpdate->execute([
-            ':bal' => $totalRemaining,
+            ':bal' => $actualRemainingBalance,
             ':status' => $status,
             ':billing_id' => $billingId
         ]);

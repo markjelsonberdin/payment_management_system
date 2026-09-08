@@ -8,8 +8,8 @@
 // Main System Config (para sa ROOT_PATH at BASE_URL)
 require_once __DIR__ . '/../../../config/config.php';
 
-// Student Portal Module Config (para sa studentPortalDb() function)
-require_once __DIR__ . '/../config/config.php';
+// Use the payment database as the authoritative source for payment history.
+require_once __DIR__ . '/../../payment/database/db_connect.php';
 
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
@@ -29,9 +29,7 @@ $studentId = $_SESSION['student_id'] ?? 'S230106713'; // Default fallback
 $paymentTransactions = [];
 
 try {
-    $pdo = studentPortalDb(); 
-    
-    if ($pdo) {
+    if (isset($pdo) && $pdo instanceof PDO) {
         // Kunin ang lahat ng payment records ng naka-login na student mula sa payment_db
         // Naka-join tayo sa billing para makuha ang description (hal. Enrollment for 1st Sem)
         $stmtPayments = $pdo->prepare("
