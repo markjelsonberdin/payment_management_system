@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../database/db_connect.php';
+require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
 header('Content-Type: application/json');
 $student_number = $_GET['student_number'] ?? '';
@@ -12,45 +13,10 @@ if(strlen($student_number) < 3) {
 }
 
 try {
-    // Connect to sms2_db directly since we don't have a registrar API yet
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3307';
-    $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
-    $username = getenv('DB_USERNAME') ?: 'root';
-    $password = getenv('DB_PASSWORD') ?: '';
-    
-    $sms2_pdo = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
-    $sms2_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Search in sms2_db.users
-    $stmt = $sms2_pdo->prepare("
-        SELECT 
-            id as student_id, 
-            student_id as student_number, 
-            full_name
-        FROM users 
-        WHERE role_key = 'student' AND student_id = :student_number 
-        LIMIT 1
-    ");
-    $stmt->execute([':student_number' => $student_number]);
-    $student = $stmt->fetch(PDO::FETCH_ASSOC);
+    $client = new RegistrarStudentClient($pdo);
+    $student = $client->getAndSyncStudent($student_number);
     
     if ($student) {
-        // Sync to students so foreign keys work
-        $syncStmt = $pdo->prepare("
-            INSERT INTO students (student_id, user_id, student_number, full_name, course, year_level, status)
-            VALUES (:id, :uid, :sn, :name, 'Unknown', '1', 'Enrolled')
-            ON DUPLICATE KEY UPDATE 
-                full_name = VALUES(full_name),
-                last_sync_at = CURRENT_TIMESTAMP
-        ");
-        $syncStmt->execute([
-            ':id' => $student['student_id'],
-            ':uid' => $student['student_id'],
-            ':sn' => $student['student_number'],
-            ':name' => $student['full_name']
-        ]);
-
         echo json_encode([
             'success' => true,
             'name' => trim($student['full_name'] ?? 'Unknown Student'),
