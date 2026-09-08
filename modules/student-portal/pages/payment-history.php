@@ -65,7 +65,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="page-header student-portal-header d-flex justify-content-between align-items-center mb-4">
         <div>
             <span class="student-kicker text-uppercase text-primary fw-bold small">Student Portal</span>
-            <h2 class="fw-bolder m-0"><i class="fas fa-receipt text-sms-primary me-2"></i>Payment History</h2>
+            <h2 class="fw-bolder m-0"><i class="ti ti-receipt text-sms-primary me-2"></i>Payment History</h2>
             <p class="text-muted m-0 mt-1">Review your official receipt records and past payment transactions.</p>
         </div>
     </div>
@@ -76,7 +76,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="card-title fw-semibold m-0">Official Payment Transactions</h5>
                 <a href="student-concern-portal.php" class="btn btn-sm btn-outline-danger fw-semibold rounded-3 shadow-sm">
-                    <i class="fas fa-exclamation-circle me-1"></i> Report an Issue
+                    <i class="ti ti-alert-circle me-1"></i> Report an Issue
                 </a>
             </div>
 
@@ -167,15 +167,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                     <td class="py-3 text-end pe-2">
                                         <?php if ($txn['payment_status'] === 'Verified'): ?>
                                             <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Download Receipt">
-                                                <i class="fas fa-download"></i>
+                                                <i class="ti ti-download"></i>
                                             </button>
                                         <?php elseif ($txn['payment_status'] === 'Pending'): ?>
                                             <a href="<?= BASE_URL ?>/modules/student-portal/api/resume-payment.php?id=<?= $txn['payment_id'] ?>" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
-                                                <i class="fas fa-credit-card me-1"></i> Resume
+                                                <i class="ti ti-credit-card me-1"></i> Resume
                                             </a>
                                         <?php else: ?>
                                             <button class="btn btn-sm btn-light border text-muted shadow-sm" disabled title="Receipt not yet available">
-                                                <i class="fas fa-download"></i>
+                                                <i class="ti ti-download"></i>
                                             </button>
                                         <?php endif; ?>
                                     </td>
@@ -184,7 +184,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                         <?php else: ?>
                             <tr id="empty-state-row">
                                 <td colspan="8" class="py-5 text-center text-muted">
-                                    <i class="fas fa-folder-open fs-2 mb-3 text-light-gray d-block"></i>
+                                    <i class="ti ti-folder-open fs-2 mb-3 text-light-gray d-block"></i>
                                     No payment history found yet.
                                 </td>
                             </tr>
@@ -196,7 +196,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <!-- Help Section -->
             <div class="mt-4 p-3 bg-light rounded-3 border border-light">
                 <div class="d-flex align-items-center gap-3">
-                    <i class="fas fa-info-circle text-primary fs-4"></i>
+                    <i class="ti ti-info-circle text-primary fs-4"></i>
                     <div>
                         <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.9rem;">Missing a transaction?</h6>
                         <p class="mb-0 text-muted" style="font-size: 0.8rem;">If you made a payment but it's not showing up here, or if a payment is stuck on "Pending", please report it using the "Report an Issue" button above or proceed to the Payment Concern Portal.</p>

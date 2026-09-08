@@ -74,18 +74,18 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Page Header & Actions -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-chart-pie text-primary me-2"></i>Collection Analytics</h2>
+            <h2 class="mb-1 fw-bolder"><i class="ti ti-chart-pie text-primary me-2"></i>Collection Analytics</h2>
             <p class="text-muted mb-0 fs-6">Real-time financial collection summaries, channel metrics, and reporting insights.</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <button onclick="window.print()" class="btn btn-primary shadow-sm fw-bold px-4">
-                <i class="fas fa-print me-1"></i> Print / Export Report
+                <i class="ti ti-printer me-1"></i> Print / Export Report
             </button>
         </div>
     </div>
 
     <?php if (isset($dbError)): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
     <?php endif; ?>
 
     <!-- High-Level Overview Metrics Cards -->
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-lg-5 mb-4 mb-lg-0">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-wallet text-primary me-2"></i>Collections by Channel</h5>
+                    <h5 class="fw-bold mb-0 text-dark"><i class="ti ti-wallet text-primary me-2"></i>Collections by Channel</h5>
                 </div>
                 <div class="card-body px-4">
                     <?php if (count($channelBreakdown) > 0): ?>

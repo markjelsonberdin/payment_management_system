@@ -34,7 +34,7 @@ try {
     }
 } catch (Throwable $e) {
     echo '<div class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle me-2"></i>
+        <i class="ti ti-alert-triangle me-2"></i>
         <strong>Module Not Installed</strong><br>
         The Research Progress module database tables are not yet installed.
     </div>';
@@ -50,7 +50,7 @@ $researchGroup = rpGetRegisteredResearchGroup($crad, $studentId, $studentUserId)
 
 if (!$researchGroup) {
     echo '<div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i>
+        <i class="ti ti-info-circle me-2"></i>
         <strong>Research Development is not yet available.</strong><br>
         Your research group must be officially registered in the
         Capstone Group/Student Registry before you can access this section.
@@ -120,7 +120,7 @@ foreach ($feedbackList as $feedback) {
                         Revisions (<?= count($feedbackByType['Revision Request']) ?>)
                     </button>
                     <button class="btn btn-sm btn-outline-success filter-btn" data-filter="Progress Approved">
-                        <i class="fas fa-check-circle me-1"></i>
+                        <i class="ti ti-circle-check me-1"></i>
                         Approved (<?= count($feedbackByType['Progress Approved']) + count($feedbackByType['Approval']) ?>)
                     </button>
                 </div>
@@ -168,13 +168,13 @@ foreach ($feedbackList as $feedback) {
                                                 <?php endif; ?>
                                             </div>
                                             <div style="font-weight:700;color:var(--sms-heading);font-size:0.95rem;">
-                                                <i class="fas fa-user-tie me-2" style="color:var(--sms-primary);"></i>
+                                                <i class="ti ti-user-tie me-2" style="color:var(--sms-primary);"></i>
                                                 <?= htmlspecialchars($feedback['adviser_name']) ?>
                                             </div>
                                         </div>
                                         <div class="text-end">
                                             <div style="font-size:0.75rem;color:var(--sms-text-muted);">
-                                                <i class="fas fa-clock me-1"></i>
+                                                <i class="ti ti-clock me-1"></i>
                                                 <?= date('M d, Y', strtotime($feedback['created_at'])) ?>
                                             </div>
                                             <div style="font-size:0.7rem;color:var(--sms-text-muted);">
@@ -209,7 +209,7 @@ foreach ($feedbackList as $feedback) {
                                     <!-- Status Change -->
                                     <?php if ($feedback['new_milestone_status']): ?>
                                         <div class="student-feedback-status alert alert-info mb-0" style="font-size:0.85rem;padding:0.5rem 1rem;">
-                                            <i class="fas fa-info-circle me-2"></i>
+                                            <i class="ti ti-info-circle me-2"></i>
                                             <strong>Status Updated:</strong> <?= htmlspecialchars($feedback['new_milestone_status']) ?>
                                         </div>
                                     <?php endif; ?>
@@ -232,7 +232,7 @@ foreach ($feedbackList as $feedback) {
         <!-- Last Refresh Indicator -->
         <div class="text-center mt-4">
             <small class="text-muted" data-last-refresh>
-                <i class="fas fa-sync-alt me-1"></i>
+                <i class="ti ti-refresh me-1"></i>
                 Last updated: <?= date('g:i:s A') ?>
             </small>
         </div>

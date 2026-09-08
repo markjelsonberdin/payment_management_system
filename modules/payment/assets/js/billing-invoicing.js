@@ -38,9 +38,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            hintDisplay.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> <span class="fw-bold text-success">' + data.name + '</span>';
+                            hintDisplay.innerHTML = '<i class="ti ti-circle-check text-success me-1"></i> <span class="fw-bold text-success">' + data.name + '</span>';
                         } else {
-                            hintDisplay.innerHTML = '<i class="fas fa-times-circle text-danger me-1"></i> <span class="text-danger">Student not found</span>';
+                            hintDisplay.innerHTML = '<i class="ti ti-circle-x text-danger me-1"></i> <span class="text-danger">Student not found</span>';
                         }
                     })
                     .catch(() => {

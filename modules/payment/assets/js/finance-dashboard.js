@@ -82,7 +82,7 @@ function renderCategoryChart(categories) {
     let legendHtml = '';
     labels.forEach((label, i) => {
         const color = colors[i % colors.length];
-        legendHtml += `<span class="me-3"><i class="fas fa-circle" style="color:${color}"></i> ${label}</span>`;
+        legendHtml += `<span class="me-3"><i class="ti ti-circle-filled" style="color:${color}"></i> ${label}</span>`;
     });
     document.getElementById('categoryLegend').innerHTML = legendHtml;
 }
@@ -240,7 +240,7 @@ function renderRecentActivity(activities) {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="ps-4 fw-medium text-dark"><i class="fas fa-check-circle text-success me-2"></i> ${act.detail}</td>
+            <td class="ps-4 fw-medium text-dark"><i class="ti ti-circle-check text-success me-2"></i> ${act.detail}</td>
             <td class="text-muted small">${dateStr} &bull; ${timeStr}</td>
         `;
         tbody.appendChild(tr);

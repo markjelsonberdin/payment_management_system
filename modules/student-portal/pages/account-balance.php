@@ -181,11 +181,11 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="page-header student-portal-header d-flex justify-content-between align-items-center mb-4">
         <div>
             <span class="student-kicker text-uppercase text-primary fw-bold small">Student Portal</span>
-            <h2 class="fw-bolder m-0"><i class="fas fa-wallet text-sms-primary me-2"></i>Account Balance</h2>
+            <h2 class="fw-bolder m-0"><i class="ti ti-wallet text-sms-primary me-2"></i>Account Balance</h2>
             <p class="text-muted m-0 mt-1">Track current charges, payments, discounts, and remaining balance.</p>
         </div>
         <div class="student-term-badge bg-light border px-3 py-2 rounded-3 text-dark fw-semibold shadow-sm">
-            <i class="fas fa-calendar-check text-primary me-1"></i> SY <?= htmlspecialchars($academicYear) ?>
+            <i class="ti ti-calendar-check text-primary me-1"></i> SY <?= htmlspecialchars($academicYear) ?>
         </div>
     </div>
 
@@ -193,7 +193,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     
     <?php if (isset($_GET['payment']) && $_GET['payment'] === 'success'): ?>
         <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center">
-            <i class="fas fa-check-circle fs-4 me-3"></i>
+            <i class="ti ti-circle-check fs-4 me-3"></i>
             <div>
                 <strong>Payment Successful!</strong><br>
                 Your transaction has been processed. It may take a few moments to reflect in your account balance below.
@@ -201,7 +201,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         </div>
     <?php elseif (isset($_GET['payment']) && $_GET['payment'] === 'cancelled'): ?>
         <div class="alert alert-warning border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center">
-            <i class="fas fa-exclamation-triangle fs-4 me-3"></i>
+            <i class="ti ti-alert-triangle fs-4 me-3"></i>
             <div>
                 <strong>Payment Cancelled</strong><br>
                 You cancelled the checkout process. No charges were made.
@@ -249,7 +249,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 <button class="accordion-button <?= $accIndex === 1 ? '' : 'collapsed' ?> bg-white fw-bold d-flex align-items-center justify-content-between p-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $accIndex ?>" aria-expanded="<?= $accIndex === 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $accIndex ?>" style="box-shadow: none;">
                                     <div class="d-flex w-100 align-items-center me-3">
                                         <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
-                                            <i class="fas fa-layer-group text-primary me-2 opacity-75"></i><?= htmlspecialchars($catName) ?>
+                                            <i class="ti ti-stack-2 text-primary me-2 opacity-75"></i><?= htmlspecialchars($catName) ?>
                                             <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
                                                 PHP <?= number_format($catData['paid_amount'], 2) ?> of PHP <?= number_format($catData['total_amount'], 2) ?> Paid
                                             </div>
@@ -296,7 +296,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="alert alert-light text-center text-muted mb-0 border shadow-sm rounded-4">
-                        <i class="fas fa-folder-open fs-4 d-block mb-2 text-secondary"></i>
+                        <i class="ti ti-folder-open fs-4 d-block mb-2 text-secondary"></i>
                         No assessment records found. You currently have no active billing.
                     </div>
                 <?php endif; ?>
@@ -327,12 +327,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
             <div class="modal-header bg-primary text-white border-0 pb-3">
-                <h5 class="modal-title fw-bold"><i class="fas fa-wallet me-2"></i>Select Payment Channel</h5>
+                <h5 class="modal-title fw-bold"><i class="ti ti-wallet me-2"></i>Select Payment Channel</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="alert alert-info border-0 shadow-sm mb-3 small">
-                    <i class="fas fa-info-circle me-1"></i> Tuition fees cannot be paid online. Please select a valid fee category below to pay.
+                    <i class="ti ti-info-circle me-1"></i> Tuition fees cannot be paid online. Please select a valid fee category below to pay.
                 </div>
                 
                 <label class="form-label fw-bold text-dark small mb-2">Select Fee to Pay:</label>
@@ -366,7 +366,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             
             <div class="modal-footer border-0 bg-light py-3 d-flex justify-content-between align-items-center" id="paymongoModalFooter">
                 <div id="checkoutLoading" class="d-none text-primary fw-bold small">
-                    <i class="fas fa-spinner fa-spin me-2"></i>Processing...
+                    <i class="ti ti-loader me-2"></i>Processing...
                 </div>
                 <button type="button" class="btn btn-light border shadow-sm px-4" data-bs-dismiss="modal">Cancel</button>
             </div>
@@ -380,7 +380,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <p class="text-muted small mb-2">Scan this QR using GCash, Maya, or any supported QR Ph banking app.</p>
                 <div class="fw-bold text-dark fs-5 mb-3" id="qrAmountDisplay"></div>
                 <div class="alert alert-warning py-2 mb-4 d-inline-block shadow-sm">
-                    <i class="fas fa-spinner fa-spin me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
+                    <i class="ti ti-loader me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
                 </div>
                 <br>
                 <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="cancelQrPayment()">Cancel Payment</button>
@@ -569,8 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const channelData = {
                     'gcash': { bg: 'bg-primary', color: 'text-white', icon: 'G', name: 'GCash', desc: 'Fast & secure e-wallet payment' },
                     'maya': { bg: 'bg-success', color: 'text-white', icon: 'M', name: 'Maya', desc: 'Pay using your Maya account' },
-                    'qrph': { bg: 'bg-warning', color: 'text-dark', icon: '<i class="fas fa-qrcode"></i>', name: 'QR Ph', desc: 'Scan to pay via any supported app' },
-                    'card': { bg: 'bg-dark', color: 'text-white', icon: '<i class="fas fa-credit-card"></i>', name: 'Credit / Debit Card', desc: 'Visa, Mastercard, JCB' }
+                    'qrph': { bg: 'bg-warning', color: 'text-dark', icon: '<i class="ti ti-qrcode"></i>', name: 'QR Ph', desc: 'Scan to pay via any supported app' },
+                    'card': { bg: 'bg-dark', color: 'text-white', icon: '<i class="ti ti-credit-card"></i>', name: 'Credit / Debit Card', desc: 'Visa, Mastercard, JCB' }
                 };
 
                 data.channels.forEach(ch => {
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <small class="text-muted">${info.desc}</small>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right text-muted"></i>
+                            <i class="ti ti-chevron-right text-muted"></i>
                         `;
                         container.appendChild(btn);
                     }
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 container.innerHTML = `
                     <div class="text-center py-4 text-muted border rounded-3 bg-light mb-3">
-                        <i class="fas fa-times-circle fs-3 mb-2 text-secondary"></i>
+                        <i class="ti ti-circle-x fs-3 mb-2 text-secondary"></i>
                         <div class="fw-bold">No Channels Available</div>
                         <small>Online payment is currently unavailable.</small>
                     </div>
@@ -626,7 +626,7 @@ function showDuplicateWarningModal(pendingPayment, channel) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title" id="duplicateWarningModalLabel"><i class="fas fa-exclamation-triangle"></i> Existing Pending Payment</h5>
+                    <h5 class="modal-title" id="duplicateWarningModalLabel"><i class="ti ti-alert-triangle"></i> Existing Pending Payment</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="resetCheckoutUI()"></button>
                 </div>
                 <div class="modal-body">

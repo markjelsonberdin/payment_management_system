@@ -63,7 +63,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 
     <?php if (isset($dbError)): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
     <?php endif; ?>
 
     <!-- FINANCIAL OVERVIEW -->
@@ -143,7 +143,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-shrink-0">
                         <div class="bg-light rounded-circle p-3 text-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-times-circle text-danger fs-4"></i>
+                            <i class="ti ti-circle-x text-danger fs-4"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">

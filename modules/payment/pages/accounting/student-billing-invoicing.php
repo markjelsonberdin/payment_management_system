@@ -173,13 +173,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Page Header & Actions -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-file-invoice-dollar text-primary me-2"></i>Billing & Invoicing</h2>
+            <h2 class="mb-1 fw-bolder"><i class="ti ti-file-invoice text-primary me-2"></i>Billing & Invoicing</h2>
             <p class="text-muted mb-0 fs-6">Generate and manage student statement of accounts (SOA).</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <div class="d-flex justify-content-md-end gap-2">
                 <div class="input-group w-auto shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#billingTable" placeholder="Search student no...">
                 </div>
                 <?php if (in_array(getCurrentUserRoleKey(), ['admin', 'superadmin', 'finance', 'cashier'])): ?>
@@ -193,12 +193,12 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <!-- Alerts -->
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
-        <div class="alert alert-success shadow-sm"><i class="fas fa-check-circle me-2"></i> Billing generated successfully!</div>
+        <div class="alert alert-success shadow-sm"><i class="ti ti-circle-check me-2"></i> Billing generated successfully!</div>
     <?php endif; ?>
     <?php if (isset($_GET['success']) && $_GET['success'] == 'append' && isset($_SESSION['append_result'])): ?>
         <?php $res = $_SESSION['append_result']; ?>
         <div class="alert alert-success shadow-sm">
-            <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-check-circle me-2"></i> Billing Updated Successfully</h6>
+            <h6 class="alert-heading fw-bold mb-2"><i class="ti ti-circle-check me-2"></i> Billing Updated Successfully</h6>
             <div class="row">
                 <div class="col-md-6">
                     <strong>Added:</strong>
@@ -219,7 +219,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <?php else: ?>
                         <ul class="mb-2 small text-danger">
                             <?php foreach($res['skipped'] as $feeName => $reason): ?>
-                                <li><i class="fas fa-exclamation-triangle me-1"></i> <?= htmlspecialchars($feeName) ?> — <span class="text-muted"><?= htmlspecialchars($reason) ?></span></li>
+                                <li><i class="ti ti-alert-triangle me-1"></i> <?= htmlspecialchars($feeName) ?> — <span class="text-muted"><?= htmlspecialchars($reason) ?></span></li>
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
@@ -234,10 +234,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <?php unset($_SESSION['append_result']); ?>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($_GET['error']) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> <?= htmlspecialchars($_GET['error']) ?></div>
     <?php endif; ?>
     <?php if (isset($dbError)): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
     <?php endif; ?>
 
     <!-- Overview Cards -->
@@ -313,7 +313,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <a href="view-soa.php?id=<?= $bill['billing_id'] ?>" class="btn btn-sm btn-light text-primary shadow-sm" title="View SOA">
-                                            <i class="fas fa-eye me-1"></i> View
+                                            <i class="ti ti-eye me-1"></i> View
                                         </a>
                                     </td>
                                 </tr>
@@ -353,7 +353,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                        <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold text-dark">Student Number <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="fas fa-user-graduate text-muted"></i></span>
+                            <span class="input-group-text bg-white"><i class="ti ti-user-graduate text-muted"></i></span>
                             <input type="text" class="form-control border-start-0" id="studentSearchInput" name="student_number" placeholder="e.g. S230106713" required autocomplete="off">
                         </div>
                         <small id="studentNameHint" class="mt-1 d-block text-muted" style="min-height: 20px;"></small>
@@ -388,9 +388,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <!-- Applicable Fees Section -->
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white border-bottom pb-2 d-flex justify-content-between align-items-center">
-                            <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-list-check me-2"></i>Select Applicable Fees</h6>
+                            <h6 class="fw-bold mb-0 text-primary"><i class="ti ti-list-check me-2"></i>Select Applicable Fees</h6>
                             <div class="input-group input-group-sm w-50 shadow-sm">
-                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                                 <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#modalFeesTable" placeholder="Search fee name...">
                             </div>
                         </div>
@@ -428,7 +428,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 </table>
                             <?php else: ?>
                                 <div class="text-center py-4 text-muted">
-                                    <i class="fas fa-exclamation-circle mb-2 fs-4"></i><br>
+                                    <i class="ti ti-alert-circle mb-2 fs-4"></i><br>
                                     No active fees configured. Go to Fee Setup first.
                                 </div>
                             <?php endif; ?>

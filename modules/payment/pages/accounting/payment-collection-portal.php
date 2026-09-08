@@ -156,13 +156,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Alerts -->
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success alert-dismissible shadow-sm">
-            <i class="fas fa-check-circle me-2"></i> Payment successfully processed! Official Receipt <strong>#<?= htmlspecialchars($_GET['or'] ?? '') ?></strong> generated.
+            <i class="ti ti-circle-check me-2"></i> Payment successfully processed! Official Receipt <strong>#<?= htmlspecialchars($_GET['or'] ?? '') ?></strong> generated.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger alert-dismissible shadow-sm">
-            <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?>
+            <i class="ti ti-alert-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -172,10 +172,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-lg-5 mb-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3"><i class="fas fa-search text-primary me-2"></i>1. Search Student Record</h5>
+                    <h5 class="fw-bold mb-3"><i class="ti ti-search text-primary me-2"></i>1. Search Student Record</h5>
                     
                     <div class="input-group mb-3">
-                        <span class="input-group-text bg-light"><i class="fas fa-user-graduate"></i></span>
+                        <span class="input-group-text bg-light"><i class="ti ti-user-graduate"></i></span>
                         <input type="text" class="form-control" id="searchStudentNumber" placeholder="Enter Student Number (e.g. S230106713)" autocomplete="off">
                         <button class="btn btn-primary px-4 fw-bold" type="button" id="btnSearchStudent">Find</button>
                     </div>
@@ -208,7 +208,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                         <!-- Unpaid Fees Breakdown Container -->
                         <div id="unpaidFeesContainer" class="d-none mt-2">
-                            <h6 class="text-muted fw-bolder small text-uppercase mb-3 mt-3"><i class="fas fa-list-ul me-2"></i>Unpaid Fees Breakdown</h6>
+                            <h6 class="text-muted fw-bolder small text-uppercase mb-3 mt-3"><i class="ti ti-list-ul me-2"></i>Unpaid Fees Breakdown</h6>
                             <div id="unpaidFeesList" class="small">
                                 <!-- Dynamic breakdown will be injected here by JS -->
                             </div>
@@ -222,7 +222,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-lg-7 mb-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 opacity-50" id="paymentPanel" style="pointer-events: none;">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3"><p class="fas fa-money-bill-wave text-success me-2"></p>2. Receive Payment & Issue OR</h5>
+                    <h5 class="fw-bold mb-3"><p class="ti ti-cash text-success me-2"></p>2. Receive Payment & Issue OR</h5>
                     
                     <form action="" method="POST" id="paymentForm">
                         <input type="hidden" name="process_payment" value="1">
@@ -271,7 +271,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold small text-muted">Payment Channel</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light text-success fw-bold"><i class="fas fa-money-bill-wave"></i></span>
+                                    <span class="input-group-text bg-light text-success fw-bold"><i class="ti ti-cash"></i></span>
                                     <input type="text" class="form-control bg-light fw-bold text-dark" value="Cash (Walk-in)" readonly>
                                 </div>
                                 <input type="hidden" name="payment_channel" value="Cash">
@@ -299,7 +299,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                         <div class="text-end">
                             <button type="submit" name="process_payment" class="btn btn-success fw-bold px-5 py-2 shadow-sm" id="btnProcessPayment" disabled>
-                                <i class="fas fa-print me-1"></i> Complete Payment & Print OR
+                                <i class="ti ti-printer me-1"></i> Complete Payment & Print OR
                             </button>
                         </div>
                     </form>

@@ -113,17 +113,17 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <i class="fas fa-university"></i>
             </a>
             <div class="input-group w-auto shadow-sm">
-                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                 <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#concernsTable" placeholder="Search...">
             </div>
         </div>
     </div>
 
     <?php if (isset($_GET['success'])): ?>
-        <div class="alert alert-success alert-dismissible shadow-sm"><i class="fas fa-check-circle me-2"></i> Payment concern successfully updated! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <div class="alert alert-success alert-dismissible shadow-sm"><i class="ti ti-circle-check me-2"></i> Payment concern successfully updated! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-danger alert-dismissible shadow-sm"><i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?> <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <div class="alert alert-danger alert-dismissible shadow-sm"><i class="ti ti-alert-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?> <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
 
     <!-- Table of Concerns -->
@@ -183,7 +183,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <button type="button" class="btn btn-sm btn-light text-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
-                                            <i class="fas fa-search-dollar me-1"></i> Review & Verify
+                                            <i class="ti ti-search-dollar me-1"></i> Review & Verify
                                         </button>
                                     </td>
                                 </tr>
@@ -191,7 +191,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <?php else: ?>
                             <tr>
                                 <td colspan="7" class="py-5 text-center text-muted">
-                                    <i class="fas fa-check-circle fs-3 mb-2 text-success opacity-50 d-block"></i>
+                                    <i class="ti ti-circle-check fs-3 mb-2 text-success opacity-50 d-block"></i>
                                     No pending payment concerns to review.
                                 </td>
                             </tr>
@@ -210,7 +210,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header bg-primary text-white border-0">
-                        <h5 class="modal-title fw-bold"><i class="fas fa-receipt me-2"></i>Review Payment Concern #<?= $row['concern_id'] ?></h5>
+                        <h5 class="modal-title fw-bold"><i class="ti ti-receipt me-2"></i>Review Payment Concern #<?= $row['concern_id'] ?></h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     
@@ -223,7 +223,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     <?php if (!empty($row['receipt_path'])): ?>
                                         <img src="<?= BASE_URL ?>/modules/payment/api/accounting/view-receipt.php?concern_id=<?= (int)$row['concern_id'] ?>" alt="Receipt" class="img-fluid" style="object-fit: contain; max-height: 600px;">
                                     <?php else: ?>
-                                        <span class="text-muted"><i class="fas fa-ban fs-3 d-block mb-2"></i>No image attached</span>
+                                        <span class="text-muted"><i class="ti ti-ban fs-3 d-block mb-2"></i>No image attached</span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="mt-3">
@@ -288,7 +288,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </div>
 
                                     <hr class="my-3">
-                                    <h6 class="fw-bold text-primary mb-3"><i class="fas fa-edit me-2"></i>Accounting Verified Data</h6>
+                                    <h6 class="fw-bold text-primary mb-3"><i class="ti ti-edit me-2"></i>Accounting Verified Data</h6>
                                     <div class="row g-2 mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Verified Amount</label>
@@ -343,7 +343,7 @@ const CSRF_TOKEN = '<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8
 
 function scanConcernOCR(concernId, btnElement) {
     const originalText = btnElement.innerHTML;
-    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Scanning...';
+    btnElement.innerHTML = '<i class="ti ti-loader me-2"></i> Scanning...';
     btnElement.disabled = true;
 
     fetch("<?= BASE_URL ?>/modules/payment/api/accounting/ocr-scan-concern.php", {

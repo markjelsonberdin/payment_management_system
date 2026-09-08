@@ -125,7 +125,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 </p>
                 <div>
                     <a href="account-balance.php" class="btn btn-primary px-5 py-2 rounded-3 shadow-sm fw-bold">
-                        <i class="fas fa-arrow-left me-2"></i>Return to Account Balance
+                        <i class="ti ti-arrow-left me-2"></i>Return to Account Balance
                     </a>
                 </div>
             <?php else: ?>
@@ -191,10 +191,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                 <div>
                     <a href="payment-history.php" class="btn btn-outline-primary px-4 py-2 rounded-3 shadow-sm fw-bold me-2">
-                        <i class="fas fa-list-alt me-2"></i>View History
+                        <i class="ti ti-list me-2"></i>View History
                     </a>
                     <a href="account-balance.php" class="btn btn-primary px-4 py-2 rounded-3 shadow-sm fw-bold">
-                        <i class="fas fa-arrow-left me-2"></i>Return to Balance
+                        <i class="ti ti-arrow-left me-2"></i>Return to Balance
                     </a>
                 </div>
             <?php endif; ?>

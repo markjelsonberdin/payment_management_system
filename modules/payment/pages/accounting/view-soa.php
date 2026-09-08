@@ -54,10 +54,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <!-- Action Toolbar (Print Button) -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <a href="student-billing-invoicing.php" class="btn btn-light border shadow-sm">
-                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                    <i class="ti ti-arrow-left me-1"></i> Back to List
                 </a>
                 <button onclick="window.print()" class="btn btn-primary shadow-sm fw-bold">
-                    <i class="fas fa-print me-1"></i> Print SOA
+                    <i class="ti ti-printer me-1"></i> Print SOA
                 </button>
             </div>
 

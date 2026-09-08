@@ -58,7 +58,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <div class="container-fluid py-4 d-flex align-items-center justify-content-center" style="min-height: 70vh;">
     <div class="card border-0 shadow-lg rounded-4 p-5 text-center" style="max-width: 450px; width: 100%;">
-        <h4 class="fw-bolder text-primary mb-4"><i class="fas fa-qrcode me-2"></i>Scan to Pay</h4>
+        <h4 class="fw-bolder text-primary mb-4"><i class="ti ti-qrcode me-2"></i>Scan to Pay</h4>
         
         <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-4 mx-auto">
             <img src="<?= htmlspecialchars($qrImage) ?>" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
@@ -72,12 +72,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         </div>
         
         <div class="alert alert-warning py-3 mb-4 shadow-sm rounded-3 d-flex align-items-center justify-content-center" id="qrStatusAlert">
-            <i class="fas fa-spinner fa-spin fa-lg me-3" id="qrStatusSpinner"></i> 
+            <i class="ti ti-loader fa-lg me-3" id="qrStatusSpinner"></i> 
             <span id="qrStatusText" class="fw-bold fs-6">Waiting for payment confirmation...</span>
         </div>
         
         <a href="payment-history.php" class="btn btn-outline-secondary w-100 py-2 fw-bold shadow-sm rounded-3">
-            <i class="fas fa-arrow-left me-2"></i>Back to History
+            <i class="ti ti-arrow-left me-2"></i>Back to History
         </a>
     </div>
 </div>
@@ -96,7 +96,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             const alertBox = document.getElementById('qrStatusAlert');
                             alertBox.classList.remove('alert-warning');
                             alertBox.classList.add('alert-success');
-                            document.getElementById('qrStatusSpinner').className = "fas fa-check-circle fa-lg me-3";
+                            document.getElementById('qrStatusSpinner').className = "ti ti-circle-check fa-lg me-3";
                             setTimeout(() => {
                                 window.location.href = 'payment-history.php';
                             }, 2000);
@@ -106,7 +106,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             const alertBox = document.getElementById('qrStatusAlert');
                             alertBox.classList.remove('alert-warning');
                             alertBox.classList.add('alert-danger');
-                            document.getElementById('qrStatusSpinner').className = "fas fa-times-circle fa-lg me-3";
+                            document.getElementById('qrStatusSpinner').className = "ti ti-circle-x fa-lg me-3";
                         }
                     }
                 })

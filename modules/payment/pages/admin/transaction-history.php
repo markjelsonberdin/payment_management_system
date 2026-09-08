@@ -39,13 +39,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-list-alt text-primary me-2"></i>Transaction History</h2>
+            <h2 class="mb-1 fw-bolder"><i class="ti ti-list text-primary me-2"></i>Transaction History</h2>
             <p class="text-muted mb-0 fs-6">System-wide auditing of all payment transactions and gateway records.</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <div class="d-inline-block w-auto">
                 <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#historyTable" placeholder="Search student or Ref No...">
                 </div>
             </div>
@@ -53,7 +53,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 
     <?php if (isset($dbError)): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> Database Error: <?= htmlspecialchars($dbError) ?></div>
     <?php endif; ?>
 
     <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
@@ -114,7 +114,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#detailsModal<?= $pay['payment_id'] ?>">
-                                            <i class="fas fa-list me-1"></i> Details
+                                            <i class="ti ti-list me-1"></i> Details
                                         </button>
                                         
 
@@ -125,7 +125,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <?php else: ?>
                             <tr>
                                 <td colspan="9" class="text-center py-5 text-muted">
-                                    <i class="fas fa-search fs-1 mb-3 d-block text-light"></i>
+                                    <i class="ti ti-search fs-1 mb-3 d-block text-light"></i>
                                     <h5 class="fw-bold text-secondary">No transactions found.</h5>
                                     <p class="mb-0">System-wide transactions will appear here.</p>
                                 </td>
@@ -160,7 +160,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 1rem;">
                     <div class="modal-header bg-primary text-white border-bottom-0 p-4">
                         <h5 class="modal-title fw-bolder mb-0">
-                            <i class="fas fa-receipt me-2 opacity-75"></i>Transaction Details
+                            <i class="ti ti-receipt me-2 opacity-75"></i>Transaction Details
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -177,18 +177,18 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                     <div class="modal-body p-4 bg-white">
                         <!-- Student Info -->
-                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-user-circle me-2"></i>Student Information</h6>
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="ti ti-user-circle me-2"></i>Student Information</h6>
                         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                            <span class="text-muted"><i class="fas fa-id-card me-2 opacity-50"></i>Student No.</span>
+                            <span class="text-muted"><i class="ti ti-id me-2 opacity-50"></i>Student No.</span>
                             <span class="fw-bold text-dark"><?= htmlspecialchars($pay['student_number']) ?></span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-                            <span class="text-muted"><i class="fas fa-user me-2 opacity-50"></i>Full Name</span>
+                            <span class="text-muted"><i class="ti ti-user me-2 opacity-50"></i>Full Name</span>
                             <span class="fw-bold text-dark text-end"><?= htmlspecialchars($pay['full_name']) ?></span>
                         </div>
 
                         <!-- Payment Breakdown -->
-                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-file-invoice-dollar me-2"></i>Payment Breakdown</h6>
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="ti ti-file-invoice me-2"></i>Payment Breakdown</h6>
                         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                             <span class="text-muted">Amount Applied</span>
                             <span class="fw-bold text-dark">₱ <?= number_format($amtApplied, 2) ?></span>
@@ -203,7 +203,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         </div>
 
                         <!-- Audit Info -->
-                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="fas fa-shield-alt me-2"></i>Audit Information</h6>
+                        <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;"><i class="ti ti-shield-check me-2"></i>Audit Information</h6>
                         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                             <span class="text-muted">Reference No.</span>
                             <span class="fw-bold text-dark font-monospace"><?= htmlspecialchars($pay['reference_number'] ?? 'N/A') ?></span>

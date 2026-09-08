@@ -659,12 +659,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <div class="student-portal doc-vault-wrap">
     <?php if ($uploadError !== ''): ?>
         <div class="alert alert-danger student-process-alert" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i><?= e($uploadError) ?>
+            <i class="ti ti-alert-circle me-2"></i><?= e($uploadError) ?>
         </div>
     <?php endif; ?>
     <?php if ($submitted): ?>
         <div class="alert alert-success student-process-alert" role="alert">
-            <i class="fas fa-check-circle me-2"></i>Document packet has been submitted securely to the CRD Document Vault for review.
+            <i class="ti ti-circle-check me-2"></i>Document packet has been submitted securely to the CRD Document Vault for review.
         </div>
     <?php endif; ?>
 
@@ -682,7 +682,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             </header>
             <?php if (empty($draftList)): ?>
                 <div class="doc-empty-drafts">
-                    <i class="fas fa-folder-open"></i>
+                    <i class="ti ti-folder-open"></i>
                     <strong>No saved draft yet.</strong>
                     <span>Use Save Draft on the document form to store your current work in the CRAD draft database.</span>
                 </div>
@@ -712,7 +712,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 <strong><?= htmlspecialchars($draftUpdated ? date('F j, Y h:i A', $draftUpdated) : 'Unknown') ?></strong>
                             </div>
                             <a class="doc-btn doc-btn-purple" href="<?= htmlspecialchars($continueUrl) ?>">
-                                <i class="fas fa-pen-to-square me-2"></i>Continue Draft
+                                <i class="ti ti-edit-to-square me-2"></i>Continue Draft
                             </a>
                         </article>
                     <?php endforeach; ?>
@@ -775,13 +775,13 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <p><?= $revisionProposal ? 'Resubmit revised files for ' . htmlspecialchars((string) $revisionProposal['ref_code']) . ' after reviewing CRAD remarks.' : 'Formal system submission and storage matching program checklist guidelines.' ?></p>
             </div>
             <a class="doc-btn doc-btn-ghost" href="<?= BASE_URL ?>/modules/student-portal/pages/submit-documents.php?view=drafts">
-                <i class="fas fa-folder-open me-2"></i>Drafts
+                <i class="ti ti-folder-open me-2"></i>Drafts
             </a>
         </header>
 
         <div class="doc-draft-alert-wrap">
             <div id="docDraftStatus" class="doc-draft-alert" style="display:none;" role="status" aria-live="polite">
-                <i class="fas fa-save"></i>
+                <i class="ti ti-device-floppy"></i>
                 <div>
                     <strong id="docDraftTitle">Draft saved.</strong>
                     <span id="docDraftText">Your form details were saved to the CRAD draft database.</span>
@@ -885,14 +885,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <section class="doc-section">
             <h2><span></span>Document Attachments</h2>
             <div class="doc-attach-notice" id="docAttachNotice">
-                <i class="fas fa-info-circle"></i>
+                <i class="ti ti-info-circle"></i>
                 <div>
                     <strong>All required documents must be uploaded before submitting.</strong>
                     <span>Upload each file marked <em>REQUIRED</em> to enable the Submit Form Packet button. Allowed formats: PDF, DOCX, JPG, or PNG. Max 10MB per file.</span>
                 </div>
             </div>
             <div id="docMissingAlert" class="doc-missing-alert" style="display:none;">
-                <i class="fas fa-exclamation-triangle"></i>
+                <i class="ti ti-alert-triangle"></i>
                 <span id="docMissingText">Please upload all required documents before submitting.</span>
             </div>
             <div class="doc-upload-grid">
@@ -942,7 +942,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <section class="doc-section">
             <h2><span></span>Final Declaration &amp; Representative Signature</h2>
             <div id="signatureMissingAlert" class="doc-signature-alert" style="display:none;">
-                <i class="fas fa-pen-nib"></i>
+                <i class="ti ti-edit-nib"></i>
                 <div>
                     <strong>Representative signature is required.</strong>
                     <span>Please draw the representative signature before submitting the document packet.</span>
@@ -1750,7 +1750,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         if (!requirementNotice) return;
         requirementNotice.classList.toggle('is-error', !!isError);
         if (requirementIcon) {
-            requirementIcon.className = isError ? 'fas fa-triangle-exclamation' : 'fas fa-circle-info';
+            requirementIcon.className = isError ? 'fas fa-triangle-exclamation' : 'ti ti-circle-filled-info';
         }
         if (requirementTitle) requirementTitle.textContent = title;
         if (requirementText) requirementText.textContent = text;

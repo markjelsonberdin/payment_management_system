@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Show consistency error
                             breakdownList.innerHTML = `
                                 <div class="alert alert-danger p-2 small mb-0">
-                                    <i class="fas fa-exclamation-triangle me-1"></i> ${data.breakdown.error_message}
+                                    <i class="ti ti-alert-triangle me-1"></i> ${data.breakdown.error_message}
                                 </div>
                             `;
                             breakdownContainer.classList.remove('d-none');

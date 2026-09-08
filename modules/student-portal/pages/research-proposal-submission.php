@@ -1857,7 +1857,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         notice.style.display = 'none';
         var icon = btn.querySelector('.crad-btn-send-icon i');
         var text = btn.querySelector('.crad-btn-send-text');
-        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        if (icon) icon.className = 'ti ti-loader';
         if (text) text.textContent = 'Sending\u2026';
 
         var payload = {

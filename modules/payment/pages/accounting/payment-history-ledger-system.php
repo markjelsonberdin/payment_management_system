@@ -41,10 +41,10 @@ function paymentHistoryStatusClass(string $status): string
 function paymentHistoryStatusBadge(string $status): string
 {
     return match ($status) {
-        'Verified' => '<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-1 fw-semibold"><i class="fas fa-check-circle me-1"></i>Verified</span>',
-        'Pending' => '<span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 fw-semibold"><i class="fas fa-clock me-1"></i>Pending</span>',
-        'Rejected' => '<span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 fw-semibold"><i class="fas fa-times-circle me-1"></i>Rejected</span>',
-        'Failed' => '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 fw-semibold"><i class="fas fa-exclamation-circle me-1"></i>Failed</span>',
+        'Verified' => '<span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-1 fw-semibold"><i class="ti ti-circle-check me-1"></i>Verified</span>',
+        'Pending' => '<span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 fw-semibold"><i class="ti ti-clock me-1"></i>Pending</span>',
+        'Rejected' => '<span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 fw-semibold"><i class="ti ti-circle-x me-1"></i>Rejected</span>',
+        'Failed' => '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 fw-semibold"><i class="ti ti-alert-circle me-1"></i>Failed</span>',
         default => '<span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 fw-semibold">' . htmlspecialchars($status) . '</span>',
     };
 }
@@ -159,7 +159,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
     </div>
 
     <?php if (isset($dbError)): ?>
-        <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle me-2"></i> <?= htmlspecialchars($dbError) ?></div>
+        <div class="alert alert-danger shadow-sm"><i class="ti ti-alert-triangle me-2"></i> <?= htmlspecialchars($dbError) ?></div>
     <?php endif; ?>
 
     <div class="row g-3 mb-4">
@@ -207,7 +207,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                 <div class="col-lg-3">
                     <label class="form-label small fw-bold text-muted mb-1">Search</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <span class="input-group-text bg-white"><i class="ti ti-search text-muted"></i></span>
                         <input type="text" name="search" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" class="form-control" placeholder="Student, OR, or reference no.">
                     </div>
                 </div>
@@ -369,7 +369,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <button type="button"
                                             class="btn btn-sm btn-light text-primary border shadow-sm js-view-ledger text-nowrap"
                                             data-ledger="<?= htmlspecialchars(json_encode($modalPayload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES) ?>">
-                                            <i class="fas fa-eye me-1"></i> View Ledger
+                                            <i class="ti ti-eye me-1"></i> View Ledger
                                         </button>
                                     </td>
                                 </tr>
@@ -378,7 +378,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                             <tr>
                                 <td colspan="9" class="text-center py-5 text-muted">
                                     <div class="py-4">
-                                        <i class="fas fa-receipt fa-3x mb-3 text-secondary opacity-50"></i>
+                                        <i class="ti ti-receipt fa-3x mb-3 text-secondary opacity-50"></i>
                                         <h5 class="fw-bold text-dark">No payment history found</h5>
                                         <p class="text-muted mb-3">Try adjusting your search term, payment channel, status, or date range.</p>
                                         <?php if (!empty($filters['search']) || !empty($filters['status']) || !empty($filters['channel']) || !empty($filters['date_range'])): ?>
@@ -403,7 +403,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
                             <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => max(1, $currentPage - 1)])) ?>" aria-label="Previous">
-                                <i class="fas fa-chevron-left"></i>
+                                <i class="ti ti-chevron-left"></i>
                             </a>
                         </li>
                         <?php
@@ -417,7 +417,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                         <?php endfor; ?>
                         <li class="page-item <?= $currentPage >= $totalPages ? 'disabled' : '' ?>">
                             <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => min($totalPages, $currentPage + 1)])) ?>" aria-label="Next">
-                                <i class="fas fa-chevron-right"></i>
+                                <i class="ti ti-chevron-right"></i>
                             </a>
                         </li>
                     </ul>
@@ -431,7 +431,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 1rem;">
             <div class="modal-header bg-primary text-white border-bottom-0 p-4">
-                <h5 class="modal-title fw-bolder mb-0"><i class="fas fa-file-invoice-dollar me-2 opacity-75"></i>Ledger & Transaction Details</h5>
+                <h5 class="modal-title fw-bolder mb-0"><i class="ti ti-file-invoice me-2 opacity-75"></i>Ledger & Transaction Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 bg-light" id="ledgerModalBody"></div>

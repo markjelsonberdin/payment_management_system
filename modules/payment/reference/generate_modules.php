@@ -78,7 +78,7 @@ require_once __DIR__ . '/../../../includes/layout-start.php';
                 and CRUD operations will be implemented in a future development phase.
             </p>
             <a href="<?= BASE_URL ?>/modules/{MODULE_KEY}/index.php" class="btn btn-outline-primary rounded-3">
-                <i class="fas fa-arrow-left me-2"></i>Back to {MODULE_LABEL}
+                <i class="ti ti-arrow-left me-2"></i>Back to {MODULE_LABEL}
             </a>
         </div>
     </div>
