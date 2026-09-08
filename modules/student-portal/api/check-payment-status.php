@@ -61,11 +61,15 @@ try {
         exit;
     }
 
-    if ($payment['payment_status'] === 'Pending' && !empty($payment['expires_at']) && strtotime($payment['expires_at']) <= time()) {
+    $expiresAt = !empty($payment['expires_at'])
+        ? $payment['expires_at']
+        : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 1800) : null);
+
+    if ($payment['payment_status'] === 'Pending' && $expiresAt !== null && strtotime($expiresAt) <= time()) {
         echo json_encode([
             'success' => true,
             'status' => 'Expired',
-            'expires_at' => $payment['expires_at'],
+            'expires_at' => $expiresAt,
         ]);
         exit;
     }
@@ -73,7 +77,7 @@ try {
     echo json_encode([
         'success' => true,
         'status' => $payment['payment_status'], // 'Pending', 'Verified', 'Failed', 'Rejected', etc.
-        'expires_at' => $payment['expires_at'] ?? null,
+        'expires_at' => $expiresAt,
     ]);
 
 } catch (Exception $e) {

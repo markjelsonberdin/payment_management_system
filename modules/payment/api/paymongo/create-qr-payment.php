@@ -111,6 +111,7 @@ if (!$studentId || !$billingId || !$amount || $channel !== 'qrph') {
 
 try {
     $providerStage = 'validation';
+    $hasExpiryColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'expires_at'")->fetch(PDO::FETCH_ASSOC);
     $pdo->beginTransaction();
     $dbLocked = true;
 
@@ -127,13 +128,14 @@ try {
     $stmtLock->execute([$studentId]);
 
     // 3. Check for conflicting pending attempts
-    $stmtPending = $pdo->prepare("
-        SELECT payment_id FROM payments 
-        WHERE student_id = ? AND billing_id = ? 
-        AND payment_status = 'Pending' 
+    $pendingExpiryFilter = $hasExpiryColumn
+        ? 'AND expires_at > NOW()'
+        : "AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)";
+    $stmtPending = $pdo->prepare("SELECT payment_id FROM payments
+        WHERE student_id = ? AND billing_id = ?
+        AND payment_status = 'Pending'
         AND payment_channel = 'QRPh'
-        AND expires_at > NOW()
-    ");
+        {$pendingExpiryFilter}");
     $stmtPending->execute([$studentId, $billingId]);
     if ($stmtPending->fetch()) {
         throw new Exception("You already have an active pending QR payment for this billing. Please complete it or wait for it to expire.");
@@ -161,12 +163,12 @@ try {
     $description = "Payment for Billing ID #$billingId";
 
     // 4. Persist Placeholder Payment Attempt (Draft)
-    $stmtInsert = $pdo->prepare("
-        INSERT INTO payments 
-        (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date, expires_at)
-        VALUES 
-        (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, 'QRPh', :reference_number, 'Pending', CURDATE(), DATE_ADD(NOW(), INTERVAL 30 MINUTE))
-    ");
+    $expiryColumn = $hasExpiryColumn ? ', expires_at' : '';
+    $expiryValue = $hasExpiryColumn ? ', DATE_ADD(NOW(), INTERVAL 30 MINUTE)' : '';
+    $stmtInsert = $pdo->prepare("INSERT INTO payments
+        (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date{$expiryColumn})
+        VALUES
+        (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, 'QRPh', :reference_number, 'Pending', CURDATE(){$expiryValue})");
     
     $stmtInsert->execute([
         ':student_id' => $studentId,
@@ -223,9 +225,13 @@ try {
         ':payment_id' => $paymentId
     ]);
 
-    $stmtExpiry = $pdo->prepare('SELECT expires_at FROM payments WHERE payment_id = :payment_id');
-    $stmtExpiry->execute([':payment_id' => $paymentId]);
-    $expiresAt = $stmtExpiry->fetchColumn();
+    if ($hasExpiryColumn) {
+        $stmtExpiry = $pdo->prepare('SELECT expires_at FROM payments WHERE payment_id = :payment_id');
+        $stmtExpiry->execute([':payment_id' => $paymentId]);
+        $expiresAt = $stmtExpiry->fetchColumn();
+    } else {
+        $expiresAt = date('Y-m-d H:i:s', time() + 1800);
+    }
 
     echo json_encode([
         'success' => true,
