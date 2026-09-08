@@ -75,19 +75,27 @@ if (getCurrentUserRoleKey() === 'student') {
     $sessionStudentId = $_SESSION['student_id'] ?? null;
     $isAuthorized = false;
 
-    // Direct match with session string (e.g. S230000001)
-    if (!empty($sessionStudentId) && (string)$sessionStudentId === (string)$studentId) {
+    $resolvedStudentNumber = $resolvedStudent['student_number'] ?? null;
+
+    // Match the canonical student number from the payment database.
+    if (!empty($sessionStudentId) && (
+        strcasecmp((string) $sessionStudentId, (string) $resolvedStudentNumber) === 0
+        || (string) $sessionStudentId === (string) $studentId
+    )) {
         $isAuthorized = true;
     }
     
-    // Check against payment_db students table using user_id
+    // Older payment schemas also map users through students.user_id.
     if (!$isAuthorized) {
-        $stmtCheck = $pdo->prepare("SELECT student_id, student_number FROM students WHERE user_id = ? LIMIT 1");
-        $stmtCheck->execute([getCurrentUserId()]);
-        $studentRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-        
-        if ($studentRow && ((string)$studentRow['student_id'] === (string)$studentId || (string)$studentRow['student_number'] === (string)$studentId)) {
-            $isAuthorized = true;
+        $hasUserIdColumn = (bool) $pdo->query("SHOW COLUMNS FROM students LIKE 'user_id'")->fetch(PDO::FETCH_ASSOC);
+        if ($hasUserIdColumn) {
+            $stmtCheck = $pdo->prepare("SELECT student_id, student_number FROM students WHERE user_id = ? LIMIT 1");
+            $stmtCheck->execute([getCurrentUserId()]);
+            $studentRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+            if ($studentRow && ((string)$studentRow['student_id'] === (string)$studentId || strcasecmp((string)$studentRow['student_number'], (string)$resolvedStudentNumber) === 0)) {
+                $isAuthorized = true;
+            }
         }
     }
     
