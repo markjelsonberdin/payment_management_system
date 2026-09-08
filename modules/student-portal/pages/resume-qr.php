@@ -39,7 +39,11 @@ if ($payment['payment_status'] !== 'Pending') {
     die("This QR payment is no longer active.");
 }
 
-if (empty($payment['expires_at']) || strtotime($payment['expires_at']) <= time()) {
+$expiresAt = !empty($payment['expires_at'])
+    ? $payment['expires_at']
+    : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 1800) : null);
+
+if ($expiresAt === null || strtotime($expiresAt) <= time()) {
     die("This QR payment has expired. Please start a new payment attempt.");
 }
 
@@ -99,7 +103,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const paymentIntentId = "<?= addslashes($paymentIntentId) ?>";
-        const expiresAt = new Date("<?= addslashes(date('c', strtotime($payment['expires_at']))) ?>").getTime();
+        const expiresAt = new Date("<?= addslashes(date('c', strtotime($expiresAt))) ?>").getTime();
         const countdown = document.getElementById('qrCountdown');
         const countdownInterval = setInterval(() => {
             const remaining = Math.max(0, expiresAt - Date.now());

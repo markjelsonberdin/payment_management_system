@@ -128,12 +128,15 @@ try {
     }
 
     // Handle expiry/late-payment policy
-    if (!empty($internalPayment['expires_at'])) {
-        $expiresAt = strtotime($internalPayment['expires_at']);
+    $paymentExpiresAt = !empty($internalPayment['expires_at'])
+        ? $internalPayment['expires_at']
+        : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 1800) : null);
+    if ($paymentExpiresAt !== null) {
+        $expiresAt = strtotime($paymentExpiresAt);
         if (time() > $expiresAt) {
             // Late Webhook Policy: If a QR is expired but a payment is later officially confirmed by PayMongo 
             // and passes all validation (signature, idempotency, intent ownership, amount, state), RECONCILE AS PAID.
-            error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$internalPayment['expires_at']}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
+            error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$paymentExpiresAt}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
         }
     }
 
