@@ -16,6 +16,7 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentChannelService.php';
 require_once ROOT_PATH . '/modules/payment/includes/ConvenienceFeeService.php';
 
+requireAuth();
 
 if (isset($_GET['process']) && $_GET['process'] === 'soa') {
     header('Location: statement-of-account.php');
@@ -32,7 +33,7 @@ $breadcrumbs = [
 ];
 
 // 3. Database Fetch Logic
-$studentId = $_SESSION['student_id'] ?? 'S230106713'; // Default fallback based on your DB
+$studentId = $_SESSION['student_id'] ?? null;
 
 $totalAssessment = 0.00;
 $discountAmount = 0.00;
@@ -417,7 +418,9 @@ function startQrPolling(paymentIntentId) {
     currentQrPaymentIntentId = paymentIntentId;
     
     qrPollingInterval = setInterval(() => {
-        fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId)
+        fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId, {
+            credentials: 'same-origin'
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -553,6 +556,7 @@ function initiatePayMongoCheckout(channel) {
 
     fetch(apiEndpoint, {
         method: "POST",
+        credentials: "same-origin",
         headers: {
             "Content-Type": "application/json"
         },
@@ -610,7 +614,9 @@ function initiatePayMongoCheckout(channel) {
 
 // Fetch available payment channels dynamically when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/available-channels.php")
+    fetch("<?= BASE_URL ?>/modules/payment/api/paymongo/available-channels.php", {
+        credentials: 'same-origin'
+    })
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('payment-methods-container');
@@ -718,6 +724,7 @@ function cancelPendingPayment(paymentId) {
     document.getElementById('duplicateWarningModal').querySelector('.modal-body').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-danger"></div><div class="mt-2">Cancelling payment...</div></div>';
     
     fetch("<?= BASE_URL ?>/modules/student-portal/api/cancel-payment.php", {
+        credentials: 'same-origin',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

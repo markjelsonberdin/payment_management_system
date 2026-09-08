@@ -93,6 +93,12 @@ class RegistrarStudentClient {
             }
         }
 
+        // The cache and shared users table may both lag behind the Registrar.
+        // Use the API as the final source of truth for a missing student.
+        if (!$student) {
+            $student = $this->fetchFromRegistrar($student_number);
+        }
+
         if (!$student) {
             return null;
         }
@@ -101,6 +107,59 @@ class RegistrarStudentClient {
         $this->syncLocalReference($student);
 
         return $student;
+    }
+
+    private function fetchFromRegistrar($studentNumber) {
+        $separator = strpos($this->apiUrl, '?') === false ? '?' : '&';
+        $url = $this->apiUrl . $separator . 'student_number=' . rawurlencode($studentNumber);
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\n",
+            ],
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false || $response === '') {
+            return null;
+        }
+
+        $payload = json_decode($response, true);
+        if (!is_array($payload) || empty($payload['success'])) {
+            return null;
+        }
+
+        $data = $payload['data'] ?? $payload['student'] ?? null;
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $fullName = trim((string) ($data['full_name'] ?? ''));
+        if ($fullName === '') {
+            $fullName = trim(
+                (string) ($data['first_name'] ?? '') . ' ' .
+                (string) ($data['last_name'] ?? '')
+            );
+        }
+
+        $studentId = $data['student_id'] ?? $data['id'] ?? null;
+        $studentNumber = $data['student_number'] ?? $studentNumber;
+        if ($studentId === null || $studentNumber === '') {
+            return null;
+        }
+
+        return [
+            'student_id' => $studentId,
+            'user_id' => $data['user_id'] ?? $studentId,
+            'student_number' => $studentNumber,
+            'full_name' => $fullName,
+            'course_id' => $data['course_id'] ?? $data['course'] ?? null,
+            'year_level' => $data['year_level'] ?? null,
+            'status' => $data['status'] ?? 'Enrolled',
+        ];
     }
 
     private function syncLocalReference($student) {
