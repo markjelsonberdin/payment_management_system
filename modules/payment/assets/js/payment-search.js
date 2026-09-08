@@ -1,6 +1,6 @@
 /**
  * SMS 2 - Payment Search
- * Provides table filtering and debounced student search triggers.
+ * Provides table filtering and completed student-number search triggers.
  */
 document.addEventListener("DOMContentLoaded", function () {
     const searchInputs = document.querySelectorAll(".table-live-search-input");
@@ -57,21 +57,36 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    function isCompleteStudentNumber(value) {
+        // Existing payment-module records and field examples use S + 9 digits.
+        return /^S\d{9}$/i.test(value.trim());
+    }
+
+    window.SMS2StudentSearch = {
+        isCompleteStudentNumber: isCompleteStudentNumber
+    };
+
     function setupAutoSearch(inputId, buttonId) {
         const input = document.getElementById(inputId);
         const button = document.getElementById(buttonId);
 
         if (!input || !button) return;
 
-        let timeout = null;
         input.addEventListener("input", function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(function () {
-                const valueLength = input.value.trim().length;
-                if (valueLength >= 3 || valueLength === 0) {
+            // Typing, pausing, pasting, and backspacing must not trigger a lookup.
+            // The page-specific handler performs the lookup on an explicit action.
+            if (!input.value.trim()) {
+                input.dispatchEvent(new CustomEvent('sms2:student-search-cleared'));
+            }
+        });
+
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (isCompleteStudentNumber(input.value)) {
                     button.click();
                 }
-            }, 500);
+            }
         });
     }
 

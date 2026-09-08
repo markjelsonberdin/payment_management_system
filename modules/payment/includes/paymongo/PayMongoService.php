@@ -216,14 +216,10 @@ class PayMongoService {
             }
             return [];
         } catch (Exception $e) {
-            // Fallback: If endpoint does not exist or fails, assume default channels are active
-            // This ensures development isn't blocked if PayMongo API lacks this undocumented endpoint
-            return [
-                'gcash' => 'active',
-                'maya' => 'active',
-                'card' => 'active',
-                'qrph' => 'active'
-            ];
+            // Never advertise unsupported live channels when PayMongo
+            // capability discovery fails. Test mode is handled separately by
+            // PaymentChannelService.
+            return [];
         }
     }
 }

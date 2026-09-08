@@ -35,6 +35,14 @@ if (!$payment || $payment['user_id'] != $studentUserId || $payment['payment_chan
     die("Invalid payment record.");
 }
 
+if ($payment['payment_status'] !== 'Pending') {
+    die("This QR payment is no longer active.");
+}
+
+if (empty($payment['expires_at']) || strtotime($payment['expires_at']) <= time()) {
+    die("This QR payment has expired. Please start a new payment attempt.");
+}
+
 $paymentIntentId = $payment['payment_intent_id'];
 $payMongo = new PayMongoService();
 $intentData = $payMongo->getPaymentIntent($paymentIntentId);
@@ -63,6 +71,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-4 mx-auto">
             <img src="<?= htmlspecialchars($qrImage) ?>" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
         </div>
+
+        <a href="<?= htmlspecialchars($qrImage) ?>" download="sms2-qr-<?= (int)$payment['payment_id'] ?>.png" class="btn btn-primary w-100 py-2 fw-bold shadow-sm rounded-3 mb-3">
+            <i class="ti ti-download me-2"></i>Download QR Code
+        </a>
         
         <p class="text-muted small mb-3">Scan this QR code using GCash, Maya, or any supported QR Ph banking application.</p>
         
@@ -75,6 +87,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <i class="ti ti-loader fa-lg me-3" id="qrStatusSpinner"></i> 
             <span id="qrStatusText" class="fw-bold fs-6">Waiting for payment confirmation...</span>
         </div>
+
+        <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">30:00</strong></div>
         
         <a href="payment-history.php" class="btn btn-outline-secondary w-100 py-2 fw-bold shadow-sm rounded-3">
             <i class="ti ti-arrow-left me-2"></i>Back to History
@@ -85,6 +99,21 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const paymentIntentId = "<?= addslashes($paymentIntentId) ?>";
+        const expiresAt = new Date("<?= addslashes(date('c', strtotime($payment['expires_at']))) ?>").getTime();
+        const countdown = document.getElementById('qrCountdown');
+        const countdownInterval = setInterval(() => {
+            const remaining = Math.max(0, expiresAt - Date.now());
+            const totalSeconds = Math.floor(remaining / 1000);
+            const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            countdown.textContent = minutes + ':' + seconds;
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                clearInterval(pollingInterval);
+                document.getElementById('qrStatusText').textContent = 'QR expired. Please start a new payment.';
+                document.getElementById('qrStatusAlert').classList.replace('alert-warning', 'alert-danger');
+            }
+        }, 1000);
         const pollingInterval = setInterval(() => {
             fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId)
                 .then(res => res.json())
@@ -100,8 +129,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             setTimeout(() => {
                                 window.location.href = 'payment-history.php';
                             }, 2000);
-                        } else if (data.status === 'Failed' || data.status === 'Rejected') {
+                        } else if (data.status === 'Failed' || data.status === 'Rejected' || data.status === 'Expired') {
                             clearInterval(pollingInterval);
+                            clearInterval(countdownInterval);
                             document.getElementById('qrStatusText').innerHTML = "Payment Failed or Expired.";
                             const alertBox = document.getElementById('qrStatusAlert');
                             alertBox.classList.remove('alert-warning');

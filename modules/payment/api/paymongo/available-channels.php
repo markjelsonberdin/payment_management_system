@@ -28,6 +28,9 @@ try {
     
     $availableChannels = [];
     foreach ($statuses as $code => $data) {
+        if ($env === 'live' && $code !== 'qrph') {
+            continue;
+        }
         if ($data['status'] === 'AVAILABLE') {
             $availableChannels[] = [
                 'code' => $code,

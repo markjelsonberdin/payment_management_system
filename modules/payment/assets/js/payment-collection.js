@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", function () {
     btnSearch.addEventListener('click', function () {
         let sn = searchInput.value.trim();
         if (!sn) return;
+        if (!window.SMS2StudentSearch || !window.SMS2StudentSearch.isCompleteStudentNumber(sn)) {
+            return;
+        }
 
         fetch('../../api/fetch_collection_billing.php?student_number=' + sn)
             .then(res => res.json())

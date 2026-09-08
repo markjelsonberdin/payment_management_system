@@ -43,7 +43,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!searchInput) return;
         const sn = searchInput.value.trim();
         if (sn === '') {
-            setHint('Enter a student number to search.', true);
+            setHint('', false);
+            return;
+        }
+        if (!window.SMS2StudentSearch || !window.SMS2StudentSearch.isCompleteStudentNumber(sn)) {
+            setHint('', false);
             return;
         }
 

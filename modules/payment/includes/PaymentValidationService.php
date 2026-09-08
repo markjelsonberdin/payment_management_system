@@ -133,6 +133,13 @@ class PaymentValidationService {
             // 4. Payment method availability check
             $paymongo = new PayMongoService();
             $env = $this->channelService->getActiveEnvironment();
+
+            // The deployed live account currently supports QR Ph only. Keep
+            // this server-side so direct API calls cannot bypass the UI.
+            if ($env === 'live' && $channel !== 'qrph') {
+                return ['valid' => false, 'error' => 'Only QR Ph is available for live payments.'];
+            }
+
             $statuses = $this->channelService->getChannelStatuses($paymongo, $env);
             if (!isset($statuses[$channel])) {
                 return ['valid' => false, 'error' => 'The selected payment channel is invalid or unavailable.'];

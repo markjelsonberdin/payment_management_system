@@ -384,11 +384,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-3">
                     <img id="qrImage" src="" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
+                <a id="qrDownloadButton" href="#" download="sms2-qr-code.png" class="btn btn-primary w-100 mb-3">
+                    <i class="ti ti-download me-2"></i>Download QR Code
+                </a>
                 <p class="text-muted small mb-2">Scan this QR using GCash, Maya, or any supported QR Ph banking app.</p>
                 <div class="fw-bold text-dark fs-5 mb-3" id="qrAmountDisplay"></div>
                 <div class="alert alert-warning py-2 mb-4 d-inline-block shadow-sm">
                     <i class="ti ti-loader me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
                 </div>
+                <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">30:00</strong></div>
                 <br>
                 <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="cancelQrPayment()">Cancel Payment</button>
             </div>
@@ -398,10 +402,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <script>
 let qrPollingInterval = null;
+let qrExpiryInterval = null;
 let currentQrPaymentIntentId = null;
 
 function cancelQrPayment() {
     if (qrPollingInterval) clearInterval(qrPollingInterval);
+    if (qrExpiryInterval) clearInterval(qrExpiryInterval);
     // Reload page to reset state or redirect to history
     window.location.href = '?payment=cancelled';
 }
@@ -417,13 +423,15 @@ function startQrPolling(paymentIntentId) {
                 if (data.success) {
                     if (data.status === 'Verified') {
                         clearInterval(qrPollingInterval);
+                        if (qrExpiryInterval) clearInterval(qrExpiryInterval);
                         document.getElementById('qrStatusText').innerHTML = "Payment Successful!";
                         document.getElementById('qrStatusText').classList.replace('text-warning', 'text-success');
                         setTimeout(() => {
                             window.location.href = '?payment=success';
                         }, 2000);
-                    } else if (data.status === 'Failed' || data.status === 'Rejected') {
+                    } else if (data.status === 'Failed' || data.status === 'Rejected' || data.status === 'Expired') {
                         clearInterval(qrPollingInterval);
+                        if (qrExpiryInterval) clearInterval(qrExpiryInterval);
                         document.getElementById('qrStatusText').innerHTML = "Payment Failed/Expired.";
                         document.getElementById('qrStatusText').classList.replace('text-warning', 'text-danger');
                     }
@@ -433,7 +441,7 @@ function startQrPolling(paymentIntentId) {
     }, 4000); // 4-second polling
 }
 
-function displayQrPayment(qrImage, amount, paymentIntentId) {
+function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
     // Hide channel selection UI
     document.querySelector('.modal-header').classList.add('d-none');
     document.querySelector('.modal-body').classList.add('d-none');
@@ -442,7 +450,29 @@ function displayQrPayment(qrImage, amount, paymentIntentId) {
     // Show QR UI
     document.getElementById('qrDisplayContainer').classList.remove('d-none');
     document.getElementById('qrImage').src = qrImage;
+    const downloadButton = document.getElementById('qrDownloadButton');
+    downloadButton.href = qrImage;
+    downloadButton.download = 'sms2-qr-' + paymentIntentId + '.png';
     document.getElementById('qrAmountDisplay').innerHTML = 'PHP ' + parseFloat(amount).toFixed(2);
+
+    if (qrExpiryInterval) clearInterval(qrExpiryInterval);
+    const expiryTimestamp = new Date(String(expiresAt).replace(' ', 'T')).getTime();
+    const countdown = document.getElementById('qrCountdown');
+    const updateCountdown = () => {
+        const remaining = Math.max(0, expiryTimestamp - Date.now());
+        const totalSeconds = Math.floor(remaining / 1000);
+        countdown.textContent = String(Math.floor(totalSeconds / 60)).padStart(2, '0') + ':' + String(totalSeconds % 60).padStart(2, '0');
+        if (remaining <= 0) {
+            clearInterval(qrExpiryInterval);
+            if (qrPollingInterval) clearInterval(qrPollingInterval);
+            document.getElementById('qrStatusText').textContent = 'QR expired. Please start a new payment.';
+            document.getElementById('qrStatusText').classList.add('text-danger');
+            downloadButton.classList.add('disabled');
+            downloadButton.removeAttribute('href');
+        }
+    };
+    updateCountdown();
+    qrExpiryInterval = setInterval(updateCountdown, 1000);
     
     startQrPolling(paymentIntentId);
 }
@@ -544,7 +574,7 @@ function initiatePayMongoCheckout(channel) {
 
         if (data.success) {
             if (channel === 'qrph' && data.qr_image) {
-                displayQrPayment(data.qr_image, data.amount, data.payment_intent_id);
+                displayQrPayment(data.qr_image, data.amount, data.payment_intent_id, data.expires_at);
             } else if (data.checkout_url) {
                 window.location.href = data.checkout_url;
             }

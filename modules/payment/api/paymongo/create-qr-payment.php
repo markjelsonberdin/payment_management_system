@@ -49,6 +49,27 @@ $channel = $input['channel'] ?? '';
 $allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
 $billingItemId = $input['billing_item_id'] ?? null;
 
+// Resolve the external student number or numeric ID to the authoritative
+// payment-db students.student_id before validation and payment creation.
+$submittedStudentId = $studentId;
+if ($submittedStudentId !== null && $submittedStudentId !== '') {
+    $stmtStudent = $pdo->prepare(
+        "SELECT student_id, student_number
+         FROM students
+         WHERE student_id = :numeric_id
+            OR LOWER(student_number) = LOWER(:student_number)
+         LIMIT 1"
+    );
+    $stmtStudent->execute([
+        ':numeric_id' => (string) $submittedStudentId,
+        ':student_number' => (string) $submittedStudentId,
+    ]);
+    $resolvedStudent = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+    if ($resolvedStudent) {
+        $studentId = (int) $resolvedStudent['student_id'];
+    }
+}
+
 // Object-Level Authorization: Students can only checkout for themselves
 if (getCurrentUserRoleKey() === 'student') {
     $sessionStudentId = $_SESSION['student_id'] ?? null;
@@ -196,12 +217,17 @@ try {
         ':payment_id' => $paymentId
     ]);
 
+    $stmtExpiry = $pdo->prepare('SELECT expires_at FROM payments WHERE payment_id = :payment_id');
+    $stmtExpiry->execute([':payment_id' => $paymentId]);
+    $expiresAt = $stmtExpiry->fetchColumn();
+
     echo json_encode([
         'success' => true,
         'qr_image' => $qrImage,
         'payment_intent_id' => $paymentIntentId,
         'reference_number' => $referenceNumber,
         'amount' => $checkoutTotal,
+        'expires_at' => $expiresAt,
         'fee_data' => $feeData,
         'status' => 'pending'
     ]);
@@ -225,7 +251,7 @@ try {
     echo json_encode([
         'success' => false,
         'error' => 'QR_PAYMENT_CREATION_FAILED',
-        'message' => $e->getMessage()
+        'message' => 'Unable to create the QR payment right now. Please try again.'
     ]);
 }
 

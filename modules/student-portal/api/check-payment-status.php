@@ -31,14 +31,25 @@ if (!$paymentIntentId && !$referenceNumber) {
 }
 
 try {
-    // Only search payments belonging to the currently authenticated user
-    $studentId = $_SESSION['user_id']; 
+    // Resolve the authenticated user to the payment-db student_id. These are
+    // separate identifiers and must not be compared directly.
+    $stmtStudent = $pdo->prepare(
+        'SELECT student_id FROM students WHERE user_id = :user_id LIMIT 1'
+    );
+    $stmtStudent->execute([':user_id' => (int) ($_SESSION['user_id'] ?? 0)]);
+    $studentId = $stmtStudent->fetchColumn();
+
+    if (!$studentId) {
+        echo json_encode(['success' => false, 'error' => 'Student profile not found']);
+        http_response_code(403);
+        exit;
+    }
 
     if ($paymentIntentId) {
-        $stmt = $pdo->prepare("SELECT payment_status FROM payments WHERE payment_intent_id = :id AND student_id = :student_id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE payment_intent_id = :id AND student_id = :student_id LIMIT 1");
         $stmt->execute([':id' => $paymentIntentId, ':student_id' => $studentId]);
     } else {
-        $stmt = $pdo->prepare("SELECT payment_status FROM payments WHERE reference_number = :ref AND student_id = :student_id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE reference_number = :ref AND student_id = :student_id LIMIT 1");
         $stmt->execute([':ref' => $referenceNumber, ':student_id' => $studentId]);
     }
 
@@ -50,51 +61,19 @@ try {
         exit;
     }
 
-    if ($payment['payment_status'] === 'Pending' && !empty($payment['checkout_session_id'])) {
-        // Fallback: Check PayMongo API directly (Useful for localhost testing without webhooks)
-        require_once ROOT_PATH . '/modules/payment/includes/paymongo/paymongo/PayMongoService.php';
-        try {
-            $paymongo = new PayMongoService();
-            $session = $paymongo->getCheckoutSession($payment['checkout_session_id']);
-            
-            $pmPayments = $session['data']['attributes']['payments'] ?? [];
-            $isPaid = false;
-            foreach ($pmPayments as $pmPayment) {
-                if (($pmPayment['attributes']['status'] ?? '') === 'paid') {
-                    $isPaid = true;
-                    break;
-                }
-            }
-            
-            if ($isPaid) {
-                $pdo->beginTransaction();
-                $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid AND payment_status = 'Pending'");
-                $stmtUpdate->execute([':pid' => $payment['payment_id']]);
-                
-                if ($stmtUpdate->rowCount() > 0) {
-                    require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
-                    $allocationService = new PaymentAllocationService($pdo);
-                    $allocationService->allocatePayment(
-                        $payment['payment_id'],
-                        $payment['student_id'],
-                        $payment['billing_id'],
-                        (float) $payment['amount'],
-                        $payment['allocation_context'],
-                        $payment['billing_item_id']
-                    );
-                    $payment['payment_status'] = 'Verified';
-                }
-                $pdo->commit();
-            }
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            error_log("PayMongo Fallback Check Error: " . $e->getMessage());
-        }
+    if ($payment['payment_status'] === 'Pending' && !empty($payment['expires_at']) && strtotime($payment['expires_at']) <= time()) {
+        echo json_encode([
+            'success' => true,
+            'status' => 'Expired',
+            'expires_at' => $payment['expires_at'],
+        ]);
+        exit;
     }
 
     echo json_encode([
         'success' => true,
-        'status' => $payment['payment_status'] // 'Pending', 'Verified', 'Failed', 'Rejected', etc.
+        'status' => $payment['payment_status'], // 'Pending', 'Verified', 'Failed', 'Rejected', etc.
+        'expires_at' => $payment['expires_at'] ?? null,
     ]);
 
 } catch (Exception $e) {
