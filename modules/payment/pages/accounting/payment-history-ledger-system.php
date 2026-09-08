@@ -61,7 +61,7 @@ function paymentHistoryQueryUrl(array $base, array $overrides = []): string
     return 'payment-history-ledger-system.php' . ($qs !== '' ? '?' . $qs : '');
 }
 
-$perPage = 15;
+$perPage = 8;
 $currentPage = max(1, (int) ($_GET['page'] ?? 1));
 $sort = (string) ($_GET['sort'] ?? 'date');
 $dir = strtoupper((string) ($_GET['dir'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
@@ -257,7 +257,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 text-nowrap" id="historyTable">
+                <table class="table table-hover table-sm align-middle mb-0 text-nowrap" id="historyTable">
                     <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                         <tr>
                             <?php
@@ -280,7 +280,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                 if ($sort === $key) {
                                     $icon = $dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down';
                                 }
-                                $thClass = trim($extraClass . ($key === 'reference' ? ' ps-4 py-3' : ' py-3'));
+                                $thClass = trim($extraClass . ($key === 'reference' ? ' ps-4 py-2' : ' py-2'));
                                 ?>
                                 <th class="<?= htmlspecialchars($thClass) ?>">
                                     <a class="text-secondary text-decoration-none" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['sort' => $key, 'dir' => $nextDir, 'page' => 1])) ?>">
@@ -288,7 +288,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                     </a>
                                 </th>
                             <?php endforeach; ?>
-                            <th class="py-3 text-end">Processing Fee</th>
+                            <th class="py-2 text-end">Processing Fee</th>
                             <?php foreach ($headersAfterFee as $key => [$label, $extraClass]): ?>
                                 <?php
                                 $nextDir = ($sort === $key && $dir === 'ASC') ? 'DESC' : 'ASC';
@@ -296,7 +296,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                 if ($sort === $key) {
                                     $icon = $dir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down';
                                 }
-                                $thClass = trim($extraClass . ' py-3');
+                                $thClass = trim($extraClass . ' py-2');
                                 ?>
                                 <th class="<?= htmlspecialchars($thClass) ?>">
                                     <a class="text-secondary text-decoration-none" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['sort' => $key, 'dir' => $nextDir, 'page' => 1])) ?>">
@@ -304,7 +304,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                     </a>
                                 </th>
                             <?php endforeach; ?>
-                            <th class="text-end pe-4 py-3">Actions</th>
+                            <th class="text-end pe-4 py-2">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">

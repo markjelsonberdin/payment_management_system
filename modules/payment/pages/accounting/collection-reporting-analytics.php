@@ -1,4 +1,3 @@
-
 <?php
 /**
  * SMS 2 - Collection Reporting & Analytics
