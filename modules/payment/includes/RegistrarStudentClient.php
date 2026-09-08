@@ -32,33 +32,68 @@ class RegistrarStudentClient {
         if (empty($student_number)) return null;
 
         try {
-            // Direct database connection to sms2_db to avoid API/network issues
-            $host = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: '127.0.0.1');
-            $port = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3307');
-            $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
-            $username = defined('DB_USER') ? DB_USER : (getenv('DB_USERNAME') ?: 'root');
-            $password = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASSWORD') ?: '');
-            
-            $sms2_pdo = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
-            $sms2_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            $stmt = $sms2_pdo->prepare("
+            // The payment database cache is authoritative for payment modules.
+                // students.student_number is the external-facing identifier while
+            // students.student_id is the numeric key used by billing.
+            $stmt = $this->pdo->prepare("
                 SELECT 
-                    id as student_id, 
-                    student_id as student_number, 
-                    full_name
-                FROM users 
-                WHERE role_key = 'student' AND student_id = :sn 
+                    student_id,
+                    user_id,
+                    student_number,
+                    full_name,
+                    course AS course_id,
+                    year_level,
+                    status
+                FROM students
+                WHERE LOWER(student_number) = LOWER(:student_number)
+                   OR CAST(student_id AS CHAR) = :student_id
                 LIMIT 1
             ");
-            $stmt->execute([':sn' => $student_number]);
+            $stmt->execute([
+                ':student_number' => $student_number,
+                ':student_id' => $student_number,
+            ]);
             $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$student) {
+        } catch (PDOException $e) {
+            file_put_contents(
+                __DIR__ . '/sync_error.log',
+                date('Y-m-d H:i:s') . ' Student cache lookup failed: ' . $e->getMessage() . PHP_EOL,
+                FILE_APPEND
+            );
+            return null;
+        }
+
+        // A student can exist in users before the payment cache is populated.
+        // In that case username is the student number in the shared users table.
+        if (!$student) {
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        id AS student_id,
+                        id AS user_id,
+                        username AS student_number,
+                        full_name,
+                        NULL AS course_id,
+                        NULL AS year_level,
+                        status
+                    FROM users
+                    WHERE role_key = 'student'
+                      AND LOWER(username) = LOWER(:student_number)
+                    LIMIT 1
+                ");
+                $stmt->execute([':student_number' => $student_number]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                file_put_contents(
+                    __DIR__ . '/sync_error.log',
+                    date('Y-m-d H:i:s') . ' Users fallback lookup failed: ' . $e->getMessage() . PHP_EOL,
+                    FILE_APPEND
+                );
                 return null;
             }
-        } catch (Exception $e) {
-            file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' DB Error: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+        }
+
+        if (!$student) {
             return null;
         }
         
