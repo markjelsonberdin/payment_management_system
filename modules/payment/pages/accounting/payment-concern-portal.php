@@ -152,8 +152,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <small class="text-muted"><?= htmlspecialchars($row['student_number']) ?></small>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark">₱ <?= number_format($row['payment_amount'], 2) ?></div>
-                                        <small class="text-muted"><?= htmlspecialchars($row['payment_channel']) ?></small>
+                                        <div class="fw-bold text-dark">₱ <?= number_format((float)($row['payment_amount'] ?? 0), 2) ?></div>
+                                        <small class="text-muted"><?= htmlspecialchars((string)($row['payment_channel'] ?? 'N/A')) ?></small>
                                     </td>
                                     <td>
                                         <div class="text-dark small"><strong>Bank:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'N/A') ?></div>
