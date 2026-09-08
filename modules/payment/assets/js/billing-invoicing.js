@@ -29,12 +29,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const studentInput = document.getElementById('studentSearchInput');
     const hintDisplay = document.getElementById('studentNameHint');
 
-    if (studentInput) {
-        studentInput.addEventListener('input', function () {
-            let sn = this.value.trim();
+    function isCompleteStudentNumber(value) {
+        return window.SMS2StudentSearch
+            ? window.SMS2StudentSearch.isCompleteStudentNumber(value)
+            : /^S\d{9}$/i.test(value.trim());
+    }
 
-            if (sn.length >= 3) {
-                fetch('../../api/search-student.php?student_number=' + sn)
+    function lookupStudent() {
+        let sn = studentInput.value.trim();
+        if (!isCompleteStudentNumber(sn)) {
+            hintDisplay.innerHTML = '';
+            return;
+        }
+
+        fetch('../../api/search-student.php?student_number=' + encodeURIComponent(sn))
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -46,8 +54,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     .catch(() => {
                         hintDisplay.innerHTML = '';
                     });
-            } else {
-                hintDisplay.innerHTML = '';
+    }
+
+    if (studentInput) {
+        studentInput.addEventListener('input', function () {
+            hintDisplay.innerHTML = '';
+            if (isCompleteStudentNumber(this.value)) {
+                lookupStudent();
+            }
+        });
+        studentInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                lookupStudent();
             }
         });
     }

@@ -55,13 +55,6 @@ class PaymentChannelService
             }
         }
         
-        // If test mode and not configured, assume defaults from master plan
-        if ($env === 'test' && empty(array_filter($settings))) {
-            $settings['gcash'] = true;
-            $settings['maya'] = true;
-            $settings['qrph'] = true;
-        }
-
         $this->adminSettingsCache[$env] = $settings;
         return $settings;
     }

@@ -6,8 +6,9 @@ require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 header('Content-Type: application/json');
 $student_number = $_GET['student_number'] ?? '';
 
-// Wag mag-search kung masyadong maikli yung tinype
-if(strlen($student_number) < 3) {
+// Do not run a lookup for partial input. The deployed payment records use
+// the canonical S + 9 digits student-number format.
+if (!preg_match('/^S\d{9}$/i', $student_number)) {
     echo json_encode(['success' => false]);
     exit;
 }

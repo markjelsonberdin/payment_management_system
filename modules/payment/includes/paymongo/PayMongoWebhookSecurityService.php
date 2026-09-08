@@ -10,12 +10,20 @@ class PayMongoWebhookSecurityService {
 
     public function __construct($pdo, $env = 'test') {
         $this->pdo = $pdo;
-        
-        $settingKey = ($env === 'live') ? 'webhook_secret_live' : 'webhook_secret_test';
-        $stmt = $this->pdo->prepare("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = :key");
-        $stmt->execute([':key' => $settingKey]);
-        
-        $this->webhookSecret = $stmt->fetchColumn() ?: '';
+
+        // PayMongoService and the webhook must use the same environment
+        // configuration source. Keep the database value as a legacy fallback.
+        require_once __DIR__ . '/../../config/env_loader.php';
+        payment_load_env(__DIR__ . '/../../.env');
+        $envKey = ($env === 'live') ? 'PAYMONGO_WHSEC_LIVE' : 'PAYMONGO_WHSEC_TEST';
+        $this->webhookSecret = getenv($envKey) ?: '';
+
+        if ($this->webhookSecret === '') {
+            $settingKey = ($env === 'live') ? 'webhook_secret_live' : 'webhook_secret_test';
+            $stmt = $this->pdo->prepare("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = :key");
+            $stmt->execute([':key' => $settingKey]);
+            $this->webhookSecret = $stmt->fetchColumn() ?: '';
+        }
     }
 
     /**

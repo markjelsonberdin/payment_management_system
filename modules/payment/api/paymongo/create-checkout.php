@@ -49,6 +49,27 @@ $channel = $input['channel'] ?? '';
 $allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
 $billingItemId = $input['billing_item_id'] ?? null;
 
+// Resolve the external student number or numeric ID to the authoritative
+// payment-db students.student_id before validation and payment creation.
+$submittedStudentId = $studentId;
+if ($submittedStudentId !== null && $submittedStudentId !== '') {
+    $stmtStudent = $pdo->prepare(
+        "SELECT student_id, student_number, user_id
+         FROM students
+         WHERE student_id = :numeric_id
+            OR LOWER(student_number) = LOWER(:student_number)
+         LIMIT 1"
+    );
+    $stmtStudent->execute([
+        ':numeric_id' => (string) $submittedStudentId,
+        ':student_number' => (string) $submittedStudentId,
+    ]);
+    $resolvedStudent = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+    if ($resolvedStudent) {
+        $studentId = (int) $resolvedStudent['student_id'];
+    }
+}
+
 // Object-Level Authorization: Students can only checkout for themselves
 if (getCurrentUserRoleKey() === 'student') {
     $sessionStudentId = $_SESSION['student_id'] ?? null;
@@ -71,10 +92,6 @@ if (getCurrentUserRoleKey() === 'student') {
     }
     
     // Fallback for local testing
-    if (!$isAuthorized && $studentId === 'S230106713') {
-        $isAuthorized = true; 
-    }
-
     if (!$isAuthorized) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'Unauthorized object access.']);
@@ -180,9 +197,7 @@ try {
     $description = "Payment for Billing ID #$billingId";
     
     // Note: The URLs must be absolute.
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    $baseUrl = "$protocol://$host/SMS2_system/modules/student-portal/pages";
+    $baseUrl = BASE_URL . '/modules/student-portal/pages';
     $successUrl = "$baseUrl/payment-success.php?ref=" . $referenceNumber;
     $cancelUrl = "$baseUrl/account-balance.php";
 

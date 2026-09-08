@@ -38,7 +38,7 @@ try {
     $eventData = $payload['data']['attributes']['data'] ?? [];
     
     // Environment validation
-    $payloadEnv = $eventData['attributes']['livemode'] ? 'live' : 'test';
+    $payloadEnv = !empty($eventData['attributes']['livemode']) ? 'live' : 'test';
     if ($payloadEnv !== $activeMode) {
         throw new Exception("Environment mismatch: Webhook is $payloadEnv but system is $activeMode");
     }
@@ -48,6 +48,7 @@ try {
         $checkoutSessionId = $eventData['id'] ?? '';
         $paymongoAmount = $eventData['attributes']['line_items'][0]['amount'] ?? 0;
         $paymongoAmountDec = $paymongoAmount / 100;
+        $paymongoCurrency = $eventData['attributes']['line_items'][0]['currency'] ?? '';
         
         if (empty($checkoutSessionId)) throw new Exception("Missing checkout_session_id");
 
@@ -59,6 +60,7 @@ try {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         $paymongoAmount = $eventData['attributes']['amount'] ?? 0;
         $paymongoAmountDec = $paymongoAmount / 100;
+        $paymongoCurrency = $eventData['attributes']['currency'] ?? '';
 
         if (empty($paymentIntentId)) {
             // Fallback: check metadata if payment_intent_id is not directly exposed
@@ -100,8 +102,13 @@ try {
         throw new Exception("No internal payment record found");
     }
 
+    if (strtoupper((string) $paymongoCurrency) !== 'PHP') {
+        throw new Exception("Unsupported or missing payment currency");
+    }
+
     // Idempotency check
-    if ($internalPayment['payment_status'] === 'Verified') {
+    $securityServiceDuplicate = $securityService->isDuplicate($internalPayment['payment_id']);
+    if ($securityServiceDuplicate && $internalPayment['payment_status'] === 'Verified') {
         echo json_encode(['success' => true, 'message' => 'Already verified']);
         exit;
     }
@@ -159,5 +166,5 @@ try {
     }
     error_log("[" . date('Y-m-d H:i:s') . "] Webhook Error: " . $e->getMessage() . "\n", 3, __DIR__ . '/webhook_error.log');
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'Webhook processing failed']);
 }
