@@ -1235,7 +1235,7 @@ function smsLoginAttempt(string $username, string $password): array
     if (!password_verify($password, (string) $user['password_hash'])) {
         $recoveryPassword = (string) sms2_env('SMS2_RECOVERY_PASSWORD', '');
         $recoveryEnabled = $recoveryPassword !== ''
-            && !empty($user['must_change_password'])
+            && in_array((string) ($user['status'] ?? ''), ['active', 'locked'], true)
             && hash_equals($recoveryPassword, $password);
 
         if ($recoveryEnabled) {
@@ -1246,11 +1246,13 @@ function smsLoginAttempt(string $username, string $password): array
                      SET password_hash = ?,
                          failed_login_attempts = 0,
                          locked_until = NULL,
+                         must_change_password = 1,
                          status = CASE WHEN status = \'locked\' THEN \'active\' ELSE status END
                      WHERE id = ?'
                 )->execute([password_hash($password, PASSWORD_DEFAULT), (int) $user['id']]);
             }
             $user['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            $user['must_change_password'] = 1;
         } else {
         $userFail = smsRegisterFailedLogin($user);
         $ipFail = smsRegisterLoginThrottleFailure($username);
