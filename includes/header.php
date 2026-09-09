@@ -78,6 +78,7 @@ $bodyClass = $bodyClass ?? '';
     <!-- SMS 2 Theme -->
     <link href="<?= BASE_URL ?>/assets/css/theme.css?v=3" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/layout.css?v=5" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/icons.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/dashboard-glass.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/loader.css?v=2" rel="stylesheet">

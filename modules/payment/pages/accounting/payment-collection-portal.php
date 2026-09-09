@@ -148,7 +148,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Page Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
-            <h2 class="mb-1 fw-bolder"><p class="fas fa-cash-register text-primary me-2"></p>Walk-In Payment Collection</h2>
+            <h2 class="mb-1 fw-bolder"><i class="fas fa-cash-register text-primary me-2"></i>Walk-In Payment Collection</h2>
             <p class="text-muted mb-0 fs-6">Receive physical cash or check payments, compute balances, and issue Official Receipts (OR).</p>
         </div>
     </div>
@@ -175,7 +175,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <h5 class="fw-bold mb-3"><i class="ti ti-search text-primary me-2"></i>1. Search Student Record</h5>
                     
                     <div class="input-group mb-3">
-                        <span class="input-group-text bg-light"><i class="ti ti-user-graduate"></i></span>
+                        <span class="input-group-text bg-light"><i class="ti ti-school"></i></span>
                         <input type="text" class="form-control" id="searchStudentNumber" placeholder="Enter Student Number (e.g. S230106713)" autocomplete="off">
                         <button class="btn btn-primary px-4 fw-bold" type="button" id="btnSearchStudent">Find</button>
                     </div>
@@ -222,7 +222,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-lg-7 mb-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 opacity-50" id="paymentPanel" style="pointer-events: none;">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3"><p class="ti ti-cash text-success me-2"></p>2. Receive Payment & Issue OR</h5>
+                    <h5 class="fw-bold mb-3"><i class="ti ti-cash text-success me-2"></i>2. Receive Payment & Issue OR</h5>
                     
                     <form action="" method="POST" id="paymentForm">
                         <input type="hidden" name="process_payment" value="1">

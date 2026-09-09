@@ -179,7 +179,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <div class="col-md-6">
                                 <div class="card scholarship-card border rounded-3 p-3 cursor-pointer" data-name="Sibling Discount" data-type="Percentage" data-value="10">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded"><i class="ti ti-user-friends"></i></div>
+                                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded"><i class="ti ti-users-group"></i></div>
                                         <span class="badge bg-success bg-opacity-10 text-success">Active</span>
                                     </div>
                                     <h6 class="fw-bold mb-0">Sibling Discount</h6>
