@@ -14,6 +14,9 @@ require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
+$providerStage = 'bootstrap';
+try {
+
 // 1. Security Check
 if (!isAuthenticated()) {
     http_response_code(401);
@@ -272,6 +275,17 @@ try {
         'success' => false,
         'error' => 'QR_PAYMENT_CREATION_FAILED',
         'message' => 'Unable to create the QR payment right now. Please try again.',
+        'stage' => $providerStage,
+        'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
+    ]);
+}
+} catch (Throwable $e) {
+    error_log('QR Bootstrap Error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'QR_PAYMENT_BOOTSTRAP_FAILED',
+        'message' => 'QR payment endpoint failed before payment initialization.',
         'stage' => $providerStage,
         'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
     ]);
