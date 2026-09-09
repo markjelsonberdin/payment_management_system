@@ -35,10 +35,9 @@ try {
 
     // Recent Verified Collections for Report Table
    $stmtRecent = $pdo->query("
-        SELECT p.*, s.student_number, u.full_name 
+        SELECT p.*, s.student_number, s.full_name
         FROM payments p
         JOIN students s ON p.student_id = s.student_id
-        JOIN users u ON s.user_id = u.id
         WHERE p.payment_status = 'Verified'
         ORDER BY p.created_at DESC 
         LIMIT 10

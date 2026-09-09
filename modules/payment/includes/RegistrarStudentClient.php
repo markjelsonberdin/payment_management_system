@@ -63,38 +63,8 @@ class RegistrarStudentClient {
             return null;
         }
 
-        // A student can exist in users before the payment cache is populated.
-        // In that case username is the student number in the shared users table.
-        if (!$student) {
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        id AS student_id,
-                        id AS user_id,
-                        username AS student_number,
-                        full_name,
-                        NULL AS course_id,
-                        NULL AS year_level,
-                        status
-                    FROM users
-                    WHERE role_key = 'student'
-                      AND LOWER(username) = LOWER(:student_number)
-                    LIMIT 1
-                ");
-                $stmt->execute([':student_number' => $student_number]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                file_put_contents(
-                    __DIR__ . '/sync_error.log',
-                    date('Y-m-d H:i:s') . ' Users fallback lookup failed: ' . $e->getMessage() . PHP_EOL,
-                    FILE_APPEND
-                );
-                return null;
-            }
-        }
-
-        // The cache and shared users table may both lag behind the Registrar.
-        // Use the API as the final source of truth for a missing student.
+        // The Payment reference may lag behind SMS2 Core. Resolve a missing
+        // student through the Core API rather than querying its users table.
         if (!$student) {
             $student = $this->fetchFromRegistrar($student_number);
         }
@@ -185,7 +155,7 @@ class RegistrarStudentClient {
             ");
             $stmt->execute([
                 ':id' => $student['student_id'],
-                ':uid' => $student['student_id'], // Fallback for legacy user_id
+                ':uid' => $student['user_id'] ?? $student['student_id'],
                 ':sn' => $student['student_number'],
                 ':name' => $fullName,
                 ':course' => $student['course_id'] ?? 'Unknown',

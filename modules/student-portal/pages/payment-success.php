@@ -5,7 +5,7 @@
  */
 
 require_once __DIR__ . '/../../../config/config.php';
-require_once __DIR__ . '/../config/config.php';
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 
@@ -26,7 +26,7 @@ $accessDenied = false;
 
 if ($studentId && $referenceNumber) {
     try {
-        $pdo = studentPortalDb();
+
         if ($pdo) {
             // Secure query: Only fetch if it belongs to the logged-in student
             $stmt = $pdo->prepare("
@@ -159,4 +159,3 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 </div>
 
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
-

@@ -19,9 +19,8 @@ if (session_status() === PHP_SESSION_NONE) {
 // Fetch all uploaded statements
 try {
     $stmt = $pdo->query("
-        SELECT s.*, u.username as uploaded_by_name 
-        FROM bank_statements s 
-        LEFT JOIN users u ON s.uploaded_by = u.user_id 
+        SELECT s.*, CONCAT('User #', s.uploaded_by) AS uploaded_by_name
+        FROM bank_statements s
         ORDER BY s.uploaded_at DESC
     ");
     $statements = $stmt->fetchAll(PDO::FETCH_ASSOC);

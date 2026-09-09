@@ -22,12 +22,10 @@ if (!$studentId || !$billingId || !$categoryId || !$amount) {
     exit;
 }
 
-// FIX A: Centralized Database Connection
+// Payment checkout state belongs to the Payment database, not SMS2 Core.
 try {
     require_once __DIR__ . '/../../../../config/config.php';
-    require_once ROOT_PATH . '/config/database.php';
-    
-    $pdo = getDatabaseConnection();
+    require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 } catch (Exception $e) {
     die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]));
 }
