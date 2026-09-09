@@ -618,22 +618,62 @@ function requireModuleAccess(string $moduleKey): void
 function smsFindUserByLogin(string $input): ?array
 {
     $pdo = db();
-    if (!$pdo) {
-        return null;
-    }
-
     $input = strtolower(trim($input));
     if ($input === '') {
         return null;
     }
 
     $username = $input;
-    $isStudentId = (bool) preg_match('/^s\d+$/i', $input);
 
     if (str_ends_with($input, '@bestlink.edu.ph')) {
         $username = substr($input, 0, (int) strpos($input, '@bestlink.edu.ph'));
     }
 
+    if ($pdo) {
+        $row = smsFetchUserByLoginFromPdo($pdo, $input, $username);
+        if ($row) {
+            return $row;
+        }
+    }
+
+    $paymentDbName = sms2_env('DB_DATABASE', '');
+    if ($paymentDbName !== '' && $paymentDbName !== DB_NAME) {
+        $paymentPdo = smsPaymentLoginFallbackConnection($paymentDbName);
+        if ($paymentPdo) {
+            $row = smsFetchUserByLoginFromPdo($paymentPdo, $input, $username);
+            if ($row) {
+                return $row;
+            }
+        }
+    }
+
+    return null;
+}
+
+function smsPaymentLoginFallbackConnection(string $dbName): ?PDO
+{
+    try {
+        return new PDO(
+            'mysql:host=' . sms2_env('DB_HOST', DB_HOST)
+                . ';port=' . sms2_env('DB_PORT', DB_PORT)
+                . ';dbname=' . $dbName
+                . ';charset=' . sms2_env('SMS2_DB_CHARSET', 'utf8mb4'),
+            (string) sms2_env('DB_USERNAME', DB_USER),
+            (string) sms2_env('DB_PASSWORD', DB_PASS),
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]
+        );
+    } catch (Throwable $e) {
+        error_log('SMS2 payment login fallback DB failed: ' . $e->getMessage());
+        return null;
+    }
+}
+
+function smsFetchUserByLoginFromPdo(PDO $pdo, string $input, string $username): ?array
+{
     try {
         if (str_contains($input, '@')) {
             $stmt = $pdo->prepare(
