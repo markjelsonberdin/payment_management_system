@@ -59,11 +59,6 @@ class PayMongoWebhookSecurityService {
             throw new Exception("Invalid signature format: Missing timestamp.");
         }
 
-        // Replay attack protection (e.g., reject if older than 5 minutes)
-        if (abs(time() - (int)$timestamp) > 300) {
-            throw new Exception("Webhook request is too old (possible replay attack).");
-        }
-
         // Generate HMAC SHA256
         $signaturePayload = $timestamp . '.' . $rawPayload;
         $expectedSignature = hash_hmac('sha256', $signaturePayload, $this->webhookSecret);
@@ -74,6 +69,13 @@ class PayMongoWebhookSecurityService {
 
         if (!$isValidTest && !$isValidLive) {
             throw new Exception("Invalid webhook signature. Request forged!");
+        }
+
+        // PayMongo retries may carry the original event timestamp. Accept old
+        // signed deliveries, but reject timestamps that are clearly invalid or
+        // too far in the future.
+        if ((int) $timestamp <= 0 || ((int) $timestamp - time()) > 300) {
+            throw new Exception("Invalid webhook timestamp.");
         }
 
         return true;
