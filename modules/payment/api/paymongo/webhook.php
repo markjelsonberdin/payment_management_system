@@ -38,6 +38,7 @@ try {
     // delivery views/retries can provide the payment resource directly.
     $eventType = $payload['data']['attributes']['type'] ?? '';
     $eventData = $payload['data']['attributes']['data'] ?? [];
+    $webhookEventId = (string) ($payload['data']['id'] ?? '');
     if ($eventType === '' && ($payload['type'] ?? '') === 'payment') {
         $eventType = (($payload['attributes']['status'] ?? '') === 'paid')
             ? 'payment.paid'
@@ -117,42 +118,73 @@ try {
         throw new Exception("Unsupported or missing payment currency");
     }
 
-    // Idempotency check
-    $securityServiceDuplicate = $securityService->isDuplicate($internalPayment['payment_id']);
-    if ($securityServiceDuplicate && $internalPayment['payment_status'] === 'Verified') {
+    // Payment verification, allocation, and webhook idempotency are one Payment DB transaction.
+    $pdo->beginTransaction();
+
+    // Re-read the record under a row lock. This prevents concurrent PayMongo
+    // retries from observing the same Pending payment and allocating it twice.
+    $stmtLockedPayment = $pdo->prepare('SELECT * FROM payments WHERE payment_id = :payment_id FOR UPDATE');
+    $stmtLockedPayment->execute([':payment_id' => $internalPayment['payment_id']]);
+    $internalPayment = $stmtLockedPayment->fetch(PDO::FETCH_ASSOC);
+
+    if (!$internalPayment) {
+        throw new Exception('Payment record disappeared before verification');
+    }
+
+    if ($internalPayment['payment_status'] === 'Verified') {
+        $pdo->rollBack();
         echo json_encode(['success' => true, 'message' => 'Already verified']);
         exit;
     }
     if ($internalPayment['payment_status'] !== 'Pending') {
-        throw new Exception("Payment record is in an unexpected state: " . $internalPayment['payment_status']);
+        throw new Exception('Payment record is in an unexpected state: ' . $internalPayment['payment_status']);
     }
 
-    // Validate Context matches
     if (empty($internalPayment['student_id']) || empty($internalPayment['billing_id'])) {
-        throw new Exception("Payment record lacks required context (student_id/billing_id)");
+        throw new Exception('Payment record lacks required context (student_id/billing_id)');
     }
 
-    // Amount validation
     $expectedTotal = (float) $internalPayment['checkout_total'];
     if (abs($expectedTotal - $paymongoAmountDec) > 0.01) {
         throw new Exception("Amount mismatch. Expected: $expectedTotal, Actual: $paymongoAmountDec");
     }
 
-    // Handle expiry/late-payment policy
-    $paymentExpiresAt = !empty($internalPayment['expires_at'])
-        ? $internalPayment['expires_at']
-        : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 1800) : null);
-    if ($paymentExpiresAt !== null) {
-        $expiresAt = strtotime($paymentExpiresAt);
-        if (time() > $expiresAt) {
-            // Late Webhook Policy: If a QR is expired but a payment is later officially confirmed by PayMongo 
-            // and passes all validation (signature, idempotency, intent ownership, amount, state), RECONCILE AS PAID.
-            error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$paymentExpiresAt}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
+    // PayMongo event IDs are unique in Payment DB. The row lock remains the
+    // fallback for resource-shaped deliveries which do not carry an event ID.
+    if ($webhookEventId !== '') {
+        $stmtEvent = $pdo->prepare(
+            "INSERT IGNORE INTO paymongo_transactions
+                (payment_id, checkout_session_id, payment_intent_id, webhook_event_id, event_type,
+                 amount, convenience_fee, total_charged, signature_verified, processing_status)
+             VALUES
+                (:payment_id, :checkout_session_id, :payment_intent_id, :webhook_event_id, :event_type,
+                 :amount, :convenience_fee, :total_charged, 1, 'Processing')"
+        );
+        $stmtEvent->execute([
+            ':payment_id' => $internalPayment['payment_id'],
+            ':checkout_session_id' => $internalPayment['checkout_session_id'] ?? null,
+            ':payment_intent_id' => $internalPayment['payment_intent_id'] ?? null,
+            ':webhook_event_id' => $webhookEventId,
+            ':event_type' => $eventType,
+            ':amount' => $internalPayment['amount'],
+            ':convenience_fee' => $internalPayment['processing_fee'] ?? 0,
+            ':total_charged' => $internalPayment['checkout_total'],
+        ]);
+
+        if ($stmtEvent->rowCount() !== 1) {
+            $pdo->rollBack();
+            echo json_encode(['success' => true, 'message' => 'Webhook event already processed']);
+            exit;
         }
     }
 
-    // Allocation Logic
-    $pdo->beginTransaction();
+    // Handle expiry/late-payment policy after authentication and validation.
+    $paymentExpiresAt = !empty($internalPayment['expires_at'])
+        ? $internalPayment['expires_at']
+        : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 1800) : null);
+    if ($paymentExpiresAt !== null && time() > strtotime($paymentExpiresAt)) {
+        error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$paymentExpiresAt}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
+    }
 
     $stmtUpdate = $pdo->prepare("
         UPDATE payments 
@@ -170,6 +202,15 @@ try {
         $internalPayment['allocation_context'],
         $internalPayment['billing_item_id']
     );
+
+    if ($webhookEventId !== '') {
+        $stmtProcessed = $pdo->prepare(
+            "UPDATE paymongo_transactions
+             SET processing_status = 'Processed', processed_at = CURRENT_TIMESTAMP
+             WHERE webhook_event_id = :webhook_event_id"
+        );
+        $stmtProcessed->execute([':webhook_event_id' => $webhookEventId]);
+    }
 
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Payment successfully verified and allocated']);
