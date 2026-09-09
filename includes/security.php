@@ -24,8 +24,8 @@ function smsSendSecurityHeaders(): void
     header(
         "Content-Security-Policy: default-src 'self'; " .
         "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " .
-        "style-src 'self' 'unsafe-inline'; " .
-        "font-src 'self' data:; " .
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
+        "font-src 'self' data: https://cdn.jsdelivr.net; " .
         "img-src 'self' data: blob:; " .
         "connect-src 'self' https://challenges.cloudflare.com; " .
         "frame-src 'self' https://challenges.cloudflare.com https://bcp-admissions.elearningcommons.com; " .

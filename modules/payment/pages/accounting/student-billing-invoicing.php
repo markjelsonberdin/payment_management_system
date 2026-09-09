@@ -353,7 +353,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                        <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold text-dark">Student Number <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="ti ti-user-graduate text-muted"></i></span>
+                            <span class="input-group-text bg-white"><i class="ti ti-school text-muted"></i></span>
                             <input type="text" class="form-control border-start-0" id="studentSearchInput" name="student_number" placeholder="e.g. S230106713" required autocomplete="off">
                         </div>
                         <small id="studentNameHint" class="mt-1 d-block text-muted" style="min-height: 20px;"></small>

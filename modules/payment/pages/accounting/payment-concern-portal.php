@@ -183,7 +183,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     </td>
                                     <td class="text-end pe-4">
                                         <button type="button" class="btn btn-sm btn-light text-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
-                                            <i class="ti ti-search-dollar me-1"></i> Review & Verify
+                                            <i class="ti ti-report-money me-1"></i> Review & Verify
                                         </button>
                                     </td>
                                 </tr>

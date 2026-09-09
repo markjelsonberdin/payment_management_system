@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="col-md-6">' +
                     '<div class="card border-0 shadow-sm rounded-3 h-100 bg-white">' +
                         '<div class="card-body p-3">' +
-                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-user-graduate me-1 text-primary"></i> Student & Details</h6>' +
+                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-school me-1 text-primary"></i> Student & Details</h6>' +
                             modalRow('Student Name', data.full_name) +
                             modalRow('Student No.', data.student_number) +
                             modalRow('Course / Program', data.course || '—') +
