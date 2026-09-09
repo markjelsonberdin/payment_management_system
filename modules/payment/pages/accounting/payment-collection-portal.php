@@ -104,19 +104,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         // Signature: allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context, $categoryId)
         $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $category_id);
 
-        // 4. Immutable Audit Log (SMS2 centralized activity_logs)
-        $stmtLog = $pdo->prepare("
-            INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
-            VALUES (:uid, 'Process Walk-in Payment', 'Payment Management', :desc, :ip, :ua)
-        ");
-        $stmtLog->execute([
-            ':uid' => $cashier_id,
-            ':desc' => "Processed walk-in payment of ₱" . number_format($amount_paid, 2) . " (Context: {$payment_context}) for Billing ID #{$billing_id} with OR No: {$reference_number}",
-            ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
-            ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
-        ]);
-
         $pdo->commit();
+
+        // Payment is now durable in Payment DB. Audit is authoritative in SMS2 Core.
+        logActivity(
+            'process_walk_in_payment',
+            "Processed walk-in payment of ₱" . number_format($amount_paid, 2) . " (Context: {$payment_context}) for Billing ID #{$billing_id} with OR No: {$reference_number}",
+            'payment',
+            (int) $cashier_id
+        );
 
         header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number));
         exit();

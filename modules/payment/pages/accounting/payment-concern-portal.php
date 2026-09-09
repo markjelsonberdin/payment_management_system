@@ -38,18 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_concern'])) {
         
         if ($action === 'Verify') {
             $concernService->verifyConcern($concern_id, 'Verify', $reviewer_id, $remarks, $billing_id, $verifiedData);
-            
-            $stmtLog = $pdo->prepare("
-                INSERT INTO audit_logs (user_id, action, module, description, ip_address)
-                VALUES (:uid, 'Verify Online Payment Concern', 'Payment Management', :desc, :ip)
-            ");
-            $stmtLog->execute([
-                ':uid' => $reviewer_id,
-                ':desc' => "Verified payment concern ID #{$concern_id}",
-                ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
-            ]);
+            logActivity(
+                'verify_payment_concern',
+                "Verified payment concern ID #{$concern_id}",
+                'payment',
+                (int) $reviewer_id
+            );
         } else {
             $concernService->verifyConcern($concern_id, 'Reject', $reviewer_id, $remarks);
+            logActivity(
+                'reject_payment_concern',
+                "Rejected payment concern ID #{$concern_id}",
+                'payment',
+                (int) $reviewer_id
+            );
         }
 
         header("Location: payment-concern-portal.php?success=1");
