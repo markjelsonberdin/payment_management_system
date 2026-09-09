@@ -121,7 +121,9 @@ class ScholarshipDiscountService {
 
             $scholarshipId = $this->pdo->lastInsertId();
 
-            // 10. Generate Audit Log using the centralized SMS2 activity_logs
+            $this->pdo->commit();
+
+            // The financial transaction is complete before writing to SMS2 Core.
             if (function_exists('logActivity')) {
                 logActivity(
                     'apply_scholarship',
@@ -130,11 +132,12 @@ class ScholarshipDiscountService {
                 );
             }
 
-            $this->pdo->commit();
             return $scholarshipId;
 
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $e;
         }
     }

@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/security.php';
+require_once ROOT_PATH . '/includes/audit.php';
 require_once ROOT_PATH . '/vendor/autoload.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/ocr/GoogleOCRService.php';
@@ -94,16 +95,7 @@ try {
         $auditDesc .= ". Match Status: " . $result['bank_match']['status'];
     }
     
-    $stmtLog = $pdo->prepare("
-        INSERT INTO activity_logs (user_id, action, module_key, detail, ip_address, user_agent)
-        VALUES (:uid, 'Trigger OCR Scan', 'Payment Management', :desc, :ip, :ua)
-    ");
-    $stmtLog->execute([
-        ':uid' => $scannedBy,
-        ':desc' => $auditDesc,
-        ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
-        ':ua' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
-    ]);
+    logActivity('trigger_ocr_scan', $auditDesc, 'payment', (int) $scannedBy);
 
     echo json_encode($result);
 
