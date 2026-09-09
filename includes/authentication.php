@@ -760,7 +760,7 @@ function smsLoginThrottleKey(string $loginInput = ''): string
     if ($norm === '') {
         return hash('sha256', 'ip|' . $ip);
     }
-    return hash('sha256', 'ip|' . $ip);
+    return hash('sha256', 'login|' . $norm . '|' . $ip);
 }
 
 function smsEnsureLoginThrottleTables(): void
