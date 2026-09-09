@@ -34,11 +34,22 @@ try {
         throw new Exception("Invalid JSON payload");
     }
 
+    // PayMongo normally wraps the resource in an event envelope. Some
+    // delivery views/retries can provide the payment resource directly.
     $eventType = $payload['data']['attributes']['type'] ?? '';
     $eventData = $payload['data']['attributes']['data'] ?? [];
+    if ($eventType === '' && ($payload['type'] ?? '') === 'payment') {
+        $eventType = (($payload['attributes']['status'] ?? '') === 'paid')
+            ? 'payment.paid'
+            : 'payment.' . (string) ($payload['attributes']['status'] ?? 'unknown');
+        $eventData = $payload;
+    }
     
     // Environment validation
-    $payloadEnv = !empty($eventData['attributes']['livemode']) ? 'live' : 'test';
+    $payloadEnv = !empty(
+        $payload['data']['attributes']['livemode']
+        ?? $eventData['attributes']['livemode']
+    ) ? 'live' : 'test';
     if ($payloadEnv !== $activeMode) {
         throw new Exception("Environment mismatch: Webhook is $payloadEnv but system is $activeMode");
     }
