@@ -91,26 +91,27 @@ if (!empty($secretKey)) {
                     
                     $isCorrectEnv = ($whLivemode === $isLive);
                     $isEnabled = ($whStatus === 'enabled');
-                    $hasRequiredEvent = in_array('checkout_session.payment.paid', $whEvents);
+                    $requiredEvents = ['checkout_session.payment.paid', 'payment.paid'];
+                    $hasRequiredEvents = empty(array_diff($requiredEvents, $whEvents));
                     
                     // Note: We check if the configured URL exactly matches OR if it's ngrok for local dev testing
                     // But to be strict as requested, we'll check correct environment and required event first.
                     
-                    if ($isCorrectEnv && $isEnabled && $hasRequiredEvent) {
+                    if ($isCorrectEnv && $isEnabled && $hasRequiredEvents) {
                         $response['webhook']['enabled'] = true;
                         $response['webhook']['correct_environment'] = true;
                         $response['webhook']['correct_event'] = true;
                         $validWebhookFound = true;
                         
                         $response['webhook']['status'] = 'ready';
-                        $response['webhook']['message'] = 'Webhook is active and listening for checkout payments.';
+                        $response['webhook']['message'] = 'Webhook is active and listening for checkout and QR Ph payments.';
                         break;
                     }
                 }
                 
                 if (!$validWebhookFound) {
                     $response['webhook']['status'] = 'configured_but_invalid';
-                    $response['webhook']['message'] = 'Webhook exists but lacks correct environment, is disabled, or missing required events.';
+                    $response['webhook']['message'] = 'Webhook exists but lacks the correct environment, is disabled, or is missing checkout_session.payment.paid / payment.paid.';
                 }
             } else {
                 $response['webhook']['status'] = 'not_registered';
