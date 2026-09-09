@@ -20,9 +20,32 @@ $researchCurrentProgress = 0;
 
 try {
     $cradPdo = getCradDatabaseConnection();
+    $titleColumns = [];
+    try {
+        $columnsStmt = $cradPdo->query('SHOW COLUMNS FROM title_approvals');
+        foreach (($columnsStmt ? $columnsStmt->fetchAll(PDO::FETCH_ASSOC) : []) as $column) {
+            $titleColumns[(string) $column['Field']] = true;
+        }
+    } catch (Throwable $e) {
+        $titleColumns = [];
+    }
+
+    $coordinatorStatusSelect = isset($titleColumns['coordinator_status'])
+        ? 'coordinator_status'
+        : "'' AS coordinator_status";
+    $coordinatorReviewedSelect = isset($titleColumns['coordinator_reviewed_at'])
+        ? 'coordinator_reviewed_at'
+        : 'NULL AS coordinator_reviewed_at';
+    $cradStatusSelect = isset($titleColumns['crad_status'])
+        ? 'crad_status'
+        : "'' AS crad_status";
+    $cradReviewedSelect = isset($titleColumns['crad_reviewed_at'])
+        ? 'crad_reviewed_at'
+        : 'NULL AS crad_reviewed_at';
+
     $titleStmt = $cradPdo->prepare(
-        "SELECT proposed_title, status, adviser_name, coordinator_status, crad_status,
-                sent_at, reviewed_at, coordinator_reviewed_at, crad_reviewed_at, updated_at
+        "SELECT proposed_title, status, adviser_name, {$coordinatorStatusSelect}, {$cradStatusSelect},
+                sent_at, reviewed_at, {$coordinatorReviewedSelect}, {$cradReviewedSelect}, updated_at
          FROM title_approvals
          WHERE student_id = :student_id
          ORDER BY id DESC

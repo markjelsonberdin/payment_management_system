@@ -1025,10 +1025,22 @@ function smsStudentReturnedProposalNotifications(): array
     $studentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
     try {
+        $hasCoordinatorStatus = false;
+        try {
+            $colStmt = $crad->query("SHOW COLUMNS FROM research_proposals LIKE 'coordinator_status'");
+            $hasCoordinatorStatus = (bool) ($colStmt && $colStmt->fetch());
+        } catch (Throwable $e) {
+            $hasCoordinatorStatus = false;
+        }
+
+        $returnedStatusWhere = $hasCoordinatorStatus
+            ? "(status = 'Returned' OR (status = 'Approved' AND coordinator_status = 'Returned'))"
+            : "status = 'Returned'";
+
         $stmt = $crad->prepare(
             "SELECT ref_code, research_title, notes, updated_at
              FROM research_proposals
-             WHERE (status = 'Returned' OR (status = 'Approved' AND coordinator_status = 'Returned'))
+             WHERE {$returnedStatusWhere}
                AND (
                     (:student_id_value <> '' AND rep_id = :student_id_rep)
                  OR (:student_email_value <> '' AND LOWER(rep_email) = :student_email_rep)
