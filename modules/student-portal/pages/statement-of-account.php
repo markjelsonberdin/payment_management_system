@@ -3,7 +3,7 @@
  * SMS 2 - Printable Statement of Account
  */
 require_once __DIR__ . '/../../../config/config.php';
-require_once __DIR__ . '/../config/config.php';
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 $pageTitle = 'Statement of Account';
@@ -20,7 +20,6 @@ $totalPaid = 0;
 $remainingBalance = 0;
 
 try {
-    $pdo = studentPortalDb();
     
     if ($pdo) {
         $searchSn = strtoupper(trim($studentId));

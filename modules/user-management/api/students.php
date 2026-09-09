@@ -9,18 +9,11 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET");
 
-// 1. Connect sa MAIN SMS2 Database (sms2_db)
+// 1. Connect through the authoritative SMS2 Core database helper.
 try {
-    // Option 2: May kasamang port
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3307';
-    $smsDbName = getenv('SMS2_DB_DATABASE') ?: 'sms2_db';
-    $username = getenv('DB_USERNAME') ?: 'root';
-    $password = getenv('DB_PASSWORD') ?: '';
-    
-    $pdo_sms2 = new PDO("mysql:host=$host;port=$port;dbname=$smsDbName;charset=utf8mb4", $username, $password);
-    $pdo_sms2->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
+    require_once __DIR__ . '/../../../config/database.php';
+    $pdo_sms2 = getDatabaseConnection();
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Database connection failed."]);
     exit;
@@ -41,6 +34,7 @@ try {
     $stmt = $pdo_sms2->prepare("
         SELECT 
             id as student_id, 
+            id as user_id,
             student_id as student_number, 
             full_name as first_name, 
             '' as last_name, 
