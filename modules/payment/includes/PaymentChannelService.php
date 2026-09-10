@@ -115,6 +115,13 @@ class PaymentChannelService
      */
     public function isChannelAvailable(PayMongoService $paymongo, string $env, string $channelCode): bool
     {
+        // Production policy: only QR Ph is offered for real payments.
+        // Keep this server-side so a crafted checkout request cannot enable
+        // GCash, Maya, or card while the UI hides them.
+        if ($env === 'live' && $channelCode !== 'qrph') {
+            return false;
+        }
+
         $statuses = $this->getChannelStatuses($paymongo, $env);
         if (!isset($statuses[$channelCode])) {
             return false;
@@ -122,4 +129,3 @@ class PaymentChannelService
         return $statuses[$channelCode]['status'] === 'AVAILABLE';
     }
 }
-
