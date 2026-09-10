@@ -168,9 +168,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                                 <i class="ti ti-download"></i>
                                             </button>
                                         <?php elseif ($txn['payment_status'] === 'Pending'): ?>
-                                            <a href="<?= BASE_URL ?>/modules/student-portal/api/resume-payment.php?id=<?= $txn['payment_id'] ?>" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-warning text-dark fw-bold shadow-sm resume-payment-button"
+                                                data-resume-url="<?= htmlspecialchars(BASE_URL . '/modules/student-portal/api/resume-payment.php?id=' . (int) $txn['payment_id']) ?>"
+                                                data-reference="<?= htmlspecialchars($txn['reference_number'] ?? $txn['receipt_number'] ?? ('Payment #' . $txn['payment_id'])) ?>"
+                                                data-channel="<?= htmlspecialchars($txn['payment_channel'] ?? 'Online Payment') ?>"
+                                                data-total="<?= htmlspecialchars(number_format($chkTotal, 2)) ?>"
+                                            >
                                                 <i class="ti ti-credit-card me-1"></i> Resume
-                                            </a>
+                                            </button>
                                         <?php else: ?>
                                             <button class="btn btn-sm btn-light border text-muted shadow-sm" disabled title="Receipt not yet available">
                                                 <i class="ti ti-download"></i>
@@ -207,6 +214,30 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 </div> <!-- End of student-portal -->
 
+<div class="modal fade" id="resumePaymentModal" tabindex="-1" aria-labelledby="resumePaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="resumePaymentModalLabel"><i class="ti ti-alert-triangle me-2"></i>Resume Pending Payment?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">You are about to continue an existing pending transaction. This will not create a new payment record.</p>
+                <div class="rounded-3 bg-light border p-3 small">
+                    <div class="d-flex justify-content-between gap-3"><span class="text-muted">Reference</span><strong id="resumePaymentReference"></strong></div>
+                    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-muted">Channel</span><strong id="resumePaymentChannel"></strong></div>
+                    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-muted">Total</span><strong id="resumePaymentTotal"></strong></div>
+                </div>
+                <p class="text-muted small mb-0 mt-3">Continue only if you intend to finish this transaction.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                <a id="resumePaymentContinue" class="btn btn-warning fw-bold"><i class="ti ti-credit-card me-1"></i> Continue Payment</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function filterTransactions(status) {
     const rows = document.querySelectorAll('.transaction-row');
@@ -234,6 +265,17 @@ function filterTransactions(status) {
         }
     }
 }
+
+document.querySelectorAll('.resume-payment-button').forEach((button) => {
+    button.addEventListener('click', () => {
+        document.getElementById('resumePaymentReference').textContent = button.dataset.reference;
+        document.getElementById('resumePaymentChannel').textContent = button.dataset.channel;
+        document.getElementById('resumePaymentTotal').textContent = '₱' + button.dataset.total;
+        document.getElementById('resumePaymentContinue').href = button.dataset.resumeUrl;
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('resumePaymentModal')).show();
+    });
+});
 </script>
 
 <!-- 5. Load the UI Footer (Scripts, closing tags) -->
