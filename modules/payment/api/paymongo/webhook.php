@@ -88,8 +88,40 @@ try {
     } elseif ($eventType === 'payment.failed') {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         if ($paymentIntentId) {
-            // A signed payment.failed event is terminal. This can happen when
-            // a customer scans the QR but their wallet/provider declines it.
+            // A QR Ph payment method can emit payment.failed before the QR's
+            // own expiry (notably in sandbox or after an abandoned wallet
+            // handoff). The QR remains payable until its provider expiry, so
+            // do not prematurely stop the student-side countdown. Other
+            // channels still treat payment.failed as terminal.
+            $stmt = $pdo->prepare(
+                "SELECT payment_id, payment_channel, expires_at
+                 FROM payments
+                 WHERE payment_intent_id = :pi_id
+                 LIMIT 1"
+            );
+            $stmt->execute([':pi_id' => $paymentIntentId]);
+            $failedPayment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $isActiveQr = $failedPayment
+                && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0
+                && !empty($failedPayment['expires_at'])
+                && strtotime($failedPayment['expires_at']) > time();
+
+            if ($isActiveQr) {
+                $stmt = $pdo->prepare(
+                    "UPDATE payments
+                     SET remarks = CASE
+                         WHEN COALESCE(remarks, '') LIKE '%[PayMongo QR failure received]%' THEN remarks
+                         ELSE CONCAT(COALESCE(remarks, ''), ' [PayMongo QR failure received]')
+                     END
+                     WHERE payment_id = :payment_id
+                       AND payment_status = 'Pending'"
+                );
+                $stmt->execute([':payment_id' => $failedPayment['payment_id']]);
+                echo json_encode(['success' => true, 'message' => 'Active QR failure noted; keeping it pending until expiry']);
+                exit;
+            }
+
             $stmt = $pdo->prepare("UPDATE payments SET payment_status = 'Failed' WHERE payment_intent_id = :pi_id AND payment_status = 'Pending'");
             $stmt->execute([':pi_id' => $paymentIntentId]);
         }
