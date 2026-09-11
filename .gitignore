@@ -1,4 +1,6 @@
 .env
+*.env
+node_modules/
 # Google Cloud Credentials
 modules/payment/bcp-payment-management-system-f3dbdc4e25c0.json
 *.json
