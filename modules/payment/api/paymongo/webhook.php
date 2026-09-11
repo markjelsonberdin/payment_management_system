@@ -88,15 +88,13 @@ try {
     } elseif ($eventType === 'payment.failed') {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         if ($paymentIntentId) {
-            // A QR Ph payment method can emit payment.failed before the QR's
-            // own expiry (notably in sandbox or after an abandoned wallet
-            // handoff). The QR remains payable until its provider expiry, so
-            // do not prematurely stop the student-side countdown. Other
-            // channels still treat payment.failed as terminal.
-            $hasExpiryColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'expires_at'")->fetch(PDO::FETCH_ASSOC);
-            $expirySelect = $hasExpiryColumn ? ', expires_at' : '';
+            // QR Ph sandbox can emit payment.failed as soon as a real wallet
+            // rejects its test-only QR. That event must not stop an otherwise
+            // valid QR before the configured expiry. QR expiry is enforced by
+            // the status endpoint; a verified payment still uses payment.paid.
+            // Other payment channels continue to treat payment.failed as final.
             $stmt = $pdo->prepare(
-                "SELECT payment_id, payment_channel, created_at{$expirySelect}
+                "SELECT payment_id, payment_channel
                  FROM payments
                  WHERE payment_intent_id = :pi_id
                  LIMIT 1"
@@ -104,16 +102,7 @@ try {
             $stmt->execute([':pi_id' => $paymentIntentId]);
             $failedPayment = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $qrExpiresAt = !empty($failedPayment['expires_at'])
-                ? $failedPayment['expires_at']
-                : (!empty($failedPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($failedPayment['created_at']) + 600) : null);
-
-            $isActiveQr = $failedPayment
-                && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0
-                && $qrExpiresAt !== null
-                && strtotime($qrExpiresAt) > time();
-
-            if ($isActiveQr) {
+            if ($failedPayment && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0) {
                 $stmt = $pdo->prepare(
                     "UPDATE payments
                      SET remarks = CASE
@@ -124,7 +113,7 @@ try {
                        AND payment_status = 'Pending'"
                 );
                 $stmt->execute([':payment_id' => $failedPayment['payment_id']]);
-                echo json_encode(['success' => true, 'message' => 'Active QR failure noted; keeping it pending until expiry']);
+                echo json_encode(['success' => true, 'message' => 'QR failure noted; keeping it pending until expiry']);
                 exit;
             }
 
