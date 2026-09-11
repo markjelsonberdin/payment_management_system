@@ -88,31 +88,12 @@ try {
     } elseif ($eventType === 'payment.failed') {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         if ($paymentIntentId) {
-            // QR Ph can emit payment.failed before the customer scans and
-            // completes an otherwise active QR. Keep it Pending until a
-            // verified payment.paid event or the QR's actual expiry window.
-            $stmtQr = $pdo->prepare(
-                "UPDATE payments
-                 SET remarks = CASE
-                     WHEN COALESCE(remarks, '') LIKE '%[QR awaiting completion]%' THEN remarks
-                     ELSE CONCAT(COALESCE(remarks, ''), ' [QR awaiting completion]')
-                 END
-                 WHERE payment_intent_id = :pi_id
-                   AND payment_channel = 'QRPh'
-                   AND payment_status = 'Pending'"
-            );
-            $stmtQr->execute([':pi_id' => $paymentIntentId]);
-
-            $stmt = $pdo->prepare(
-                "UPDATE payments
-                 SET payment_status = 'Failed'
-                 WHERE payment_intent_id = :pi_id
-                   AND payment_channel <> 'QRPh'
-                   AND payment_status = 'Pending'"
-            );
+            // A signed payment.failed event is terminal. This can happen when
+            // a customer scans the QR but their wallet/provider declines it.
+            $stmt = $pdo->prepare("UPDATE payments SET payment_status = 'Failed' WHERE payment_intent_id = :pi_id AND payment_status = 'Pending'");
             $stmt->execute([':pi_id' => $paymentIntentId]);
         }
-        echo json_encode(['success' => true, 'message' => 'Payment failure event recorded']);
+        echo json_encode(['success' => true, 'message' => 'Payment marked failed']);
         exit;
 
     } elseif (in_array($eventType, ['qrph.expired', 'qr.expired'], true)) {
