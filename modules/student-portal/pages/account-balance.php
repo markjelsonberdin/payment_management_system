@@ -382,6 +382,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <!-- QR Display Container (Hidden by default) -->
             <div id="qrDisplayContainer" class="d-none p-4 text-center">
                 <h6 class="fw-bold text-dark mb-3">Scan QR to Pay</h6>
+                <?php $qrSupportedApps = ['GCash', 'Maya', 'BPI', 'BDO', 'GoTyme', 'MariBank', 'Visa']; ?>
+                <div class="mb-3">
+                    <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <?php foreach ($qrSupportedApps as $app): ?>
+                            <span class="badge rounded-pill text-bg-light border px-2 py-1"><?= htmlspecialchars($app) ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
                 <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-3">
                     <img id="qrImage" src="" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
@@ -393,7 +402,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <div class="alert alert-warning py-2 mb-4 d-inline-block shadow-sm">
                     <i class="ti ti-loader me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
                 </div>
-                <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">30:00</strong></div>
+                <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">10:00</strong></div>
                 <br>
                 <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="cancelQrPayment()">Cancel Payment</button>
             </div>

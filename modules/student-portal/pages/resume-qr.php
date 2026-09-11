@@ -41,7 +41,7 @@ if ($payment['payment_status'] !== 'Pending') {
 
 $expiresAt = !empty($payment['expires_at'])
     ? $payment['expires_at']
-    : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 1800) : null);
+    : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 600) : null);
 
 if ($expiresAt === null || strtotime($expiresAt) <= time()) {
     die("This QR payment has expired. Please start a new payment attempt.");
@@ -64,6 +64,7 @@ $breadcrumbs  = [
     ['label' => 'Payment History', 'url' => BASE_URL . '/modules/student-portal/pages/payment-history.php'],
     ['label' => 'Resume QR Payment', 'url' => null]
 ];
+$qrSupportedApps = ['GCash', 'Maya', 'BPI', 'BDO', 'GoTyme', 'MariBank', 'Visa'];
 
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
@@ -71,6 +72,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <div class="container-fluid py-4 d-flex align-items-center justify-content-center" style="min-height: 70vh;">
     <div class="card border-0 shadow-lg rounded-4 p-5 text-center" style="max-width: 450px; width: 100%;">
         <h4 class="fw-bolder text-primary mb-4"><i class="ti ti-qrcode me-2"></i>Scan to Pay</h4>
+
+        <div class="mb-3">
+            <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <?php foreach ($qrSupportedApps as $app): ?>
+                    <span class="badge rounded-pill text-bg-light border px-2 py-1"><?= htmlspecialchars($app) ?></span>
+                <?php endforeach; ?>
+            </div>
+        </div>
         
         <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-4 mx-auto">
             <img src="<?= htmlspecialchars($qrImage) ?>" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
@@ -92,7 +102,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <span id="qrStatusText" class="fw-bold fs-6">Waiting for payment confirmation...</span>
         </div>
 
-        <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">30:00</strong></div>
+        <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">10:00</strong></div>
         
         <a href="payment-history.php" class="btn btn-outline-secondary w-100 py-2 fw-bold shadow-sm rounded-3">
             <i class="ti ti-arrow-left me-2"></i>Back to History

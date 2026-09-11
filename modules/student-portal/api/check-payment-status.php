@@ -63,7 +63,7 @@ try {
 
     $expiresAt = !empty($payment['expires_at'])
         ? $payment['expires_at']
-        : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 1800) : null);
+        : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 600) : null);
 
     if ($payment['payment_status'] === 'Pending' && $expiresAt !== null && strtotime($expiresAt) <= time()) {
         echo json_encode([
@@ -85,4 +85,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Server error']);
 }
-
