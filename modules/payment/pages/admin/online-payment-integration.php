@@ -421,7 +421,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (mode === 'live') {
             lblPK.textContent = 'Live Public Key';
             lblSK.textContent = 'Live Secret Key';
-            lblWH.textContent = 'Live Webhook Secret (Host Forge)';
+            lblWH.textContent = 'Live Webhook Secret';
             
             keyBox.className = 'p-3 bg-danger bg-opacity-10 rounded-3 border border-danger border-opacity-25';
             displayPK.classList.add('border-danger');
@@ -433,7 +433,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             lblPK.textContent = 'Test Public Key';
             lblSK.textContent = 'Test Secret Key';
-            lblWH.textContent = 'Test Webhook Secret (Ngrok)';
+            lblWH.textContent = 'Test Webhook Secret';
             
             keyBox.className = 'p-3 bg-light rounded-3 border';
             displayPK.classList.remove('border-danger');

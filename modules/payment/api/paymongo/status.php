@@ -94,9 +94,6 @@ if (!empty($secretKey)) {
                     $requiredEvents = ['checkout_session.payment.paid', 'payment.paid'];
                     $hasRequiredEvents = empty(array_diff($requiredEvents, $whEvents));
                     
-                    // Note: We check if the configured URL exactly matches OR if it's ngrok for local dev testing
-                    // But to be strict as requested, we'll check correct environment and required event first.
-                    
                     if ($isCorrectEnv && $isEnabled && $hasRequiredEvents) {
                         $response['webhook']['enabled'] = true;
                         $response['webhook']['correct_environment'] = true;
