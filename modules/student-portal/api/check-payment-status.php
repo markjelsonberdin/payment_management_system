@@ -65,7 +65,9 @@ try {
         ? $payment['expires_at']
         : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 600) : null);
 
-    if ($payment['payment_status'] === 'Pending' && $expiresAt !== null && strtotime($expiresAt) <= time()) {
+    $isExpired = $expiresAt !== null && strtotime($expiresAt) <= time();
+
+    if ($isExpired && $payment['payment_status'] !== 'Verified') {
         echo json_encode([
             'success' => true,
             'status' => 'Expired',
@@ -74,9 +76,23 @@ try {
         exit;
     }
 
+    // A real wallet rejects a sandbox QR and PayMongo may emit payment.failed.
+    // Keep that QR visibly pending in Test Mode until the configured expiry;
+    // Live Mode continues to surface genuine terminal failures.
+    $stmtMode = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode' LIMIT 1");
+    $gatewayMode = strtolower((string) ($stmtMode->fetchColumn() ?: 'test'));
+    $reportedStatus = $payment['payment_status'];
+
+    if ($gatewayMode === 'test'
+        && strcasecmp((string) ($payment['payment_channel'] ?? ''), 'QRPh') === 0
+        && in_array($reportedStatus, ['Failed', 'Rejected'], true)
+    ) {
+        $reportedStatus = 'Pending';
+    }
+
     echo json_encode([
         'success' => true,
-        'status' => $payment['payment_status'], // 'Pending', 'Verified', 'Failed', 'Rejected', etc.
+        'status' => $reportedStatus,
         'expires_at' => $expiresAt,
     ]);
 
