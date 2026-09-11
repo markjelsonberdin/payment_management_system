@@ -93,8 +93,10 @@ try {
             // handoff). The QR remains payable until its provider expiry, so
             // do not prematurely stop the student-side countdown. Other
             // channels still treat payment.failed as terminal.
+            $hasExpiryColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'expires_at'")->fetch(PDO::FETCH_ASSOC);
+            $expirySelect = $hasExpiryColumn ? ', expires_at' : '';
             $stmt = $pdo->prepare(
-                "SELECT payment_id, payment_channel, expires_at
+                "SELECT payment_id, payment_channel, created_at{$expirySelect}
                  FROM payments
                  WHERE payment_intent_id = :pi_id
                  LIMIT 1"
@@ -102,10 +104,14 @@ try {
             $stmt->execute([':pi_id' => $paymentIntentId]);
             $failedPayment = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            $qrExpiresAt = !empty($failedPayment['expires_at'])
+                ? $failedPayment['expires_at']
+                : (!empty($failedPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($failedPayment['created_at']) + 600) : null);
+
             $isActiveQr = $failedPayment
                 && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0
-                && !empty($failedPayment['expires_at'])
-                && strtotime($failedPayment['expires_at']) > time();
+                && $qrExpiresAt !== null
+                && strtotime($qrExpiresAt) > time();
 
             if ($isActiveQr) {
                 $stmt = $pdo->prepare(
@@ -215,7 +221,7 @@ try {
     // Handle expiry/late-payment policy after authentication and validation.
     $paymentExpiresAt = !empty($internalPayment['expires_at'])
         ? $internalPayment['expires_at']
-        : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 1800) : null);
+        : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 600) : null);
     if ($paymentExpiresAt !== null && time() > strtotime($paymentExpiresAt)) {
         error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$paymentExpiresAt}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
     }

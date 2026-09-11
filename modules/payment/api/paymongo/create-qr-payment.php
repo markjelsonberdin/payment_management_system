@@ -14,6 +14,9 @@ require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
+$qrExpirySeconds = 10 * 60;
+$qrExpiryMinutes = 10;
+
 $providerStage = 'bootstrap';
 try {
 
@@ -141,7 +144,7 @@ try {
     // 3. Check for conflicting pending attempts
     $pendingExpiryFilter = $hasExpiryColumn
         ? 'AND expires_at > NOW()'
-        : "AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)";
+        : "AND created_at > DATE_SUB(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE)";
     $stmtPending = $pdo->prepare("SELECT payment_id FROM payments
         WHERE student_id = ? AND billing_id = ?
         AND payment_status = 'Pending'
@@ -175,7 +178,7 @@ try {
 
     // 4. Persist Placeholder Payment Attempt (Draft)
     $expiryColumn = $hasExpiryColumn ? ', expires_at' : '';
-    $expiryValue = $hasExpiryColumn ? ', DATE_ADD(NOW(), INTERVAL 30 MINUTE)' : '';
+    $expiryValue = $hasExpiryColumn ? ", DATE_ADD(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE)" : '';
     $stmtInsert = $pdo->prepare("INSERT INTO payments
         (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date{$expiryColumn})
         VALUES
@@ -213,7 +216,7 @@ try {
     }
 
     $providerStage = 'create_qr_payment_method';
-    $methodRes = $payMongo->createQrPaymentMethod(1800);
+    $methodRes = $payMongo->createQrPaymentMethod($qrExpirySeconds);
     $paymentMethodId = $methodRes['data']['id'] ?? null;
 
     if (!$paymentMethodId) {
@@ -241,7 +244,7 @@ try {
         $stmtExpiry->execute([':payment_id' => $paymentId]);
         $expiresAt = $stmtExpiry->fetchColumn();
     } else {
-        $expiresAt = date('Y-m-d H:i:s', time() + 1800);
+        $expiresAt = date('Y-m-d H:i:s', time() + $qrExpirySeconds);
     }
 
     echo json_encode([
@@ -290,4 +293,3 @@ try {
         'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
     ]);
 }
-
