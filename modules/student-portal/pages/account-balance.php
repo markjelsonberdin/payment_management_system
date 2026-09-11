@@ -380,8 +380,63 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             </div>
             
             <!-- QR Display Container (Hidden by default) -->
+            <style>
+                #qrDisplayContainer .qr-app-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 64px);
+                    justify-content: center;
+                    gap: .55rem;
+                }
+                #qrDisplayContainer .qr-app-card {
+                    min-width: 0;
+                    height: 58px;
+                    padding: .35rem;
+                    background: #fff;
+                    border: 1px solid rgba(148, 163, 184, .35);
+                    border-radius: .7rem;
+                    box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+                }
+                #qrDisplayContainer .qr-app-card img {
+                    display: block;
+                    width: 100%;
+                    height: 34px;
+                    object-fit: contain;
+                    border-radius: .3rem;
+                }
+                #qrDisplayContainer .qr-code-frame {
+                    padding: .75rem;
+                    background: #fff;
+                    border: 1px solid rgba(148, 163, 184, .35);
+                    border-radius: 1rem;
+                    box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+                }
+                #qrDisplayContainer .qr-payment-status {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: .55rem;
+                    min-height: 44px;
+                    padding: .65rem 1rem;
+                    border-radius: .75rem;
+                    font-weight: 700;
+                }
+                #qrDisplayContainer .qr-payment-status.is-waiting { color: #854d0e; background: #fef3c7; border: 1px solid #fde68a; }
+                #qrDisplayContainer .qr-payment-status.is-success { color: #166534; background: #dcfce7; border: 1px solid #bbf7d0; }
+                #qrDisplayContainer .qr-payment-status.is-failed { color: #991b1b; background: #fee2e2; border: 1px solid #fecaca; }
+                #qrDisplayContainer .qr-payment-status.is-expired { color: #475569; background: #e2e8f0; border: 1px solid #cbd5e1; }
+                #qrDisplayContainer .qr-status-spin { animation: qr-status-spin 1s linear infinite; }
+                @keyframes qr-status-spin { to { transform: rotate(360deg); } }
+                @media (max-width: 390px) {
+                    #qrDisplayContainer .qr-app-grid { grid-template-columns: repeat(4, 56px); gap: .4rem; }
+                    #qrDisplayContainer .qr-app-card { height: 52px; }
+                    #qrDisplayContainer .qr-app-card img { height: 29px; }
+                }
+            </style>
             <div id="qrDisplayContainer" class="d-none p-4 text-center">
-                <h6 class="fw-bold text-dark mb-3">Scan QR to Pay</h6>
+                <div class="d-inline-flex align-items-center gap-2 mb-3">
+                    <i class="ti ti-scan text-primary fs-5" aria-hidden="true"></i>
+                    <h6 class="fw-bold text-dark mb-0">Scan QR to Pay</h6>
+                </div>
                 <?php
                 $qrSupportedApps = [
                     ['name' => 'GCash', 'logo' => 'gcash.jpg'],
@@ -395,20 +450,18 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 ?>
                 <div class="mb-3">
                     <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
-                    <div class="d-flex flex-wrap justify-content-center gap-2" aria-label="Supported QRPh payment apps">
+                    <div class="qr-app-grid" aria-label="Supported QRPh payment apps">
                         <?php foreach ($qrSupportedApps as $app): ?>
-                            <div class="bg-white border rounded-3 shadow-sm d-flex align-items-center justify-content-center p-1"
-                                 style="width: 52px; height: 38px;"
+                            <div class="qr-app-card"
                                  title="<?= htmlspecialchars($app['name'], ENT_QUOTES, 'UTF-8') ?>">
                                 <img src="<?= BASE_URL ?>/modules/payment/assets/images/<?= rawurlencode($app['logo']) ?>"
                                      alt="<?= htmlspecialchars($app['name'], ENT_QUOTES, 'UTF-8') ?>"
-                                     loading="lazy"
-                                     style="display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 0.3rem;">
+                                     loading="lazy">
                             </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
-                <div class="bg-white p-3 border rounded-4 shadow-sm d-inline-block mb-3">
+                <div class="qr-code-frame d-inline-block mb-3">
                     <img id="qrImage" src="" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
                 <a id="qrDownloadButton" href="#" download="sms2-qr-code.png" class="btn btn-primary w-100 mb-3">
@@ -416,12 +469,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 </a>
                 <p class="text-muted small mb-2">Scan this QR using GCash, Maya, or any supported QR Ph banking app.</p>
                 <div class="fw-bold text-dark fs-5 mb-3" id="qrAmountDisplay"></div>
-                <div class="alert alert-warning py-2 mb-4 d-inline-block shadow-sm">
-                    <i class="ti ti-loader me-2"></i> <span id="qrStatusText" class="fw-bold">Waiting for payment...</span>
+                <div id="qrStatusAlert" class="qr-payment-status is-waiting mb-3" role="status" aria-live="polite">
+                    <i id="qrStatusIcon" class="ti ti-loader-2 qr-status-spin" aria-hidden="true"></i>
+                    <span id="qrStatusText">Waiting for payment...</span>
                 </div>
-                <div class="text-muted small mb-3">QR expires in <strong id="qrCountdown">10:00</strong></div>
-                <br>
-                <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="cancelQrPayment()">Cancel Payment</button>
+                <div class="text-muted small mb-4"><i class="ti ti-clock me-1"></i>QR expires in <strong id="qrCountdown">10:00</strong></div>
+                <button type="button" class="btn btn-outline-secondary px-4" onclick="cancelQrPayment()"><i class="ti ti-x me-1"></i>Cancel Payment</button>
             </div>
         </div>
     </div>
@@ -431,6 +484,22 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 let qrPollingInterval = null;
 let qrExpiryInterval = null;
 let currentQrPaymentIntentId = null;
+
+function setQrStatus(state, message) {
+    const statusAlert = document.getElementById('qrStatusAlert');
+    const statusIcon = document.getElementById('qrStatusIcon');
+    const statusText = document.getElementById('qrStatusText');
+    const states = {
+        waiting: { box: 'is-waiting', icon: 'ti ti-loader-2 qr-status-spin' },
+        success: { box: 'is-success', icon: 'ti ti-circle-check' },
+        failed: { box: 'is-failed', icon: 'ti ti-circle-x' },
+        expired: { box: 'is-expired', icon: 'ti ti-clock-x' }
+    };
+    const selected = states[state] || states.waiting;
+    statusAlert.className = 'qr-payment-status ' + selected.box + ' mb-3';
+    statusIcon.className = selected.icon;
+    statusText.textContent = message;
+}
 
 function cancelQrPayment() {
     if (qrPollingInterval) clearInterval(qrPollingInterval);
@@ -453,16 +522,14 @@ function startQrPolling(paymentIntentId) {
                     if (data.status === 'Verified') {
                         clearInterval(qrPollingInterval);
                         if (qrExpiryInterval) clearInterval(qrExpiryInterval);
-                        document.getElementById('qrStatusText').innerHTML = "Payment Successful!";
-                        document.getElementById('qrStatusText').classList.replace('text-warning', 'text-success');
+                        setQrStatus('success', 'Payment successful!');
                         setTimeout(() => {
                             window.location.href = '?payment=success';
                         }, 2000);
                     } else if (data.status === 'Failed' || data.status === 'Rejected' || data.status === 'Expired') {
                         clearInterval(qrPollingInterval);
                         if (qrExpiryInterval) clearInterval(qrExpiryInterval);
-                        document.getElementById('qrStatusText').innerHTML = "Payment Failed/Expired.";
-                        document.getElementById('qrStatusText').classList.replace('text-warning', 'text-danger');
+                        setQrStatus(data.status === 'Expired' ? 'expired' : 'failed', data.status === 'Expired' ? 'QR code expired.' : 'Payment failed.');
                     }
                 }
             })
@@ -479,6 +546,7 @@ function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
     // Show QR UI
     document.getElementById('qrDisplayContainer').classList.remove('d-none');
     document.getElementById('qrImage').src = qrImage;
+    setQrStatus('waiting', 'Waiting for payment...');
     const downloadButton = document.getElementById('qrDownloadButton');
     downloadButton.href = qrImage;
     downloadButton.download = 'sms2-qr-' + paymentIntentId + '.png';
@@ -494,8 +562,7 @@ function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
         if (remaining <= 0) {
             clearInterval(qrExpiryInterval);
             if (qrPollingInterval) clearInterval(qrPollingInterval);
-            document.getElementById('qrStatusText').textContent = 'QR expired. Please start a new payment.';
-            document.getElementById('qrStatusText').classList.add('text-danger');
+            setQrStatus('expired', 'QR expired. Please start a new payment.');
             downloadButton.classList.add('disabled');
             downloadButton.removeAttribute('href');
         }

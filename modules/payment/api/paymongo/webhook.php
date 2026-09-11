@@ -102,7 +102,10 @@ try {
             $stmt->execute([':pi_id' => $paymentIntentId]);
             $failedPayment = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($failedPayment && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0) {
+            if ($activeMode === 'test'
+                && $failedPayment
+                && strcasecmp((string) $failedPayment['payment_channel'], 'QRPh') === 0
+            ) {
                 $stmt = $pdo->prepare(
                     "UPDATE payments
                      SET remarks = CASE
