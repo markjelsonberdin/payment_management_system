@@ -64,7 +64,15 @@ $breadcrumbs  = [
     ['label' => 'Payment History', 'url' => BASE_URL . '/modules/student-portal/pages/payment-history.php'],
     ['label' => 'Resume QR Payment', 'url' => null]
 ];
-$qrSupportedApps = ['GCash', 'Maya', 'BPI', 'BDO', 'GoTyme', 'MariBank', 'Visa'];
+$qrSupportedApps = [
+    ['name' => 'GCash', 'logo' => 'gcash.jpg'],
+    ['name' => 'Maya', 'logo' => 'maya.jpg'],
+    ['name' => 'BPI', 'logo' => 'bpi.jpg'],
+    ['name' => 'BDO', 'logo' => 'bdo.jpg'],
+    ['name' => 'GoTyme', 'logo' => 'gotyme.jpg'],
+    ['name' => 'MariBank', 'logo' => 'maribank.jpg'],
+    ['name' => 'Visa / Mastercard', 'logo' => 'visa.jpg'],
+];
 
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
@@ -75,9 +83,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
         <div class="mb-3">
             <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
-            <div class="d-flex flex-wrap justify-content-center gap-2">
+            <div class="d-flex flex-wrap justify-content-center gap-2" aria-label="Supported QRPh payment apps">
                 <?php foreach ($qrSupportedApps as $app): ?>
-                    <span class="badge rounded-pill text-bg-light border px-2 py-1"><?= htmlspecialchars($app) ?></span>
+                    <div class="bg-white border rounded-3 shadow-sm d-flex align-items-center justify-content-center p-1"
+                         style="width: 52px; height: 38px;"
+                         title="<?= htmlspecialchars($app['name'], ENT_QUOTES, 'UTF-8') ?>">
+                        <img src="<?= BASE_URL ?>/modules/payment/assets/images/<?= rawurlencode($app['logo']) ?>"
+                             alt="<?= htmlspecialchars($app['name'], ENT_QUOTES, 'UTF-8') ?>"
+                             loading="lazy"
+                             style="display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 0.3rem;">
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>
