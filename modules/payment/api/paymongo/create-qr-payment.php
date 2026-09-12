@@ -128,7 +128,7 @@ try {
     $hasExpiryColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'expires_at'")->fetch(PDO::FETCH_ASSOC);
     $hasEnvironmentColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'gateway_environment'")->fetch(PDO::FETCH_ASSOC);
     $hasPaymentMethodColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_method_id'")->fetch(PDO::FETCH_ASSOC);
-    if (!$hasExpiryColumn || !$hasEnvironmentColumn) {
+    if (!$hasExpiryColumn) {
         throw new RuntimeException('QR lifecycle database migration has not been applied.');
     }
     $pdo->beginTransaction();
@@ -196,14 +196,14 @@ try {
     $description = "Payment for Billing ID #$billingId";
 
     // 4. Persist Placeholder Payment Attempt (Draft)
-    $expiryColumn = ', expires_at, gateway_environment';
-    $expiryValue = ", DATE_ADD(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE), :gateway_environment";
+    $expiryColumn = ', expires_at' . ($hasEnvironmentColumn ? ', gateway_environment' : '');
+    $expiryValue = ", DATE_ADD(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE)" . ($hasEnvironmentColumn ? ', :gateway_environment' : '');
     $stmtInsert = $pdo->prepare("INSERT INTO payments
         (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date{$expiryColumn})
         VALUES
         (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, 'QRPh', :reference_number, 'Pending', CURDATE(){$expiryValue})");
     
-    $stmtInsert->execute([
+    $insertParams = [
         ':student_id' => $studentId,
         ':billing_id' => $billingId,
         ':category_id' => $categoryId ?: null,
@@ -213,8 +213,11 @@ try {
         ':processing_fee' => $feeData['processing_fee'],
         ':checkout_total' => $feeData['checkout_total'],
         ':reference_number' => $referenceNumber,
-        ':gateway_environment' => $env,
-    ]);
+    ];
+    if ($hasEnvironmentColumn) {
+        $insertParams[':gateway_environment'] = $env;
+    }
+    $stmtInsert->execute($insertParams);
     
     $paymentId = $pdo->lastInsertId();
 
