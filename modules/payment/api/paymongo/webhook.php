@@ -126,14 +126,21 @@ try {
     } elseif (in_array($eventType, ['qrph.expired', 'qr.expired'], true)) {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? $eventData['id'] ?? '';
         if ($paymentIntentId) {
+            $hasPaymentMethodColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_method_id'")->fetch(PDO::FETCH_ASSOC);
+            $statusColumn = $pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_status'")->fetch(PDO::FETCH_ASSOC);
+            $supportsExpiredState = stripos((string) ($statusColumn['Type'] ?? ''), "'Expired'") !== false;
+            $expiryLookup = $hasPaymentMethodColumn
+                ? '(payment_intent_id = :pi_id OR payment_method_id = :pi_id)'
+                : 'payment_intent_id = :pi_id';
+            $expiryStatusAssignment = $supportsExpiredState ? "payment_status = 'Expired'," : '';
             $stmt = $pdo->prepare(
                 "UPDATE payments
-                 SET payment_status = 'Expired',
+                 SET {$expiryStatusAssignment}
                      remarks = CASE
                          WHEN COALESCE(remarks, '') LIKE '%[QR Expired]%' THEN remarks
                          ELSE CONCAT(COALESCE(remarks,''), ' [QR Expired]')
                      END
-                 WHERE (payment_intent_id = :pi_id OR payment_method_id = :pi_id)
+                 WHERE {$expiryLookup}
                    AND payment_status = 'Pending'"
             );
             $stmt->execute([':pi_id' => $paymentIntentId]);

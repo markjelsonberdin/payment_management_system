@@ -68,20 +68,26 @@ try {
 
     // Expiration is a backend state transition. The conditional update makes
     // this safe when payment.paid races with the deadline.
-    $stmtExpire = $pdo->prepare(
-        "UPDATE payments
-         SET payment_status = 'Expired'
-         WHERE payment_id = :payment_id
-           AND payment_status = 'Pending'
-           AND expires_at <= NOW()"
-    );
-    $stmtExpire->execute([':payment_id' => $payment['payment_id']]);
+    $statusColumn = $pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_status'")->fetch(PDO::FETCH_ASSOC);
+    $supportsExpiredState = stripos((string) ($statusColumn['Type'] ?? ''), "'Expired'") !== false;
+    if ($supportsExpiredState) {
+        $stmtExpire = $pdo->prepare(
+            "UPDATE payments
+             SET payment_status = 'Expired'
+             WHERE payment_id = :payment_id
+               AND payment_status = 'Pending'
+               AND expires_at <= NOW()"
+        );
+        $stmtExpire->execute([':payment_id' => $payment['payment_id']]);
+    }
 
+    $hasEnvironmentColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'gateway_environment'")->fetch(PDO::FETCH_ASSOC);
+    $environmentSelect = $hasEnvironmentColumn ? 'gateway_environment' : 'NULL AS gateway_environment';
     $stmtRefresh = $pdo->prepare(
-        'SELECT payment_status, payment_channel, gateway_environment, expires_at,
+        "SELECT payment_status, payment_channel, {$environmentSelect}, expires_at,
                 UNIX_TIMESTAMP(expires_at) * 1000 AS expires_at_ms,
                 UNIX_TIMESTAMP() * 1000 AS server_now_ms
-         FROM payments WHERE payment_id = :payment_id'
+         FROM payments WHERE payment_id = :payment_id"
     );
     $stmtRefresh->execute([':payment_id' => $payment['payment_id']]);
     $payment = array_merge($payment, $stmtRefresh->fetch(PDO::FETCH_ASSOC) ?: []);
@@ -91,6 +97,12 @@ try {
     // Live Mode continues to surface genuine terminal failures.
     $gatewayMode = strtolower((string) ($payment['gateway_environment'] ?? 'test'));
     $reportedStatus = $payment['payment_status'];
+    if (!$supportsExpiredState
+        && $reportedStatus === 'Pending'
+        && (int) $payment['expires_at_ms'] <= (int) $payment['server_now_ms']
+    ) {
+        $reportedStatus = 'Expired';
+    }
 
     if ($gatewayMode === 'test'
         && strcasecmp((string) ($payment['payment_channel'] ?? ''), 'QRPh') === 0
