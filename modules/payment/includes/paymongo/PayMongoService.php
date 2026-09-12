@@ -141,7 +141,7 @@ class PayMongoService {
     /**
      * Creates a Payment Intent (Server-side, uses Secret Key)
      */
-    public function createPaymentIntent($amount, $description, $metadata = []) {
+    public function createPaymentIntent($amount, $description, $metadata = [], $idempotencyKey = null) {
         $amountInCents = (int) round($amount * 100);
         
         $payload = [
@@ -156,7 +156,8 @@ class PayMongoService {
             ]
         ];
 
-        return $this->request('POST', '/payment_intents', $payload);
+        $headers = $idempotencyKey ? ['Idempotency-Key: ' . $idempotencyKey] : [];
+        return $this->request('POST', '/payment_intents', $payload, $headers);
     }
 
     /**

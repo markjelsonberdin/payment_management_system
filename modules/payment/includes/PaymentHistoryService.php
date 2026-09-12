@@ -6,7 +6,7 @@
 class PaymentHistoryService {
     private $pdo;
 
-    public const STATUSES = ['Pending', 'Verified', 'Rejected', 'Failed'];
+    public const STATUSES = ['Pending', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Expired'];
     public const CHANNELS = ['Cash', 'GCash', 'Maya', 'Visa', 'Mastercard', 'Bank', 'PayMongo', 'QRPh'];
     public const DATE_RANGES = ['today', 'week', 'month'];
 

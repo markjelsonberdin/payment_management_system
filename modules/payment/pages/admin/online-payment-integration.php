@@ -111,11 +111,11 @@ $paymongoConfig = require __DIR__ . '/../../config/paymongo.php';
 // Since paymongo.php only gives the active one, we will temporarily use sms2_env (Wait, we have getenv() available now via env_loader.php)
 $pk_test = getenv('PAYMONGO_PK_TEST') ?: '';
 $sk_test = !empty(getenv('PAYMONGO_SK_TEST')) ? 'sk_test_********' : '';
-$wh_test = getenv('PAYMONGO_WHSEC_TEST') ?: '';
+$wh_test = !empty(getenv('PAYMONGO_WHSEC_TEST')) ? 'whsec_********' : '';
 
 $pk_live = getenv('PAYMONGO_PK_LIVE') ?: '';
 $sk_live = !empty(getenv('PAYMONGO_SK_LIVE')) ? 'sk_live_********' : '';
-$wh_live = getenv('PAYMONGO_WHSEC_LIVE') ?: '';
+$wh_live = !empty(getenv('PAYMONGO_WHSEC_LIVE')) ? 'whsec_********' : '';
 
 $pageTitle    = 'Online Payment Integration';
 $activeModule = 'payment';

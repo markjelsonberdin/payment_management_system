@@ -43,6 +43,10 @@ $expiresAt = !empty($payment['expires_at'])
     ? $payment['expires_at']
     : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 600) : null);
 
+$stmtClock = $pdo->prepare('SELECT UNIX_TIMESTAMP(:expires_at) * 1000 AS expires_at_ms, UNIX_TIMESTAMP() * 1000 AS server_now_ms');
+$stmtClock->execute([':expires_at' => $expiresAt]);
+$clockData = $stmtClock->fetch(PDO::FETCH_ASSOC);
+
 if ($expiresAt === null || strtotime($expiresAt) <= time()) {
     die("This QR payment has expired. Please start a new payment attempt.");
 }
@@ -71,7 +75,6 @@ $qrSupportedApps = [
     ['name' => 'BDO', 'logo' => 'bdo.jpg'],
     ['name' => 'GoTyme', 'logo' => 'gotyme.jpg'],
     ['name' => 'MariBank', 'logo' => 'maribank.jpg'],
-    ['name' => 'Visa / Mastercard', 'logo' => 'visa.jpg'],
 ];
 
 require_once ROOT_PATH . '/includes/layout-start.php';
@@ -81,32 +84,39 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     .resume-qr-card { max-width: 470px; width: 100%; }
     .resume-qr-card .qr-app-grid {
         display: grid;
-        grid-template-columns: repeat(4, 64px);
+        display: flex;
+        flex-wrap: wrap;
         justify-content: center;
         gap: .55rem;
     }
     .resume-qr-card .qr-app-card {
         min-width: 0;
-        height: 58px;
-        padding: .35rem;
-        background: #fff;
-        border: 1px solid rgba(148, 163, 184, .35);
-        border-radius: .7rem;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+        width: 56px;
+        height: 28px;
+        padding: .15rem;
+        background: transparent;
+        border: 0;
     }
     .resume-qr-card .qr-app-card img {
         display: block;
         width: 100%;
-        height: 34px;
+        height: 24px;
         object-fit: contain;
         border-radius: .3rem;
     }
     .resume-qr-card .qr-code-frame {
+        position: relative;
         padding: .75rem;
         background: #fff;
         border: 1px solid rgba(148, 163, 184, .35);
         border-radius: 1rem;
         box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+    }
+    .resume-qr-card .qr-countdown-pill {
+        position: absolute; z-index: 2; top: -17px; left: 50%;
+        transform: translateX(-50%); padding: .35rem .7rem;
+        color: #fff; background: #22a95a; border: 3px solid #fff;
+        border-radius: 999px; font-weight: 800;
     }
     .resume-qr-card .qr-payment-status {
         display: flex;
@@ -126,9 +136,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     @keyframes qr-status-spin { to { transform: rotate(360deg); } }
     @media (max-width: 390px) {
         .resume-qr-card { padding: 1.5rem !important; }
-        .resume-qr-card .qr-app-grid { grid-template-columns: repeat(4, 56px); gap: .4rem; }
-        .resume-qr-card .qr-app-card { height: 52px; }
-        .resume-qr-card .qr-app-card img { height: 29px; }
+        .resume-qr-card .qr-app-grid { gap: .35rem; }
+        .resume-qr-card .qr-app-card { width: 48px; height: 25px; }
+        .resume-qr-card .qr-app-card img { height: 21px; }
     }
 </style>
 
@@ -137,7 +147,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         <h4 class="fw-bolder text-primary mb-4"><i class="ti ti-scan me-2"></i>Scan QR to Pay</h4>
 
         <div class="mb-3">
-            <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
+            <div class="small fw-bold text-muted text-uppercase mb-2">Scan QR Ph code to pay</div>
             <div class="qr-app-grid" aria-label="Supported QRPh payment apps">
                 <?php foreach ($qrSupportedApps as $app): ?>
                     <div class="qr-app-card"
@@ -151,6 +161,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         </div>
         
         <div class="qr-code-frame d-inline-block mb-4 mx-auto">
+            <div class="qr-countdown-pill" id="qrCountdown">10:00</div>
             <img src="<?= htmlspecialchars($qrImage) ?>" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
         </div>
 
@@ -170,7 +181,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <span id="qrStatusText">Waiting for payment confirmation...</span>
         </div>
 
-        <div class="text-muted small mb-4"><i class="ti ti-clock me-1"></i>QR expires in <strong id="qrCountdown">10:00</strong></div>
+        <div class="text-muted small mb-4"><i class="ti ti-clock me-1"></i>This QR has a 10-minute payment window.</div>
         
         <a href="payment-history.php" class="btn btn-outline-secondary w-100 py-2 fw-bold shadow-sm rounded-3">
             <i class="ti ti-arrow-left me-2"></i>Back to History
@@ -196,27 +207,29 @@ require_once ROOT_PATH . '/includes/layout-start.php';
         }
 
         const paymentIntentId = "<?= addslashes($paymentIntentId) ?>";
-        const expiresAt = new Date("<?= addslashes(date('c', strtotime($expiresAt))) ?>").getTime();
+        const expiresAt = <?= (int) ($clockData['expires_at_ms'] ?? 0) ?>;
+        const serverOffsetMs = <?= (int) ($clockData['server_now_ms'] ?? 0) ?> - Date.now();
         const countdown = document.getElementById('qrCountdown');
         const countdownInterval = setInterval(() => {
-            const remaining = Math.max(0, expiresAt - Date.now());
+            const remaining = Math.max(0, expiresAt - (Date.now() + serverOffsetMs));
             const totalSeconds = Math.floor(remaining / 1000);
             const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
             const seconds = String(totalSeconds % 60).padStart(2, '0');
             countdown.textContent = minutes + ':' + seconds;
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
-                clearInterval(pollingInterval);
-                setQrStatus('expired', 'QR expired. Please start a new payment.');
+                checkStatus(true);
             }
         }, 1000);
-        const pollingInterval = setInterval(() => {
+        let pollingInterval = null;
+        const checkStatus = (isFinalCheck = false) => {
             fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
                         if (data.status === 'Verified') {
                             clearInterval(pollingInterval);
+                            clearInterval(countdownInterval);
                             setQrStatus('success', 'Payment successful!');
                             setTimeout(() => {
                                 window.location.href = 'payment-history.php';
@@ -226,10 +239,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             clearInterval(countdownInterval);
                             setQrStatus(data.status === 'Expired' ? 'expired' : 'failed', data.status === 'Expired' ? 'QR code expired.' : 'Payment failed.');
                         }
+                    } else if (isFinalCheck) {
+                        setQrStatus('expired', 'QR code expired.');
                     }
                 })
                 .catch(err => console.error(err));
-        }, 4000);
+        };
+        checkStatus();
+        pollingInterval = setInterval(checkStatus, 4000);
     });
 </script>
 

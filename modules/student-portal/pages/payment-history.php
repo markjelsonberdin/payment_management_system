@@ -14,6 +14,12 @@ require_once __DIR__ . '/../../payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 
+requireAuth();
+if (getCurrentUserRoleKey() !== 'student') {
+    http_response_code(403);
+    exit('Unauthorized access.');
+}
+
 // 2. Page Meta Setup for Header and Sidebar active states
 $pageTitle = 'Payment History';
 $activeModule = 'student_portal';
@@ -24,7 +30,11 @@ $breadcrumbs = [
 ];
 
 // 3. Database Fetch Logic
-$studentId = $_SESSION['student_id'] ?? 'S230106713'; // Default fallback
+$studentId = $_SESSION['student_id'] ?? null;
+if (!$studentId) {
+    http_response_code(403);
+    exit('Student profile is not available.');
+}
 
 $paymentTransactions = [];
 

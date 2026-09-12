@@ -61,39 +61,52 @@ try {
         exit;
     }
 
-    $expiresAt = !empty($payment['expires_at'])
-        ? $payment['expires_at']
-        : (!empty($payment['created_at']) ? date('Y-m-d H:i:s', strtotime($payment['created_at']) + 600) : null);
-
-    $isExpired = $expiresAt !== null && strtotime($expiresAt) <= time();
-
-    if ($isExpired && $payment['payment_status'] !== 'Verified') {
-        echo json_encode([
-            'success' => true,
-            'status' => 'Expired',
-            'expires_at' => $expiresAt,
-        ]);
-        exit;
+    $expiresAt = $payment['expires_at'] ?? null;
+    if (!$expiresAt) {
+        throw new RuntimeException('Payment record is missing its authoritative expiry timestamp.');
     }
+
+    // Expiration is a backend state transition. The conditional update makes
+    // this safe when payment.paid races with the deadline.
+    $stmtExpire = $pdo->prepare(
+        "UPDATE payments
+         SET payment_status = 'Expired'
+         WHERE payment_id = :payment_id
+           AND payment_status = 'Pending'
+           AND expires_at <= NOW()"
+    );
+    $stmtExpire->execute([':payment_id' => $payment['payment_id']]);
+
+    $stmtRefresh = $pdo->prepare(
+        'SELECT payment_status, payment_channel, gateway_environment, expires_at,
+                UNIX_TIMESTAMP(expires_at) * 1000 AS expires_at_ms,
+                UNIX_TIMESTAMP() * 1000 AS server_now_ms
+         FROM payments WHERE payment_id = :payment_id'
+    );
+    $stmtRefresh->execute([':payment_id' => $payment['payment_id']]);
+    $payment = array_merge($payment, $stmtRefresh->fetch(PDO::FETCH_ASSOC) ?: []);
 
     // A real wallet rejects a sandbox QR and PayMongo may emit payment.failed.
     // Keep that QR visibly pending in Test Mode until the configured expiry;
     // Live Mode continues to surface genuine terminal failures.
-    $stmtMode = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode' LIMIT 1");
-    $gatewayMode = strtolower((string) ($stmtMode->fetchColumn() ?: 'test'));
+    $gatewayMode = strtolower((string) ($payment['gateway_environment'] ?? 'test'));
     $reportedStatus = $payment['payment_status'];
 
     if ($gatewayMode === 'test'
         && strcasecmp((string) ($payment['payment_channel'] ?? ''), 'QRPh') === 0
         && in_array($reportedStatus, ['Failed', 'Rejected'], true)
     ) {
-        $reportedStatus = 'Pending';
+        $reportedStatus = ((int) $payment['expires_at_ms'] <= (int) $payment['server_now_ms'])
+            ? 'Expired'
+            : 'Pending';
     }
 
     echo json_encode([
         'success' => true,
         'status' => $reportedStatus,
         'expires_at' => $expiresAt,
+        'expires_at_ms' => (int) $payment['expires_at_ms'],
+        'server_now_ms' => (int) $payment['server_now_ms'],
     ]);
 
 } catch (Exception $e) {

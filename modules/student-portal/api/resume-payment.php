@@ -68,6 +68,12 @@ try {
             die("Invalid payment record: Missing payment intent reference.");
         }
 
+        if (empty($payment['expires_at']) || strtotime($payment['expires_at']) <= time()) {
+            $stmtExpire = $pdo->prepare("UPDATE payments SET payment_status = 'Expired' WHERE payment_id = :id AND payment_status = 'Pending'");
+            $stmtExpire->execute([':id' => $paymentId]);
+            die("This QR payment has expired. Please start a new payment attempt.");
+        }
+
         $payMongo = new PayMongoService();
         $intentData = $payMongo->getPaymentIntent($paymentIntentId);
         $payMongoStatus = $intentData['data']['attributes']['status'] ?? 'unknown';
@@ -77,21 +83,7 @@ try {
             exit;
         }
 
-        $clientKey = $intentData['data']['attributes']['client_key'] ?? null;
-        if (!$clientKey) {
-            die("Unable to resume QR payment: Missing client_key from Payment Intent.");
-        }
-
-        // We can just recreate a new QR payment method and attach it to the same Payment Intent!
-        $methodRes = $payMongo->createQrPaymentMethod();
-        $paymentMethodId = $methodRes['data']['id'] ?? null;
-
-        if (!$paymentMethodId) {
-            die("Failed to create a new QR Ph Payment Method.");
-        }
-
-        $attachRes = $payMongo->attachPaymentIntent($paymentIntentId, $paymentMethodId, $clientKey);
-        $qrImage = $attachRes['data']['attributes']['next_action']['code']['image_url'] ?? null;
+        $qrImage = $intentData['data']['attributes']['next_action']['code']['image_url'] ?? null;
 
         if (!$qrImage) {
             die("Failed to retrieve QR image from PayMongo attachment response.");

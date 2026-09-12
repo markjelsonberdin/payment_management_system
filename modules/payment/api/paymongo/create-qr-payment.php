@@ -126,6 +126,11 @@ if (!$studentId || !$billingId || !$amount || $channel !== 'qrph') {
 try {
     $providerStage = 'validation';
     $hasExpiryColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'expires_at'")->fetch(PDO::FETCH_ASSOC);
+    $hasEnvironmentColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'gateway_environment'")->fetch(PDO::FETCH_ASSOC);
+    $hasPaymentMethodColumn = (bool) $pdo->query("SHOW COLUMNS FROM payments LIKE 'payment_method_id'")->fetch(PDO::FETCH_ASSOC);
+    if (!$hasExpiryColumn || !$hasEnvironmentColumn) {
+        throw new RuntimeException('QR lifecycle database migration has not been applied.');
+    }
     $pdo->beginTransaction();
     $dbLocked = true;
 
@@ -142,17 +147,31 @@ try {
     $stmtLock->execute([$studentId]);
 
     // 3. Check for conflicting pending attempts
-    $pendingExpiryFilter = $hasExpiryColumn
-        ? 'AND expires_at > NOW()'
-        : "AND created_at > DATE_SUB(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE)";
-    $stmtPending = $pdo->prepare("SELECT payment_id FROM payments
-        WHERE student_id = ? AND billing_id = ?
-        AND payment_status = 'Pending'
-        AND payment_channel = 'QRPh'
-        {$pendingExpiryFilter}");
-    $stmtPending->execute([$studentId, $billingId]);
-    if ($stmtPending->fetch()) {
-        throw new Exception("You already have an active pending QR payment for this billing. Please complete it or wait for it to expire.");
+    $pendingExpiryFilter = 'AND expires_at > NOW()';
+    if ($allocationContext === 'SPECIFIC_ITEM') {
+        $stmtPending = $pdo->prepare("SELECT payment_id, reference_number, amount, payment_date FROM payments
+            WHERE student_id = ? AND billing_id = ? AND allocation_context = 'SPECIFIC_ITEM'
+            AND billing_item_id = ? AND payment_status = 'Pending'
+            AND payment_channel = 'QRPh' {$pendingExpiryFilter} LIMIT 1");
+        $stmtPending->execute([$studentId, $billingId, $billingItemId]);
+    } else {
+        $stmtPending = $pdo->prepare("SELECT payment_id, reference_number, amount, payment_date FROM payments
+            WHERE student_id = ? AND billing_id = ? AND allocation_context = 'ENROLLMENT_PRIORITY'
+            AND payment_status = 'Pending' AND payment_channel = 'QRPh'
+            {$pendingExpiryFilter} LIMIT 1");
+        $stmtPending->execute([$studentId, $billingId]);
+    }
+    if ($existingPending = $stmtPending->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->rollBack();
+        $dbLocked = false;
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'error' => 'EXISTING_PENDING_PAYMENT',
+            'message' => 'You already have an active QR payment for this fee.',
+            'pending_payment' => $existingPending,
+        ]);
+        exit;
     }
 
     $providerStage = 'configuration';
@@ -177,8 +196,8 @@ try {
     $description = "Payment for Billing ID #$billingId";
 
     // 4. Persist Placeholder Payment Attempt (Draft)
-    $expiryColumn = $hasExpiryColumn ? ', expires_at' : '';
-    $expiryValue = $hasExpiryColumn ? ", DATE_ADD(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE)" : '';
+    $expiryColumn = ', expires_at, gateway_environment';
+    $expiryValue = ", DATE_ADD(NOW(), INTERVAL {$qrExpiryMinutes} MINUTE), :gateway_environment";
     $stmtInsert = $pdo->prepare("INSERT INTO payments
         (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, payment_status, payment_date{$expiryColumn})
         VALUES
@@ -193,7 +212,8 @@ try {
         ':amount' => $feeData['amount_applied'],
         ':processing_fee' => $feeData['processing_fee'],
         ':checkout_total' => $feeData['checkout_total'],
-        ':reference_number' => $referenceNumber
+        ':reference_number' => $referenceNumber,
+        ':gateway_environment' => $env,
     ]);
     
     $paymentId = $pdo->lastInsertId();
@@ -206,7 +226,7 @@ try {
     $providerStage = 'create_payment_intent';
     $intentRes = $payMongo->createPaymentIntent($checkoutTotal, $description, [
         'reference_number' => $referenceNumber
-    ]);
+    ], $referenceNumber);
 
     $paymentIntentId = $intentRes['data']['id'] ?? null;
     $clientKey = $intentRes['data']['attributes']['client_key'] ?? null;
@@ -233,27 +253,34 @@ try {
 
     // 6. Update Payment Attempt with PayMongo Intent ID
     $providerStage = 'save_payment_intent';
-    $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_intent_id = :payment_intent_id WHERE payment_id = :payment_id");
-    $stmtUpdate->execute([
+    $paymentMethodAssignment = $hasPaymentMethodColumn ? ', payment_method_id = :payment_method_id' : '';
+    $stmtUpdate = $pdo->prepare("UPDATE payments SET payment_intent_id = :payment_intent_id{$paymentMethodAssignment} WHERE payment_id = :payment_id");
+    $updateParams = [
         ':payment_intent_id' => $paymentIntentId,
         ':payment_id' => $paymentId
-    ]);
+    ];
+    if ($hasPaymentMethodColumn) {
+        $updateParams[':payment_method_id'] = $paymentMethodId;
+    }
+    $stmtUpdate->execute($updateParams);
 
     if ($hasExpiryColumn) {
-        $stmtExpiry = $pdo->prepare('SELECT expires_at FROM payments WHERE payment_id = :payment_id');
+        $stmtExpiry = $pdo->prepare('SELECT expires_at, UNIX_TIMESTAMP(expires_at) * 1000 AS expires_at_ms, UNIX_TIMESTAMP() * 1000 AS server_now_ms FROM payments WHERE payment_id = :payment_id');
         $stmtExpiry->execute([':payment_id' => $paymentId]);
-        $expiresAt = $stmtExpiry->fetchColumn();
-    } else {
-        $expiresAt = date('Y-m-d H:i:s', time() + $qrExpirySeconds);
+        $expiryData = $stmtExpiry->fetch(PDO::FETCH_ASSOC);
+        $expiresAt = $expiryData['expires_at'];
     }
 
     echo json_encode([
         'success' => true,
         'qr_image' => $qrImage,
+        'payment_id' => (int) $paymentId,
         'payment_intent_id' => $paymentIntentId,
         'reference_number' => $referenceNumber,
         'amount' => $checkoutTotal,
         'expires_at' => $expiresAt,
+        'expires_at_ms' => (int) $expiryData['expires_at_ms'],
+        'server_now_ms' => (int) $expiryData['server_now_ms'],
         'fee_data' => $feeData,
         'status' => 'pending'
     ]);

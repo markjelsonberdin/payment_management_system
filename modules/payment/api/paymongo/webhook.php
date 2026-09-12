@@ -23,16 +23,22 @@ try {
     $rawPayload = file_get_contents('php://input');
     $signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'] ?? '';
 
-    $stmtMode = $pdo->query("SELECT setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode'");
-    $activeMode = $stmtMode->fetchColumn() ?: 'test';
-
-    $securityService = new PayMongoWebhookSecurityService($pdo, $activeMode);
-    $securityService->verifySignature($signatureHeader, $rawPayload);
-
     $payload = json_decode($rawPayload, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
         throw new Exception("Invalid JSON payload");
     }
+
+    // Select the signing secret from the event environment. The payload is
+    // still untrusted until the matching signature is verified below.
+    $payloadEnv = !empty(
+        $payload['data']['attributes']['livemode']
+        ?? $payload['data']['attributes']['data']['attributes']['livemode']
+        ?? $payload['attributes']['livemode']
+        ?? false
+    ) ? 'live' : 'test';
+    $securityService = new PayMongoWebhookSecurityService($pdo, $payloadEnv);
+    $securityService->verifySignature($signatureHeader, $rawPayload);
+    $activeMode = $payloadEnv;
 
     // PayMongo normally wraps the resource in an event envelope. Some
     // delivery views/retries can provide the payment resource directly.
@@ -46,15 +52,6 @@ try {
         $eventData = $payload;
     }
     
-    // Environment validation
-    $payloadEnv = !empty(
-        $payload['data']['attributes']['livemode']
-        ?? $eventData['attributes']['livemode']
-    ) ? 'live' : 'test';
-    if ($payloadEnv !== $activeMode) {
-        throw new Exception("Environment mismatch: Webhook is $payloadEnv but system is $activeMode");
-    }
-
     // Handle different event types
     if ($eventType === 'checkout_session.payment.paid') {
         $checkoutSessionId = $eventData['id'] ?? '';
@@ -127,11 +124,18 @@ try {
         exit;
 
     } elseif (in_array($eventType, ['qrph.expired', 'qr.expired'], true)) {
-        // Just log it or optionally update remarks. 
-        // We keep it 'Pending' so the student can resume it (regenerate QR).
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? $eventData['id'] ?? '';
         if ($paymentIntentId) {
-            $stmt = $pdo->prepare("UPDATE payments SET remarks = CONCAT(IFNULL(remarks,''), ' [QR Expired]') WHERE payment_intent_id = :pi_id");
+            $stmt = $pdo->prepare(
+                "UPDATE payments
+                 SET payment_status = 'Expired',
+                     remarks = CASE
+                         WHEN COALESCE(remarks, '') LIKE '%[QR Expired]%' THEN remarks
+                         ELSE CONCAT(COALESCE(remarks,''), ' [QR Expired]')
+                     END
+                 WHERE (payment_intent_id = :pi_id OR payment_method_id = :pi_id)
+                   AND payment_status = 'Pending'"
+            );
             $stmt->execute([':pi_id' => $paymentIntentId]);
         }
         echo json_encode(['success' => true, 'message' => 'QR Ph expired noted']);
@@ -168,8 +172,14 @@ try {
         echo json_encode(['success' => true, 'message' => 'Already verified']);
         exit;
     }
-    if ($internalPayment['payment_status'] !== 'Pending') {
+    if (!in_array($internalPayment['payment_status'], ['Pending', 'Expired'], true)) {
         throw new Exception('Payment record is in an unexpected state: ' . $internalPayment['payment_status']);
+    }
+
+    if (!empty($internalPayment['gateway_environment'])
+        && $internalPayment['gateway_environment'] !== $payloadEnv
+    ) {
+        throw new Exception('Payment environment does not match webhook environment');
     }
 
     if (empty($internalPayment['student_id']) || empty($internalPayment['billing_id'])) {

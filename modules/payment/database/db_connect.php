@@ -14,6 +14,8 @@ try {
     
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    // Payment business timestamps use Philippine Standard Time consistently.
+    $pdo->exec("SET time_zone = '+08:00'");
     
 } catch(PDOException $e) {
     die("Database Connection failed: " . $e->getMessage());

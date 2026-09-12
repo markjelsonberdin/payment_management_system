@@ -382,33 +382,47 @@ require_once ROOT_PATH . '/includes/layout-start.php';
             <!-- QR Display Container (Hidden by default) -->
             <style>
                 #qrDisplayContainer .qr-app-grid {
-                    display: grid;
-                    grid-template-columns: repeat(4, 64px);
+                    display: flex;
+                    flex-wrap: wrap;
                     justify-content: center;
-                    gap: .55rem;
+                    align-items: center;
+                    gap: .65rem;
                 }
                 #qrDisplayContainer .qr-app-card {
-                    min-width: 0;
-                    height: 58px;
-                    padding: .35rem;
-                    background: #fff;
-                    border: 1px solid rgba(148, 163, 184, .35);
-                    border-radius: .7rem;
-                    box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+                    width: 56px;
+                    height: 28px;
+                    padding: .15rem;
+                    background: transparent;
+                    border: 0;
                 }
                 #qrDisplayContainer .qr-app-card img {
                     display: block;
                     width: 100%;
-                    height: 34px;
+                    height: 24px;
                     object-fit: contain;
                     border-radius: .3rem;
                 }
                 #qrDisplayContainer .qr-code-frame {
+                    position: relative;
                     padding: .75rem;
                     background: #fff;
                     border: 1px solid rgba(148, 163, 184, .35);
                     border-radius: 1rem;
                     box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+                }
+                #qrDisplayContainer .qr-countdown-pill {
+                    position: absolute; z-index: 2; top: -17px; left: 50%;
+                    transform: translateX(-50%); padding: .35rem .7rem;
+                    color: #fff; background: #22a95a; border: 3px solid #fff;
+                    border-radius: 999px; font-weight: 800;
+                    box-shadow: 0 4px 12px rgba(34,169,90,.25);
+                }
+                #qrDisplayContainer .qr-institution-toggle { color: #334155; text-decoration: none; }
+                #qrSuccessContainer .success-mark {
+                    width: 76px; height: 76px; margin: 0 auto 1.25rem;
+                    display: grid; place-items: center; border-radius: 50%;
+                    color: #fff; background: #37bd58; font-size: 2.5rem;
+                    box-shadow: 0 0 0 12px rgba(55,189,88,.12);
                 }
                 #qrDisplayContainer .qr-payment-status {
                     display: inline-flex;
@@ -427,9 +441,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 #qrDisplayContainer .qr-status-spin { animation: qr-status-spin 1s linear infinite; }
                 @keyframes qr-status-spin { to { transform: rotate(360deg); } }
                 @media (max-width: 390px) {
-                    #qrDisplayContainer .qr-app-grid { grid-template-columns: repeat(4, 56px); gap: .4rem; }
-                    #qrDisplayContainer .qr-app-card { height: 52px; }
-                    #qrDisplayContainer .qr-app-card img { height: 29px; }
+                    #qrDisplayContainer .qr-app-grid { gap: .35rem; }
+                    #qrDisplayContainer .qr-app-card { width: 48px; height: 25px; }
+                    #qrDisplayContainer .qr-app-card img { height: 21px; }
                 }
             </style>
             <div id="qrDisplayContainer" class="d-none p-4 text-center">
@@ -445,11 +459,10 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     ['name' => 'BDO', 'logo' => 'bdo.jpg'],
                     ['name' => 'GoTyme', 'logo' => 'gotyme.jpg'],
                     ['name' => 'MariBank', 'logo' => 'maribank.jpg'],
-                    ['name' => 'Visa / Mastercard', 'logo' => 'visa.jpg'],
                 ];
                 ?>
                 <div class="mb-3">
-                    <div class="small fw-bold text-muted text-uppercase mb-2">Supported QRPh apps</div>
+                    <div class="small fw-bold text-muted text-uppercase mb-2">Scan QR Ph code to pay</div>
                     <div class="qr-app-grid" aria-label="Supported QRPh payment apps">
                         <?php foreach ($qrSupportedApps as $app): ?>
                             <div class="qr-app-card"
@@ -460,8 +473,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <button class="btn btn-link btn-sm qr-institution-toggle mt-1 p-0" type="button" data-bs-toggle="collapse" data-bs-target="#qrInstitutionList" aria-expanded="false">
+                        See supported banks and e-wallets <i class="ti ti-chevron-down"></i>
+                    </button>
+                    <div class="collapse small text-muted mt-2" id="qrInstitutionList">
+                        E-wallets: GCash and Maya. Participating banks shown: BPI, BDO, GoTyme and MariBank. Availability remains subject to the issuing app and QR Ph network.
+                    </div>
                 </div>
                 <div class="qr-code-frame d-inline-block mb-3">
+                    <div class="qr-countdown-pill" id="qrCountdown">10:00</div>
                     <img id="qrImage" src="" alt="QR Code" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
                 <a id="qrDownloadButton" href="#" download="sms2-qr-code.png" class="btn btn-primary w-100 mb-3">
@@ -473,8 +493,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     <i id="qrStatusIcon" class="ti ti-loader-2 qr-status-spin" aria-hidden="true"></i>
                     <span id="qrStatusText">Waiting for payment...</span>
                 </div>
-                <div class="text-muted small mb-4"><i class="ti ti-clock me-1"></i>QR expires in <strong id="qrCountdown">10:00</strong></div>
+                <div class="text-muted small mb-4"><i class="ti ti-clock me-1"></i>This QR has a 10-minute payment window.</div>
                 <button type="button" class="btn btn-outline-secondary px-4" onclick="cancelQrPayment()"><i class="ti ti-x me-1"></i>Cancel Payment</button>
+            </div>
+            <div id="qrSuccessContainer" class="d-none p-5 text-center">
+                <div class="success-mark"><i class="ti ti-check"></i></div>
+                <h3 class="fw-bolder text-dark mb-2">Payment succeeded!</h3>
+                <p class="text-muted mb-4">Your transaction was completed successfully. Your billing information has been updated.</p>
+                <button type="button" class="btn btn-success px-4 fw-bold" onclick="window.location.reload()">Go to Your Account Balance</button>
             </div>
         </div>
     </div>
@@ -484,6 +510,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 let qrPollingInterval = null;
 let qrExpiryInterval = null;
 let currentQrPaymentIntentId = null;
+let currentQrPaymentId = null;
+let qrServerOffsetMs = 0;
 
 function setQrStatus(state, message) {
     const statusAlert = document.getElementById('qrStatusAlert');
@@ -502,17 +530,43 @@ function setQrStatus(state, message) {
 }
 
 function cancelQrPayment() {
+    if (!currentQrPaymentId || !confirm('Cancel this QR payment attempt?')) return;
+    fetch("<?= BASE_URL ?>/modules/student-portal/api/cancel-payment.php", {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            payment_id: currentQrPaymentId,
+            csrf_token: "<?= function_exists('csrfToken') ? csrfToken() : '' ?>"
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) throw new Error(data.message || 'Unable to cancel payment.');
+        stopQrLifecycle();
+        window.location.reload();
+    })
+    .catch(error => alert(error.message));
+}
+
+function stopQrLifecycle() {
     if (qrPollingInterval) clearInterval(qrPollingInterval);
     if (qrExpiryInterval) clearInterval(qrExpiryInterval);
-    // Reload page to reset state or redirect to history
-    window.location.href = '?payment=cancelled';
+    qrPollingInterval = null;
+    qrExpiryInterval = null;
+}
+
+function showQrSuccess() {
+    stopQrLifecycle();
+    document.getElementById('qrDisplayContainer').classList.add('d-none');
+    document.getElementById('qrSuccessContainer').classList.remove('d-none');
 }
 
 function startQrPolling(paymentIntentId) {
     if (qrPollingInterval) clearInterval(qrPollingInterval);
     currentQrPaymentIntentId = paymentIntentId;
-    
-    qrPollingInterval = setInterval(() => {
+
+    const poll = () => {
         fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + paymentIntentId, {
             credentials: 'same-origin'
         })
@@ -520,12 +574,7 @@ function startQrPolling(paymentIntentId) {
             .then(data => {
                 if (data.success) {
                     if (data.status === 'Verified') {
-                        clearInterval(qrPollingInterval);
-                        if (qrExpiryInterval) clearInterval(qrExpiryInterval);
-                        setQrStatus('success', 'Payment successful!');
-                        setTimeout(() => {
-                            window.location.href = '?payment=success';
-                        }, 2000);
+                        showQrSuccess();
                     } else if (data.status === 'Failed' || data.status === 'Rejected' || data.status === 'Expired') {
                         clearInterval(qrPollingInterval);
                         if (qrExpiryInterval) clearInterval(qrExpiryInterval);
@@ -534,10 +583,12 @@ function startQrPolling(paymentIntentId) {
                 }
             })
             .catch(err => console.error(err));
-    }, 4000); // 4-second polling
+    };
+    poll();
+    qrPollingInterval = setInterval(poll, 4000); // 4-second polling
 }
 
-function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
+function displayQrPayment(qrImage, amount, paymentIntentId, paymentId, expiresAtMs, serverNowMs) {
     // Hide channel selection UI
     document.querySelector('.modal-header').classList.add('d-none');
     document.querySelector('.modal-body').classList.add('d-none');
@@ -545,6 +596,7 @@ function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
     
     // Show QR UI
     document.getElementById('qrDisplayContainer').classList.remove('d-none');
+    document.getElementById('qrSuccessContainer').classList.add('d-none');
     document.getElementById('qrImage').src = qrImage;
     setQrStatus('waiting', 'Waiting for payment...');
     const downloadButton = document.getElementById('qrDownloadButton');
@@ -553,18 +605,29 @@ function displayQrPayment(qrImage, amount, paymentIntentId, expiresAt) {
     document.getElementById('qrAmountDisplay').innerHTML = 'PHP ' + parseFloat(amount).toFixed(2);
 
     if (qrExpiryInterval) clearInterval(qrExpiryInterval);
-    const expiryTimestamp = new Date(String(expiresAt).replace(' ', 'T')).getTime();
+    currentQrPaymentId = paymentId;
+    qrServerOffsetMs = Number(serverNowMs) - Date.now();
+    const expiryTimestamp = Number(expiresAtMs);
     const countdown = document.getElementById('qrCountdown');
     const updateCountdown = () => {
-        const remaining = Math.max(0, expiryTimestamp - Date.now());
+        const remaining = Math.max(0, expiryTimestamp - (Date.now() + qrServerOffsetMs));
         const totalSeconds = Math.floor(remaining / 1000);
         countdown.textContent = String(Math.floor(totalSeconds / 60)).padStart(2, '0') + ':' + String(totalSeconds % 60).padStart(2, '0');
         if (remaining <= 0) {
-            clearInterval(qrExpiryInterval);
-            if (qrPollingInterval) clearInterval(qrPollingInterval);
-            setQrStatus('expired', 'QR expired. Please start a new payment.');
-            downloadButton.classList.add('disabled');
-            downloadButton.removeAttribute('href');
+            stopQrLifecycle();
+            fetch("<?= BASE_URL ?>/modules/student-portal/api/check-payment-status.php?payment_intent_id=" + encodeURIComponent(paymentIntentId), {
+                credentials: 'same-origin'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.status === 'Verified') {
+                    showQrSuccess();
+                    return;
+                }
+                setQrStatus('expired', 'QR expired. Please start a new payment.');
+                downloadButton.classList.add('disabled');
+                downloadButton.removeAttribute('href');
+            });
         }
     };
     updateCountdown();
@@ -592,6 +655,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         modalEl.addEventListener('show.bs.modal', function () {
             updatePaymongoAmount();
+        });
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            stopQrLifecycle();
         });
     }
 });
@@ -671,6 +737,9 @@ function initiatePayMongoCheckout(channel) {
         } catch (parseError) {
             throw new Error('Payment service returned an invalid response (HTTP ' + response.status + ').');
         }
+        if (response.status === 409 && data.error === 'EXISTING_PENDING_PAYMENT') {
+            return data;
+        }
         if (!response.ok) {
             const detail = data.provider_message ? ' [' + data.provider_message + ']' : '';
             throw new Error((data.message || data.error || 'Payment service request failed.') + detail);
@@ -683,7 +752,7 @@ function initiatePayMongoCheckout(channel) {
 
         if (data.success) {
             if (channel === 'qrph' && data.qr_image) {
-                displayQrPayment(data.qr_image, data.amount, data.payment_intent_id, data.expires_at);
+                displayQrPayment(data.qr_image, data.amount, data.payment_intent_id, data.payment_id, data.expires_at_ms, data.server_now_ms);
             } else if (data.checkout_url) {
                 window.location.href = data.checkout_url;
             }
@@ -788,12 +857,11 @@ function showDuplicateWarningModal(pendingPayment, channel) {
                             <div><strong>Created:</strong> ${pendingPayment.payment_date}</div>
                         </div>
                     </div>
-                    <p class="mb-0">Creating another payment will create a separate active payment attempt. What would you like to do?</p>
+                    <p class="mb-0">Resume this attempt or cancel it before starting a new one.</p>
                 </div>
                 <div class="modal-footer d-flex flex-column gap-2 border-0 pt-0">
                     <a href="<?= BASE_URL ?>/modules/student-portal/api/resume-payment.php?id=${pendingPayment.payment_id}" class="btn btn-warning w-100 fw-bold">Resume Existing</a>
                     <button type="button" class="btn btn-danger w-100 fw-bold" onclick="cancelPendingPayment(${pendingPayment.payment_id})">Cancel Existing</button>
-                    <button type="button" class="btn btn-outline-secondary w-100" onclick="createAnotherAnyway('${channel}')">Create Another Anyway</button>
                 </div>
             </div>
         </div>
@@ -838,14 +906,6 @@ function cancelPendingPayment(paymentId) {
     .catch(err => {
         alert("A network error occurred.");
     });
-}
-
-function createAnotherAnyway(channel) {
-    if (confirm("Are you sure you want to create a separate payment attempt? This will leave your previous attempt pending until it expires.")) {
-        bootstrap.Modal.getInstance(document.getElementById('duplicateWarningModal')).hide();
-        window.forceNewAttempt = true;
-        initiatePayMongoCheckout(channel);
-    }
 }
 
 </script>
