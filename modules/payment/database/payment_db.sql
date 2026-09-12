@@ -337,15 +337,18 @@ CREATE TABLE `payments` (
   `billing_item_id` int(10) UNSIGNED DEFAULT NULL,
   `checkout_session_id` varchar(255) DEFAULT NULL COMMENT 'PayMongo session ID',
   `payment_intent_id` varchar(255) DEFAULT NULL,
+  `payment_method_id` varchar(255) DEFAULT NULL,
   `cash_received` decimal(10,2) DEFAULT NULL,
   `change_amount` decimal(10,2) DEFAULT NULL,
   `payment_channel` enum('Cash','GCash','Maya','Visa','Mastercard','Bank','PayMongo','QRPh') NOT NULL,
+  `gateway_environment` enum('test','live') DEFAULT NULL,
   `reference_number` varchar(100) DEFAULT NULL,
-  `payment_status` enum('Pending','Verified','Rejected','Failed') DEFAULT 'Pending',
+  `payment_status` enum('Pending','Verified','Rejected','Failed','Cancelled','Expired') DEFAULT 'Pending',
   `payment_date` date NOT NULL,
   `remarks` text DEFAULT NULL,
   `receipt_number` varchar(50) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ;
 
@@ -682,6 +685,8 @@ ALTER TABLE `payments`
   ADD KEY `billing_id` (`billing_id`),
   ADD KEY `idx_payment_status` (`payment_status`),
   ADD KEY `idx_payment_date` (`payment_date`),
+  ADD KEY `idx_qr_pending_expiry` (`student_id`,`billing_id`,`payment_channel`,`payment_status`,`expires_at`),
+  ADD KEY `idx_payment_environment` (`gateway_environment`,`payment_status`),
   ADD KEY `fk_payments_billing_item` (`billing_item_id`);
 
 --
