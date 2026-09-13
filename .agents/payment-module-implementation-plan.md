@@ -330,7 +330,7 @@ Dapat may actor kung applicable, action, object type/ID, result, PHT timestamp, 
 Hindi susundin nang diretso ang numeric listing para sa security phases. Ang authorized execution order ay:
 
 ```text
-Cycle A — Payment functionality/correctness
+Cycle A — Payment functionality, correctness, at complete UI/UX
   Phase 2 hanggang Phase 9
   -> Phase 11
   -> Phase 12 verification para lang sa implemented Cycle A scope
@@ -344,6 +344,8 @@ Cycle B — Dedicated payment-security implementation
   -> documentation-derived security hardening
   -> full security regression at controlled release
 ```
+
+Kasama sa Cycle A ang lahat ng UI/UX work sa Phases 5–9 at 11: complete analytics screens, filters, charts/visual summaries, transaction-history refinements, labels, empty/error states, responsive layout, exports, at QRPh presentation. Hindi puwedeng i-markang complete ang Cycle A kung backend computation lang ang naayos pero placeholder/basic pa rin ang corresponding UI.
 
 Ang authentication, authorization, validation, locking, idempotency, at environment checks na kailangan para hindi maging financially incorrect ang isang Cycle A feature ay mananatiling acceptance requirement ng feature na iyon. Pero ang broad security remediation/hardening ay hindi isasabay nang palihim at sakop ng Cycle B.
 
@@ -595,6 +597,7 @@ Hindi ito sisimulan automatically pagkatapos ng Cycle A. Kailangan muna ng bagon
 - [ ] Approve Phase 2 — TEST/LIVE Financial Isolation
 - [ ] Approve nang hiwalay ang bawat required database migration
 - [ ] Approve Phases 3–4 — Timestamp at Lifecycle
-- [ ] Approve Phases 5–8 — Reporting at Analytics
-- [ ] Approve Phases 9–10 — QRPh UI at Payment Security Settings
+- [x] Approved ang Cycle A Phases 5–8 — complete Reporting/Analytics backend at UI/UX
+- [x] Approved ang Cycle A Phase 9 — QRPh UI refinement
+- [ ] Approve separately ang Cycle B Phase 10 — Payment Security Settings
 - [ ] Approve Phases 11–12 — Audit, Testing, at Controlled Release
