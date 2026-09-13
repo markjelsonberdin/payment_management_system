@@ -7,21 +7,23 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/PaymentReportingScope.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection_analytics_view');
 
 try {
+    $officialPayment = PaymentReportingScope::officialCondition();
     // 1. FINANCIAL OVERVIEW
     $totalReceivables = $pdo->query("SELECT SUM(remaining_balance) FROM billing WHERE billing_status != 'Paid'")->fetchColumn() ?: 0;
-    $totalCollections = $pdo->query("SELECT SUM(amount) FROM payments WHERE payment_status = 'Verified'")->fetchColumn() ?: 0;
+    $totalCollections = $pdo->query("SELECT SUM(amount) FROM payments WHERE {$officialPayment}")->fetchColumn() ?: 0;
     
     // Online vs Walk-in Collections
     $stmtOnlineWalkin = $pdo->query("
         SELECT 
             SUM(CASE WHEN payment_channel IN ('gcash','maya','card','qrph','paymongo','visa') THEN amount ELSE 0 END) as online_collections,
             SUM(CASE WHEN payment_channel NOT IN ('gcash','maya','card','qrph','paymongo','visa') THEN amount ELSE 0 END) as walkin_collections
-        FROM payments WHERE payment_status = 'Verified'
+        FROM payments WHERE {$officialPayment}
     ");
     $collectionSplit = $stmtOnlineWalkin->fetch(PDO::FETCH_ASSOC);
     $onlineCollections = $collectionSplit['online_collections'] ?: 0;
@@ -80,7 +82,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-md-3 mb-3 mb-md-0">
             <div class="card border-0 shadow-sm rounded-4 border-start border-success border-4 h-100">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.8rem;">Total Collections (Net)</p>
+                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.8rem;">Official Collections (Amount Applied)</p>
                     <h3 class="fw-bolder mb-0 text-success">₱ <?= number_format((float)$totalCollections, 2) ?></h3>
                 </div>
             </div>

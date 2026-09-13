@@ -230,9 +230,9 @@ try {
     // 6. Create Pending Payment Record with full transaction context (Phase 8 Revised)
     $stmtInsert = $pdo->prepare("
         INSERT INTO payments 
-        (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, reference_number, checkout_session_id, payment_status, payment_date)
+        (student_id, billing_id, category_id, allocation_context, billing_item_id, transaction_type, payment_method, amount, processing_fee, checkout_total, payment_channel, gateway_environment, reference_number, checkout_session_id, payment_status, payment_date)
         VALUES 
-        (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, :payment_channel, :reference_number, :checkout_session_id, 'Pending', CURDATE())
+        (:student_id, :billing_id, :category_id, :allocation_context, :billing_item_id, 'Online', 'Online', :amount, :processing_fee, :checkout_total, :payment_channel, :gateway_environment, :reference_number, :checkout_session_id, 'Pending', CURDATE())
     ");
     $stmtInsert->execute([
         ':student_id' => $studentId,
@@ -244,6 +244,7 @@ try {
         ':processing_fee' => $feeData['processing_fee'],
         ':checkout_total' => $feeData['checkout_total'],
         ':payment_channel' => $dbChannel,
+        ':gateway_environment' => $env,
         ':reference_number' => $referenceNumber,
         ':checkout_session_id' => $checkoutSessionId
     ]);
@@ -276,4 +277,3 @@ try {
         'error' => $e->getMessage()
     ]);
 }
-
