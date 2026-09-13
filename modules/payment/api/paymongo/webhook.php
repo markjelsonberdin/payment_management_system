@@ -242,15 +242,21 @@ try {
     ");
     $stmtUpdate->execute([':pid' => $internalPayment['payment_id']]);
 
-    $allocationService = new PaymentAllocationService($pdo);
-    $allocationService->allocatePayment(
-        $internalPayment['payment_id'],
-        $internalPayment['student_id'],
-        $internalPayment['billing_id'],
-        (float) $internalPayment['amount'],
-        $internalPayment['allocation_context'],
-        $internalPayment['billing_item_id']
-    );
+    // Only an explicitly LIVE online attempt may affect production billing.
+    // TEST remains a verified technical transaction, while legacy/unknown
+    // attempts are retained for manual reconciliation without allocation.
+    $shouldAllocate = ($internalPayment['gateway_environment'] ?? null) === 'live';
+    if ($shouldAllocate) {
+        $allocationService = new PaymentAllocationService($pdo);
+        $allocationService->allocatePayment(
+            $internalPayment['payment_id'],
+            $internalPayment['student_id'],
+            $internalPayment['billing_id'],
+            (float) $internalPayment['amount'],
+            $internalPayment['allocation_context'],
+            $internalPayment['billing_item_id']
+        );
+    }
 
     if ($webhookEventId !== '') {
         $stmtProcessed = $pdo->prepare(
@@ -262,7 +268,12 @@ try {
     }
 
     $pdo->commit();
-    echo json_encode(['success' => true, 'message' => 'Payment successfully verified and allocated']);
+    echo json_encode([
+        'success' => true,
+        'message' => $shouldAllocate
+            ? 'LIVE payment successfully verified and allocated'
+            : 'Payment verified for audit; production allocation was not applied',
+    ]);
 
 } catch (Exception $e) {
     if (isset($pdo) && $pdo->inTransaction()) {

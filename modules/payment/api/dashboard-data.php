@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+require_once ROOT_PATH . '/modules/payment/includes/PaymentReportingScope.php';
 
 header('Content-Type: application/json');
 
@@ -41,10 +42,12 @@ $data = [
 ];
 
 try {
+    $officialPayment = PaymentReportingScope::officialCondition();
+    $officialPaymentP = PaymentReportingScope::officialCondition('p');
     // --- 1. KPIs ---
     
     // Collections Today
-    $stmt = $paymentDb->query("SELECT SUM(amount) FROM payments WHERE DATE(payment_date) = CURDATE() AND payment_status = 'Verified'");
+    $stmt = $paymentDb->query("SELECT SUM(amount) FROM payments WHERE DATE(payment_date) = CURDATE() AND {$officialPayment}");
     $data['kpis']['collections_today'] = (float)($stmt->fetchColumn() ?: 0);
 
     // Pending Payments
@@ -52,7 +55,7 @@ try {
     $data['kpis']['pending_payments'] = (int)($stmt->fetchColumn() ?: 0);
 
     // Total Collected Month
-    $stmt = $paymentDb->query("SELECT SUM(amount) FROM payments WHERE MONTH(payment_date) = MONTH(CURDATE()) AND YEAR(payment_date) = YEAR(CURDATE()) AND payment_status = 'Verified'");
+    $stmt = $paymentDb->query("SELECT SUM(amount) FROM payments WHERE MONTH(payment_date) = MONTH(CURDATE()) AND YEAR(payment_date) = YEAR(CURDATE()) AND {$officialPayment}");
     $data['kpis']['collected_month'] = (float)($stmt->fetchColumn() ?: 0);
 
     // Outstanding Balance (Sum of remaining balance in billing)
@@ -65,9 +68,11 @@ try {
         SELECT fc.category_name, SUM(pa.allocated_amount) as total
         FROM payment_allocations pa
         JOIN billing_items bi ON pa.billing_item_id = bi.billing_item_id
+        JOIN payments p ON pa.payment_id = p.payment_id
         JOIN fees f ON bi.fee_id = f.fee_id
         JOIN fee_categories fc ON f.category_id = fc.category_id
         WHERE fc.category_name != 'Tuition'
+          AND {$officialPaymentP}
         GROUP BY fc.category_name
         ORDER BY total DESC
     ");
@@ -77,7 +82,7 @@ try {
     $stmt = $paymentDb->query("
         SELECT DATE(payment_date) as date, SUM(amount) as total 
         FROM payments 
-        WHERE payment_status = 'Verified' 
+        WHERE {$officialPayment}
           AND payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
         GROUP BY DATE(payment_date)
         ORDER BY date ASC
@@ -117,7 +122,7 @@ try {
     $stmt = $paymentDb->query("
         SELECT payment_method, SUM(amount) as total 
         FROM payments 
-        WHERE payment_status = 'Verified'
+        WHERE {$officialPayment}
         GROUP BY payment_method
     ");
     $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);

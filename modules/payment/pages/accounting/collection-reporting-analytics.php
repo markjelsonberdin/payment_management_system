@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/PaymentReportingScope.php';
 
 // I-enforce ang login at module access
 requireAuth();
@@ -15,8 +16,10 @@ requirePaymentPermission('payment.analytics');
 // 1. KUNIN ANG MGA ANALYTICS & REPORTS DATA
 // ==========================================
 try {
-    // Total Verified Collections
-    $totalCollections = $pdo->query("SELECT SUM(amount) FROM payments WHERE payment_status = 'Verified'")->fetchColumn() ?: 0;
+    $officialPayment = PaymentReportingScope::officialCondition();
+    $officialPaymentP = PaymentReportingScope::officialCondition('p');
+    // Official collections: LIVE online plus verified non-online payments.
+    $totalCollections = $pdo->query("SELECT SUM(amount) FROM payments WHERE {$officialPayment}")->fetchColumn() ?: 0;
 
     // Total Outstanding Receivables (Balancing)
     $totalReceivables = $pdo->query("SELECT SUM(remaining_balance) FROM billing WHERE billing_status != 'Paid'")->fetchColumn() ?: 0;
@@ -28,7 +31,7 @@ try {
     $stmtChannel = $pdo->query("
         SELECT payment_channel, SUM(amount) as total_amount, COUNT(*) as transaction_count 
         FROM payments 
-        WHERE payment_status = 'Verified' 
+        WHERE {$officialPayment}
         GROUP BY payment_channel
     ");
     $channelBreakdown = $stmtChannel->fetchAll(PDO::FETCH_ASSOC);
@@ -38,7 +41,7 @@ try {
         SELECT p.*, s.student_number, s.full_name
         FROM payments p
         JOIN students s ON p.student_id = s.student_id
-        WHERE p.payment_status = 'Verified'
+        WHERE {$officialPaymentP}
         ORDER BY p.created_at DESC 
         LIMIT 10
     ");
@@ -91,7 +94,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-4 border-start border-success border-4">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.8rem;">Total Collections (Verified)</p>
+                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.8rem;">Official Collections (Amount Applied)</p>
                     <h3 class="fw-bolder mb-0 text-success">₱ <?= number_format($totalCollections, 2) ?></h3>
                 </div>
             </div>
@@ -153,7 +156,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-alt text-primary me-2"></i>Recent Verified Collections</h5>
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-alt text-primary me-2"></i>Recent Official Collections</h5>
                 </div>
                 <div class="card-body px-0 pb-0">
                     <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">

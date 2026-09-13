@@ -3,6 +3,8 @@
  * Payment History & Ledger Service
  * Handles fetching of historical payments, official receipts, and ledger allocations.
  */
+require_once __DIR__ . '/PaymentReportingScope.php';
+
 class PaymentHistoryService {
     private $pdo;
 
@@ -28,12 +30,13 @@ class PaymentHistoryService {
      * Retrieves summary statistics for the Payment Dashboard/Ledger.
      */
     public function getPaymentSummary() {
+        $official = PaymentReportingScope::officialCondition();
         $stmt = $this->pdo->query("
             SELECT
-                COALESCE(SUM(CASE WHEN payment_status = 'Verified' THEN amount ELSE 0 END), 0) AS total_collections,
+                COALESCE(SUM(CASE WHEN {$official} THEN amount ELSE 0 END), 0) AS total_collections,
                 COUNT(payment_id) AS total_transactions,
                 COALESCE(SUM(CASE WHEN payment_status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_transactions,
-                COALESCE(SUM(CASE WHEN payment_status = 'Verified' AND payment_date = CURDATE() THEN amount ELSE 0 END), 0) AS today_collections
+                COALESCE(SUM(CASE WHEN {$official} AND payment_date = CURDATE() THEN amount ELSE 0 END), 0) AS today_collections
             FROM payments
         ");
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
@@ -207,11 +210,12 @@ class PaymentHistoryService {
             ];
         }
 
+        $official = PaymentReportingScope::officialCondition();
         $payStmt = $this->pdo->prepare("
             SELECT billing_id, COALESCE(SUM(amount), 0) AS payments_total
             FROM payments
             WHERE billing_id IN ({$placeholders})
-              AND payment_status = 'Verified'
+              AND {$official}
             GROUP BY billing_id
         ");
         $payStmt->execute($billingIds);
