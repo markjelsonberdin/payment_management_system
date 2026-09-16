@@ -4,6 +4,18 @@ trigger: always_on
 
 # Payment Management System — Agent Rules
 
+## IMPLEMENTATION AUTHORITY AND CYCLES
+
+- `.agents/payment-module-implementation-plan.md` ang authority para sa Cycle A functionality, correctness, reporting, at UI/UX work.
+- `.agents/payment-module-security-implementation-plan.md` ang authority para sa future Cycle B Payment security work.
+- **Cycle A includes complete UI/UX**, hindi backend-only: Admin, Accounting/Cashier, Student payment views, analytics, transaction history, filters, visual summaries, exports, labels, responsive behavior, at loading/empty/error states.
+- Hindi puwedeng i-markang complete ang Cycle A kung tama ang backend pero placeholder, incomplete, o misleading pa ang corresponding UI.
+- Pagkatapos ng Cycle A verification, mandatory STOP at user review.
+- Huwag awtomatikong simulan ang Cycle B. Kailangan ng bagong security audit/threat model at explicit user approval.
+- Planning approval is not implementation approval. Implementation approval is not database, credential-rotation, deletion, deployment, o LIVE-test approval.
+- Habang Cycle A, puwedeng panatilihin/ayusin ang minimum controls na kailangan sa financial correctness ng feature; broad security hardening belongs to Cycle B.
+- Kapag may conflict, preserve financial safety and stop for clarification instead of silently crossing the Cycle B boundary.
+
 ## 1. SOURCE OF TRUTH
 - Existing PMS code, database/schema, services, security controls, and finalized BPMN are authoritative.
 - Inspect actual files, callers, dependencies, routes, and schema before editing. Never guess.
@@ -14,6 +26,7 @@ UI only when production backend must remain.
 - `PaymentAllocationService` is the single allocation authority. Do not rewrite or duplicate it unless explicitly required and proven necessary.
 - Do not change finalized BPMN decisions unless the user explicitly asks. Implementation must conform to it.
 - Never expose or request passwords, API keys, Google private keys, PayMongo secrets, or tokens.
+- Preserve user-owned dirty-worktree changes. Do not stage or commit local environment files or unrelated edits.
 
 ## 2. ARCHITECTURE
 - Modular monolith with clear boundaries.
@@ -48,7 +61,7 @@ UI only when production backend must remain.
 
 ## 5. QR PH / PAYMONGO
 - Use transaction-specific/dynamic QR where applicable.
-- Each payment attempt has `created_at`, `expires_at`, and status. QR validity is 30 minutes unless business rules change.
+- Each payment attempt has `created_at`, authoritative `expires_at`, and status. Current approved QR validity is 10 minutes unless the business rule is explicitly changed again.
 - Expiry belongs to the specific payment attempt, not the student/billing account globally.
 - Download/Open/Display QR must not create another payment attempt.
 - Do not rely on browser timers or session-only duplicate checks.
@@ -118,6 +131,16 @@ UI only when production backend must remain.
 - Keep role-aware sidebar visibility, but enforce authorization in backend.
 - Do not import unrelated research/module files into Payment Management.
 - For duplicate pages, compare dependencies/architecture first; never blindly merge both.
+- UI work is functional implementation: values, filters, status labels, dates, totals, and actions must come from authoritative backend data.
+- Every changed screen must include appropriate responsive behavior and distinct loading, empty, permission-denied, and backend-error states where applicable.
+- Do not claim a UI phase is complete based only on backend query changes.
+
+## DATABASE CHANGE APPROVAL GATE
+
+- Stop before any `CREATE TABLE`, `ALTER TABLE`, column/index/foreign-key/ENUM/trigger change, backfill, cleanup, reclassification, reversal, or destructive data operation.
+- Before approval, show the exact database/table, current schema, proposed change, reason, dependencies, exact migration SQL, data impact, compatibility strategy, exact rollback SQL, backup verification, and risk level.
+- Wait for explicit user approval before execution. Approval of a plan or code phase does not authorize a migration.
+- Deploy mutually dependent schema and code as one controlled, compatible release.
 
 ## 13. DEPLOYMENT / CONFIGURATION
 - Separate development and production configuration.
@@ -152,4 +175,6 @@ Before adding anything, verify it is required by the approved process, not alrea
 - `PaymentAllocationService` remains the single allocation authority.
 - No blind file replacement or unnecessary dependencies.
 - No secrets in source control or logs.
-
+- Complete Cycle A functionality and UI/UX before the mandatory stop.
+- Never begin Cycle B security implementation without a fresh explicit approval.
+- Never infer permission for database changes, credential rotation, destructive remediation, deployment, or LIVE financial testing.

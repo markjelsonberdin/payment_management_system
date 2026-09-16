@@ -11,7 +11,15 @@ class GoogleOCRService {
 
     public function __construct($pdo = null) {
         $this->pdo = $pdo;
-        $this->mockMode = (getenv('OCR_MODE') === 'mock');
+        $envLoader = ROOT_PATH . '/modules/payment/config/env_loader.php';
+        if (is_readable($envLoader)) {
+            require_once $envLoader;
+            if (function_exists('payment_load_env')) {
+                payment_load_env(ROOT_PATH . '/modules/payment/.env');
+            }
+        }
+
+        $this->mockMode = strtolower((string) getenv('OCR_MODE')) === 'mock';
     }
 
     /**
@@ -109,19 +117,20 @@ class GoogleOCRService {
                 $notes
             ]);
 
-            // Update concern status based on strict policy
-            if ($status !== 'COMPLETE') {
-                $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Failed', verification_status = 'Rejected', remarks = CONCAT(COALESCE(remarks, ''), '\\n\\nSystem: Automatically rejected due to unreadable receipt (', ?, '). Please re-upload a clearer image.') WHERE concern_id = ?");
-                $upd->execute([$status, $concernId]);
-            } else {
-                $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ?");
-                $upd->execute([$concernId]);
-            }
+            // Partial, ambiguous, and no-text results remain evidence for manual
+            // Accounting review; OCR must never reject a concern automatically.
+            $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ?");
+            $upd->execute([$concernId]);
 
             $this->pdo->commit();
+
+            $resultIdStmt = $this->pdo->prepare("SELECT ocr_result_id FROM ocr_results WHERE concern_id = ? LIMIT 1");
+            $resultIdStmt->execute([$concernId]);
+            $ocrResultId = $resultIdStmt->fetchColumn();
             
             return [
                 'success' => true,
+                'ocr_result_id' => $ocrResultId !== false ? (int) $ocrResultId : null,
                 'extraction_status' => $status,
                 'data' => $result['data'] ?? null
             ];
@@ -135,43 +144,68 @@ class GoogleOCRService {
      * Calls Google Vision API or returns Mock Data.
      */
     private function callGoogleVision($imageContent) {
-        $credentialsPath = ROOT_PATH . '/secure-config/google-credentials.json';
-        
-        // Also support reading from payment module .env if defined
-        $envPath = ROOT_PATH . '/modules/payment/.env';
-        if (file_exists($envPath)) {
-            $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($envLines as $line) {
-                $line = trim($line);
-                if (strpos($line, '#') === 0) continue;
-                
-                $parts = explode('=', $line, 2);
-                if (count($parts) === 2 && trim($parts[0]) === 'GOOGLE_APPLICATION_CREDENTIALS') {
-                    $credentialsPath = trim($parts[1], '"\' ');
-                    break;
-                }
-            }
-        }
-        
         if ($this->mockMode) {
             sleep(1);
             return "MOCK OCR SOURCE\nGCash\nAmount Paid: PHP 1,500.00\nRef No. 1029384756\nDate: 08/26/2026 14:30";
         }
 
-        if (!file_exists($credentialsPath)) {
+        $credentials = $this->resolveCredentials();
+        if ($credentials === null) {
             throw new Exception("OCR_CONFIGURATION_ERROR: Google Vision credentials missing.");
         }
 
         $imageAnnotator = new ImageAnnotatorClient([
-            'credentials' => $credentialsPath
+            'credentials' => $credentials
         ]);
         
-        $response = $imageAnnotator->documentTextDetection($imageContent);
-        $annotation = $response->getFullTextAnnotation();
-        $rawText = $annotation ? $annotation->getText() : null;
-        
-        $imageAnnotator->close();
-        return $rawText;
+        try {
+            $response = $imageAnnotator->documentTextDetection($imageContent);
+            $annotation = $response->getFullTextAnnotation();
+            return $annotation ? $annotation->getText() : null;
+        } finally {
+            $imageAnnotator->close();
+        }
+    }
+
+    private function resolveCredentials() {
+        $encodedJson = trim((string) getenv('GOOGLE_APPLICATION_CREDENTIALS_BASE64'));
+        if ($encodedJson !== '') {
+            $decodedJson = base64_decode($encodedJson, true);
+            $credentials = $decodedJson !== false ? json_decode($decodedJson, true) : null;
+
+            if (!is_array($credentials) || empty($credentials['client_email']) || empty($credentials['private_key'])) {
+                throw new Exception("OCR_CONFIGURATION_ERROR: Google Vision credentials are invalid.");
+            }
+
+            return $credentials;
+        }
+
+        $configuredPath = trim((string) getenv('GOOGLE_APPLICATION_CREDENTIALS'));
+        $candidates = [];
+
+        if ($configuredPath !== '') {
+            if ($this->isAbsolutePath($configuredPath)) {
+                $candidates[] = $configuredPath;
+            } else {
+                $candidates[] = ROOT_PATH . '/' . ltrim($configuredPath, '/\\');
+                $candidates[] = ROOT_PATH . '/modules/payment/' . ltrim($configuredPath, '/\\');
+            }
+        }
+
+        $candidates[] = ROOT_PATH . '/secure-config/google-credentials.json';
+        $candidates[] = ROOT_PATH . '/modules/payment/google-credentials.json';
+
+        foreach (array_unique($candidates) as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function isAbsolutePath($path) {
+        return preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\\/]{2}|\/)/', $path) === 1;
     }
 
     /**
@@ -197,9 +231,9 @@ class GoogleOCRService {
         // 1. Amount Extraction (Prioritize context)
         // Match things like "Amount Paid: PHP 1,500.00", "Total: 1500"
         $amountRegexes = [
-            '/(?:Amount Paid|Paid Amount|Total Paid|Total Amount)\s*:?\s*(?:PHP|Php|₱)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i',
-            '/(?:Amount|Total)\s*:?\s*(?:PHP|Php|₱)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i',
-            '/(?:PHP|Php|₱)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i'
+            '/(?:Amount Paid|Paid Amount|Total Paid|Total Amount)\s*:?\s*(?:PHP|\x{20B1})?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/iu',
+            '/(?:Amount|Total)\s*:?\s*(?:PHP|\x{20B1})?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/iu',
+            '/(?:PHP|\x{20B1})\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/iu'
         ];
         foreach ($amountRegexes as $regex) {
             if (preg_match_all($regex, $rawText, $matches)) {
