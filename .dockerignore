@@ -1,0 +1,14 @@
+.git
+.agents
+.codex
+**/.agents
+**/.env
+**/*.env
+**/node_modules
+**/*.sql
+storage/keys/*
+!storage/keys/.htaccess
+storage/backups/*
+!storage/backups/.htaccess
+uploads/receipts/*
+!uploads/receipts/.htaccess
