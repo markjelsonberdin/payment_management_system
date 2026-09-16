@@ -7,7 +7,6 @@
         "ext-json": "*",
         "ext-openssl": "*",
         "ext-fileinfo": "*",
-        "ext-gd": "*",
         "google/cloud-vision": "1.0"
     }
 }
