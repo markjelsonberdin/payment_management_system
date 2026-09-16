@@ -102,6 +102,18 @@ try {
 } catch (Throwable $e) {
     http_response_code(500);
     error_log("OCR Processing Failed for Concern ID {$concernId}: " . $e->getMessage());
-    echo json_encode(['success' => false, 'error' => 'OCR_PROCESSING_FAILED', 'message' => $e->getMessage()]);
+    if (isset($pdo) && $pdo instanceof PDO && $concernId > 0) {
+        try {
+            $failed = $pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Failed' WHERE concern_id = ? AND verification_status = 'Pending'");
+            $failed->execute([$concernId]);
+        } catch (Throwable $statusError) {
+            error_log("Unable to mark OCR failure for Concern ID {$concernId}: " . $statusError->getMessage());
+        }
+    }
+
+    $message = str_starts_with($e->getMessage(), 'OCR_CONFIGURATION_ERROR:')
+        ? 'Google OCR is not configured on this server.'
+        : 'The receipt could not be scanned. Please retry or review it manually.';
+    echo json_encode(['success' => false, 'error' => 'OCR_PROCESSING_FAILED', 'message' => $message]);
 }
 

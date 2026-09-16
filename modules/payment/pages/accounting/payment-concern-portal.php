@@ -353,31 +353,46 @@ function scanConcernOCR(concernId, btnElement) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ concern_id: concernId, csrf_token: CSRF_TOKEN })
     })
-    .then(res => res.json())
+    .then(async res => {
+        const payload = await res.json();
+        if (!res.ok) {
+            throw new Error(payload.message || payload.error || 'OCR request failed.');
+        }
+        return payload;
+    })
     .then(data => {
         if (data.success) {
-            // Update UI with extracted data
-            document.getElementById('ocr_status_badge_' + concernId).className = 'badge bg-success';
-            document.getElementById('ocr_status_badge_' + concernId).innerText = 'Completed';
+            const extractionStatus = data.extraction_status || 'PARTIAL';
+            const statusStyles = {
+                COMPLETE: ['badge bg-success', 'Complete'],
+                PARTIAL: ['badge bg-warning text-dark', 'Partial - Review'],
+                AMBIGUOUS: ['badge bg-warning text-dark', 'Ambiguous - Review'],
+                NO_TEXT_DETECTED: ['badge bg-secondary', 'No Text - Review']
+            };
+            const statusStyle = statusStyles[extractionStatus] || ['badge bg-secondary', extractionStatus.replace(/_/g, ' ')];
+            const statusBadge = document.getElementById('ocr_status_badge_' + concernId);
+            statusBadge.className = statusStyle[0];
+            statusBadge.innerText = statusStyle[1];
+            const extracted = data.data || {};
             
-            const amt = data.data.amount ? '₱ ' + parseFloat(data.data.amount).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Not Found';
+            const amt = extracted.amount ? 'PHP ' + parseFloat(extracted.amount).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Not Found';
             document.getElementById('ocr_amount_' + concernId).innerText = amt;
-            document.getElementById('ocr_ref_' + concernId).innerText = data.data.reference || 'Not Found';
+            document.getElementById('ocr_ref_' + concernId).innerText = extracted.reference || 'Not Found';
             
             // Auto-fill verified fields inside this specific modal
             const modal = document.getElementById('reviewModal' + concernId);
             if (modal) {
-                if (data.data.amount) {
+                if (extracted.amount) {
                     const amtInput = modal.querySelector(`input[name="verified_amount"]`);
-                    if(amtInput) amtInput.value = data.data.amount;
+                    if(amtInput) amtInput.value = extracted.amount;
                 }
-                if (data.data.reference) {
+                if (extracted.reference) {
                     const refInput = modal.querySelector(`input[name="verified_reference"]`);
-                    if(refInput) refInput.value = data.data.reference;
+                    if(refInput) refInput.value = extracted.reference;
                 }
-                if (data.data.bank) {
+                if (extracted.bank) {
                     const bankInput = modal.querySelector(`input[name="verified_channel"]`);
-                    if(bankInput) bankInput.value = data.data.bank;
+                    if(bankInput) bankInput.value = extracted.bank;
                 }
             }
 
@@ -392,20 +407,22 @@ function scanConcernOCR(concernId, btnElement) {
                 document.getElementById('bank_match_container_' + concernId).innerHTML = `<span class="badge ${badgeClass}" title="${data.bank_match.message}">${displayStatus}</span>`;
             }
             
-            btnElement.innerHTML = '<i class="fas fa-check text-success me-2"></i> Scan Complete';
+            btnElement.innerHTML = extractionStatus === 'COMPLETE'
+                ? '<i class="fas fa-check text-success me-2"></i> Scan Complete'
+                : '<i class="ti ti-alert-triangle text-warning me-2"></i> Manual Review Needed';
             setTimeout(() => {
                 btnElement.innerHTML = originalText;
                 btnElement.disabled = false;
             }, 3000);
         } else {
-            alert("OCR Failed: " + (data.error || "Unknown error"));
+            alert("OCR Failed: " + (data.message || data.error || "Unknown error"));
             btnElement.innerHTML = originalText;
             btnElement.disabled = false;
         }
     })
     .catch(err => {
         console.error(err);
-        alert("Network error during OCR scan.");
+        alert(err.message || "Network error during OCR scan.");
         btnElement.innerHTML = originalText;
         btnElement.disabled = false;
     });

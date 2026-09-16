@@ -8,7 +8,7 @@
  */
 
 if (!function_exists('payment_load_env')) {
-    function payment_load_env($filePath) {
+    function payment_load_env($filePath, $overrideExisting = false) {
         if (!file_exists($filePath) || !is_readable($filePath)) {
             return false; // Silently fail if no .env file
         }
@@ -32,8 +32,13 @@ if (!function_exists('payment_load_env')) {
                 $name = trim($parts[0]);
                 // Remove surrounding quotes if they exist
                 $value = trim($parts[1], " \t\n\r\0\x0B\"'");
-                
-                // Force overwrite to clear any poisoned environment variables in mod_php
+
+                // Deployment/platform secrets are authoritative. Local .env values
+                // fill only missing variables unless an explicit override is needed.
+                if (!$overrideExisting && getenv($name) !== false) {
+                    continue;
+                }
+
                 putenv(sprintf('%s=%s', $name, $value));
                 $_ENV[$name] = $value;
                 $_SERVER[$name] = $value;

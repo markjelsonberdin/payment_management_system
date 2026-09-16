@@ -1,4 +1,9 @@
 <?php
+// Load the Payment module's single local secret file when present. Hosted
+// environment variables remain authoritative and are not overwritten.
+require_once __DIR__ . '/../config/env_loader.php';
+payment_load_env(__DIR__ . '/../.env');
+
 // Payment owns financial records. Prefer PAYMENT_DB_* so its connection
 // remains independent from the SMS2 Core authentication connection.
 // The DB_* fallback preserves existing local installations during migration.
