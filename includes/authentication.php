@@ -343,13 +343,13 @@ function getVisibleModules(array $modules): array
     $allowedModules = getAllowedModuleKeys();
     $visible = array_intersect_key($modules, array_flip($allowedModules));
 
-    // Super Admin manages payment configuration and staff roles; operational
-    // Accounting/Cashier portals belong to their respective roles.
+    // Payment operations belong to Finance, Accounting, and Cashier. Super
+    // Admin creates accounts from User Management and does not need a Payment
+    // Overview in the sidebar.
     if (smsNormalizeRoleKey(getCurrentUserRoleKey()) === 'superadmin'
-        && isset($visible['payment']['groups'])
+        && isset($visible['payment'])
     ) {
-        unset($visible['payment']['groups']['ACCOUNTING PORTAL']);
-        unset($visible['payment']['groups']['CASHIER PORTAL']);
+        unset($visible['payment']);
     }
 
     if (getCurrentUserRoleKey() === 'research_coordinator' && isset($visible['crad'])) {

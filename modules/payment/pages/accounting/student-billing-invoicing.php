@@ -257,7 +257,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <h5 class="fw-bold">Fee billing review &amp; bulk generation</h5>
+            <h5 class="fw-bold">Fee Configuration Reviews</h5>
             <?php if (!$feeWorkflowAvailable): ?>
                 <div class="alert alert-warning mb-0">Disabled until the approved Payment workflow migration is installed.</div>
             <?php else: ?>
