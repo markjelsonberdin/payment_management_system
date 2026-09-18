@@ -25,6 +25,7 @@ $roles = [
     'admission'  => ['label' => 'Admission',   'icon' => 'fa-user-check',       'color' => 'admission'],
     'registrar'  => ['label' => 'Registrar',   'icon' => 'fa-folder-open',      'color' => 'registrar'],
     'finance'    => ['label' => 'Finance',      'icon' => 'fa-credit-card',      'color' => 'finance'],
+    'accounting_officer' => ['label' => 'Accounting Officer', 'icon' => 'fa-calculator', 'color' => 'accounting_officer'],
     'hr'         => ['label' => 'Dean',         'icon' => 'fa-user-tie',         'color' => 'hr'],
     'adviser'    => ['label' => 'Adviser',      'icon' => 'fa-user-graduate',    'color' => 'adviser'],
     'it_office'  => ['label' => 'IT Office',    'icon' => 'fa-laptop',           'color' => 'it_office'],
@@ -54,6 +55,7 @@ foreach ($defaultMatrix as $modKey => &$modDefaults) {
     $modDefaults['admission']  = ($modKey === 'enrollment');
     unset($modDefaults['admin']);
     unset($modDefaults['panel']);
+    $modDefaults['accounting_officer'] = ($modKey === 'payment');
 }
 unset($modDefaults);
 
