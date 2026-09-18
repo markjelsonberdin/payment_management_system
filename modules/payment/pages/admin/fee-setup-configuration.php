@@ -26,11 +26,26 @@ function feeBillingAssertEditable(PDO $pdo, int $feeId, bool $workflowAvailable)
     if (!$workflowAvailable) {
         return;
     }
-    $stmt = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns WHERE fee_id = ? AND status IN ('Submitted','Running') LIMIT 1");
-    $stmt->execute([$feeId]);
+    $stmt = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.status = 'Running' AND (c.fee_id = ? OR ci.fee_id = ?) LIMIT 1");
+    $stmt->execute([$feeId, $feeId]);
     if ($stmt->fetchColumn()) {
-        throw new RuntimeException('This fee has a submitted or running billing configuration. Return it for correction before editing.');
+        throw new RuntimeException('This fee has a bulk billing run in progress. Wait for it to finish before archiving or editing the fee.');
     }
+}
+
+function feeCanBePermanentlyDeleted(PDO $pdo, int $feeId, bool $workflowAvailable): bool
+{
+    $billing = $pdo->prepare('SELECT 1 FROM billing_items WHERE fee_id = ? LIMIT 1');
+    $billing->execute([$feeId]);
+    if ($billing->fetchColumn()) {
+        return false;
+    }
+    if (!$workflowAvailable) {
+        return true;
+    }
+    $campaign = $pdo->prepare('SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.fee_id = ? OR ci.fee_id = ? LIMIT 1');
+    $campaign->execute([$feeId, $feeId]);
+    return !$campaign->fetchColumn();
 }
 
 // ==========================================
@@ -118,10 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_category'])) 
     $category_id = (int) $_POST['category_id'];
     try {
         if ($feeWorkflowAvailable) {
-            $check = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c JOIN fees f ON f.fee_id = c.fee_id WHERE f.category_id = ? AND c.status IN ('Submitted','Running') LIMIT 1");
+            $check = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c WHERE c.category_id = ? AND c.status = 'Running' LIMIT 1");
             $check->execute([$category_id]);
             if ($check->fetchColumn()) {
-                throw new RuntimeException('Category contains a submitted or processed fee configuration.');
+                throw new RuntimeException('This category contains a fee with a bulk billing run in progress. Wait for it to finish before archiving.');
             }
         }
         $stmt = $pdo->prepare("UPDATE fees SET status = 'Inactive' WHERE category_id = :category_id AND status = 'Active'");
@@ -153,6 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_fee'])) {
     $fee_id = (int) $_POST['fee_id'];
     try {
         feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
+        if (!feeCanBePermanentlyDeleted($pdo, $fee_id, $feeWorkflowAvailable)) {
+            throw new RuntimeException('This fee has billing history or a bulk billing record and cannot be permanently deleted. It remains safely archived.');
+        }
         $pdo->prepare("DELETE FROM fees WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
         header("Location: fee-setup-configuration.php?success=deleted");
         exit();
@@ -164,7 +182,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_fee'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all_archived'])) {
     try {
-        $stmtDeleteAll = $pdo->prepare("DELETE FROM fees WHERE status = 'Inactive'");
+        $sql = "DELETE FROM fees f WHERE f.status = 'Inactive' AND NOT EXISTS (SELECT 1 FROM billing_items bi WHERE bi.fee_id = f.fee_id)";
+        if ($feeWorkflowAvailable) {
+            $sql .= " AND NOT EXISTS (SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.fee_id = f.fee_id OR ci.fee_id = f.fee_id)";
+        }
+        $stmtDeleteAll = $pdo->prepare($sql);
         $stmtDeleteAll->execute();
         header("Location: fee-setup-configuration.php?success=deleted_all&count=" . $stmtDeleteAll->rowCount());
         exit();
@@ -640,5 +662,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<script src="../../assets/js/fee-master-setup.js"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/fee-master-setup.js?v=2"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
