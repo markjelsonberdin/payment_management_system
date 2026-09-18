@@ -24,11 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_bulk_billing'])
         if (!$feeWorkflowAvailable || !$feeWorkflow->generationEnabled()) {
             throw new RuntimeException('Bulk billing is unavailable until the Payment migration and PAYMENT_BULK_BILLING_ENABLED setting are ready.');
         }
-        $campaignId = $feeWorkflow->submit(
-            (int) ($_POST['fee_id'] ?? 0),
+        $campaignId = $feeWorkflow->submitCategory(
+            (int) ($_POST['category_id'] ?? 0),
             trim((string) ($_POST['academic_year'] ?? '')),
             (string) ($_POST['semester'] ?? ''),
-            null,
             (string) ($_POST['year_level'] ?? ''),
             (int) getCurrentUserId()
         );
@@ -217,13 +216,15 @@ try {
 
     // Kunin ang Active Fees kasama ang Category Details
     $stmtFees = $pdo->query("
-        SELECT f.fee_id, f.fee_name, f.default_amount, f.is_required, c.category_name
+        SELECT f.fee_id, f.fee_name, f.default_amount, f.is_required, c.category_id, c.category_name
         FROM fees f
         JOIN fee_categories c ON f.category_id = c.category_id
         WHERE f.status = 'Active' AND c.status = 'Active'
         ORDER BY c.priority_order ASC, f.fee_name ASC
     ");
     $activeFees = $stmtFees->fetchAll(PDO::FETCH_ASSOC);
+
+    $categoryBillingOptions = $pdo->query("SELECT c.category_id, c.category_name, COUNT(f.fee_id) AS fee_count, COALESCE(SUM(f.default_amount), 0) AS total_amount FROM fee_categories c JOIN fees f ON f.category_id = c.category_id AND f.status = 'Active' AND f.default_amount > 0 WHERE c.status = 'Active' GROUP BY c.category_id, c.category_name, c.priority_order ORDER BY c.priority_order ASC, c.category_name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
     // Grouping logic para sa Modal
     foreach ($activeFees as $fee) {
@@ -235,7 +236,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    $billingList = []; $activeFees = []; $groupedActiveFees = []; $totalReceivables = 0; $unpaidCount = 0; $paidCount = 0;
+    $billingList = []; $activeFees = []; $groupedActiveFees = []; $categoryBillingOptions = []; $totalReceivables = 0; $unpaidCount = 0; $paidCount = 0;
     $dbError = $e->getMessage();
 }
 
@@ -278,18 +279,18 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h5 class="fw-bold">Bulk Billing Runs</h5>
-            <p class="text-muted small">Accounting selects an active fee, term, and year level. The system adds it to every enrolled student in that year level and notifies only students with a newly added billing item.</p>
+            <p class="text-muted small">Accounting selects an active fee category, term, and year level. Every active fee in the category is applied to enrolled students in that year level, with one combined student notice for newly added billing items.</p>
             <?php if (!$feeWorkflowAvailable): ?>
                 <div class="alert alert-warning mb-0">Disabled until the approved Payment workflow migration is installed.</div>
             <?php else: ?>
-                <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Fee</th><th>Term</th><th>Cohort</th><th>Status</th><th>Assigned</th><th>Failed</th><th></th></tr></thead><tbody>
+                <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Fee Category</th><th>Term</th><th>Cohort</th><th>Status</th><th>Assigned</th><th>Failed</th><th></th></tr></thead><tbody>
                     <?php foreach ($feeCampaigns as $campaign): ?>
-                        <tr><td><?= htmlspecialchars($campaign['fee_name_snapshot']) ?> (₱<?= number_format((float) $campaign['amount_snapshot'], 2) ?>)</td><td><?= htmlspecialchars($campaign['academic_year'] . ' / ' . $campaign['semester']) ?></td><td><?= htmlspecialchars(($campaign['course'] ?: 'All courses') . ' / ' . ($campaign['year_level'] ?: 'All levels')) ?></td><td><?= htmlspecialchars($campaign['status']) ?></td><td><?= (int) $campaign['added_count'] ?></td><td><?= (int) $campaign['failed_count'] ?></td><td><a class="btn btn-sm btn-outline-primary" href="?campaign_id=<?= (int) $campaign['campaign_id'] ?>">Review</a></td></tr>
+                        <tr><td><?= htmlspecialchars($campaign['category_name_snapshot'] ?: $campaign['fee_name_snapshot']) ?> (₱<?= number_format((float) $campaign['amount_snapshot'], 2) ?>)</td><td><?= htmlspecialchars($campaign['academic_year'] . ' / ' . $campaign['semester']) ?></td><td><?= htmlspecialchars(($campaign['course'] ?: 'All courses') . ' / ' . ($campaign['year_level'] ?: 'All levels')) ?></td><td><?= htmlspecialchars($campaign['status']) ?></td><td><?= (int) $campaign['added_count'] ?></td><td><?= (int) $campaign['failed_count'] ?></td><td><a class="btn btn-sm btn-outline-primary" href="?campaign_id=<?= (int) $campaign['campaign_id'] ?>">Review</a></td></tr>
                     <?php endforeach; ?>
                 </tbody></table></div>
                 <?php if ($selectedCampaign): ?>
                     <div class="border rounded p-3 bg-light">
-                        <h6 class="fw-bold mb-2">Campaign #<?= (int) $selectedCampaign['campaign_id'] ?> — <?= htmlspecialchars($selectedCampaign['fee_name_snapshot']) ?></h6>
+                        <h6 class="fw-bold mb-2">Campaign #<?= (int) $selectedCampaign['campaign_id'] ?> — <?= htmlspecialchars($selectedCampaign['category_name_snapshot'] ?: $selectedCampaign['fee_name_snapshot']) ?></h6>
                         <?php if ($feePreview): ?>
                             <p class="mb-2">Eligibility rule: <strong>status = Enrolled</strong> · Eligible: <strong><?= number_format($feePreview['eligible']) ?></strong> · Excluded: <strong><?= number_format($feePreview['excluded']) ?></strong> · Already assigned: <strong><?= number_format($feePreview['already_assigned']) ?></strong> · Projected new billing: <strong>₱<?= number_format($feePreview['projected_amount'], 2) ?></strong></p>
                             <details class="mb-3"><summary>View first eligible students</summary><ul><?php foreach ($feePreview['students'] as $student): ?><li><?= htmlspecialchars($student['student_number'] . ' — ' . $student['full_name'] . ' (' . $student['course'] . ', ' . $student['year_level'] . ')') ?></li><?php endforeach; ?></ul></details>
@@ -493,8 +494,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <form method="post">
                 <?= csrfField(); ?>
                 <div class="modal-body bg-light">
-                    <p class="text-muted small">This applies one active fee to every student marked <strong>Enrolled</strong> in the selected year level. Existing fee items for the same term are skipped.</p>
-                    <div class="mb-3"><label class="form-label fw-bold">Fee</label><select name="fee_id" class="form-select" required><option value="">Select active fee</option><?php foreach ($activeFees as $fee): ?><option value="<?= (int) $fee['fee_id'] ?>"><?= htmlspecialchars($fee['fee_name']) ?> — ₱<?= number_format((float) $fee['default_amount'], 2) ?></option><?php endforeach; ?></select></div>
+                    <p class="text-muted small">This applies every active fee in one category to students marked <strong>Enrolled</strong> in the selected year level. Existing fee items are skipped and students receive one combined notification for new items.</p>
+                    <div class="mb-3"><label class="form-label fw-bold">Fee Category</label><select name="category_id" class="form-select" required><option value="">Select active fee category</option><?php foreach ($categoryBillingOptions as $category): ?><option value="<?= (int) $category['category_id'] ?>"><?= htmlspecialchars($category['category_name']) ?> — <?= (int) $category['fee_count'] ?> fee(s), ₱<?= number_format((float) $category['total_amount'], 2) ?></option><?php endforeach; ?></select></div>
+                    <details class="mb-3 small"><summary class="fw-semibold">View active fees included in each category</summary><ul class="mb-0 mt-2"><?php foreach ($categoryBillingOptions as $category): ?><li><strong><?= htmlspecialchars($category['category_name']) ?></strong> (₱<?= number_format((float) $category['total_amount'], 2) ?>): <?php $names = []; foreach ($activeFees as $fee) { if ((int) $fee['category_id'] === (int) $category['category_id']) $names[] = $fee['fee_name']; } echo htmlspecialchars(implode(', ', $names)); ?></li><?php endforeach; ?></ul></details>
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label fw-bold">Academic Year</label><input name="academic_year" class="form-control" pattern="[0-9]{4}-[0-9]{4}" value="2026-2027" required></div>
                         <div class="col-md-6"><label class="form-label fw-bold">Semester</label><select name="semester" class="form-select" required><option value="1st">1st Semester</option><option value="2nd">2nd Semester</option><option value="Summer">Summer</option></select></div>

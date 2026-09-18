@@ -302,6 +302,12 @@ function userCanAccessModule(string $moduleKey): bool
     if (str_starts_with($moduleKey, 'payment.') && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey)) {
         return false;
     }
+    // The global payment dashboard is intentionally shared by Finance,
+    // Accounting Officer, and Cashier even when legacy DB grants omit it.
+    if ($moduleKey === 'payment.collection_analytics_view'
+        && in_array(smsNormalizeRoleKey(getCurrentUserRoleKey()), ['finance', 'accounting_officer', 'cashier', 'superadmin'], true)) {
+        return true;
+    }
 
     // Student portal alias
     if ($moduleKey === 'student-portal' || $moduleKey === 'student_portal') {
@@ -1648,9 +1654,6 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
 function paymentRoleAllowsPermission(string $role, string $permission): bool
 {
     $role = smsNormalizeRoleKey($role);
-    // Some legacy sessions still carry the UI alias `admin`; normalize it
-    // before applying the granular payment matrix.
-    $role = smsNormalizeRoleKey($role);
     $accountingPermissions = [
         'payment.billing', 'payment.discount', 'payment.ledger',
         'payment.analytics', 'payment.concern_review',
@@ -1669,6 +1672,9 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
     } elseif (in_array($permission, $adminPermissions, true)) {
         if ($permission === 'payment.user_management') {
             return in_array($role, ['superadmin'], true);
+        }
+        if ($permission === 'payment.collection_analytics_view') {
+            return in_array($role, ['finance', 'accounting_officer', 'cashier', 'superadmin'], true);
         }
         return in_array($role, ['finance', 'superadmin'], true);
     } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history') {

@@ -4,9 +4,8 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             document.getElementById('editFeeId').value = this.dataset.id;
             document.getElementById('editFeeName').value = this.dataset.name;
-            document.getElementById('editFeeType').value = this.dataset.type;
+            document.getElementById('editFeeCategory').value = this.dataset.category;
             document.getElementById('editFeeAmount').value = this.dataset.amount;
-            document.getElementById('editFeePriority').value = this.dataset.priority;
             document.getElementById('editFeeRequired').value = this.dataset.required;
         });
     });
@@ -22,8 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Populate Archive Category Modal
     document.querySelectorAll('.btn-archive-category-trigger').forEach(btn => {
         btn.addEventListener('click', function () {
-            document.getElementById('archiveCategoryType').value = this.dataset.feeType;
-            document.getElementById('archiveCategoryName').textContent = this.dataset.feeType;
+            document.getElementById('archiveCategoryId').value = this.dataset.categoryId;
+            document.getElementById('archiveCategoryName').textContent = this.dataset.categoryName;
             document.getElementById('archiveCategoryCount').textContent = this.dataset.itemCount;
         });
     });
