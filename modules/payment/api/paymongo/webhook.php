@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/paymongo/PayMongoWebhookSecurityService.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
+require_once ROOT_PATH . '/modules/payment/includes/PaymentNotificationService.php';
 
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
@@ -268,6 +269,15 @@ try {
     }
 
     $pdo->commit();
+    if ($shouldAllocate) {
+        (new PaymentNotificationService($pdo))->notifyVerifiedPayment(
+            (int) $internalPayment['student_id'],
+            (int) $internalPayment['payment_id'],
+            (float) $internalPayment['amount'],
+            (string) ($internalPayment['payment_channel'] ?? 'Online payment'),
+            (string) ($internalPayment['reference_number'] ?? $internalPayment['checkout_session_id'] ?? '')
+        );
+    }
     echo json_encode([
         'success' => true,
         'message' => $shouldAllocate

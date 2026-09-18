@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 require_once __DIR__ . '/../../includes/PaymentSecurityService.php';
+require_once __DIR__ . '/../../includes/PaymentNotificationService.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection');
@@ -109,6 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $category_id);
 
         $pdo->commit();
+
+        (new PaymentNotificationService($pdo))->notifyVerifiedPayment(
+            (int) $student_id,
+            (int) $payment_id,
+            $amount_paid,
+            'Cashier walk-in',
+            $reference_number
+        );
 
         // Payment is now durable in Payment DB. Audit is authoritative in SMS2 Core.
         logActivity(

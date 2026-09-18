@@ -291,7 +291,6 @@ $MODULES = [
                 'cashier/walk-in-transaction-history',
             ],
             'ADMIN PORTAL' => [
-                'admin/dashboard',
                 'admin/fee-setup-configuration',
                 'admin/online-payment-integration',
             ],
