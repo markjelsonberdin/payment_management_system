@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/PaymentAllocationService.php';
 require_once __DIR__ . '/bank_recon/BankReconciliationService.php';
+require_once __DIR__ . '/PaymentNotificationService.php';
 
 class PaymentConcernService {
     private $pdo;
@@ -215,6 +216,20 @@ class PaymentConcernService {
             }
 
             $this->pdo->commit();
+            if ($action === 'Verify' && !empty($paymentId)) {
+                $noticePayment = $this->pdo->prepare("SELECT student_id, payment_id, amount, payment_channel, reference_number FROM payments WHERE payment_id = ? AND payment_status = 'Verified' LIMIT 1");
+                $noticePayment->execute([$paymentId]);
+                $postedPayment = $noticePayment->fetch(PDO::FETCH_ASSOC);
+                if ($postedPayment) {
+                    (new PaymentNotificationService($this->pdo))->notifyVerifiedPayment(
+                        (int) $postedPayment['student_id'],
+                        (int) $postedPayment['payment_id'],
+                        (float) $postedPayment['amount'],
+                        'Verified payment concern (' . (string) $postedPayment['payment_channel'] . ')',
+                        (string) $postedPayment['reference_number']
+                    );
+                }
+            }
             return true;
         } catch (Exception $e) {
             $this->pdo->rollBack();

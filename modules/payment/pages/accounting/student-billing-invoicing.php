@@ -268,6 +268,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#billingTable" placeholder="Search student no...">
                 </div>
                 <?php if (in_array(getCurrentUserRoleKey(), ['accounting_officer', 'superadmin'], true)): ?>
+                    <button type="button" class="btn btn-outline-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#generateBillingModal">
+                        <i class="fas fa-file-invoice me-1"></i> Generate Individual SOA
+                    </button>
                     <button type="button" class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#bulkBillingModal">
                         <i class="fas fa-layer-group me-1"></i> Bulk Generate by Year Level
                     </button>
@@ -509,7 +512,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
-<!-- Individual billing remains available for exceptional/manual adjustments. -->
+<!-- Individual billing supports standard, enrollment, and adjusted assessments with selected fees. -->
 <!-- ========================================== -->
 <!-- GENERATE BILLING MODAL -->
 <!-- ========================================== -->
@@ -538,9 +541,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold text-dark">Billing Type <span class="text-danger">*</span></label>
                             <select class="form-select" name="billing_type" id="billingTypeSelect" required>
-                                <option value="Enrollment">Enrollment Assessment</option>
                                 <option value="Assessment">Standard Assessment</option>
-                                <option value="Adjustment">Adjustment</option>
+                                <option value="Enrollment">Enrollment Assessment</option>
+                                <option value="Adjustment">Adjusted Assessment</option>
                             </select>
                         </div>
 
