@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/BillingService.php';
 
-/** Coordinates fee review; BillingService remains the only billing writer. */
+/** Coordinates Accounting-owned bulk billing; BillingService remains the only billing writer. */
 final class FeeBillingWorkflow
 {
     private PDO $pdo;
@@ -55,12 +55,15 @@ final class FeeBillingWorkflow
             if (!$fee || (float) $fee['default_amount'] <= 0) {
                 throw new RuntimeException('Active fee with a positive amount required.');
             }
-            $existingStmt = $this->pdo->prepare('SELECT campaign_id, status FROM fee_billing_campaigns WHERE fee_id = ? AND academic_year = ? AND semester = ? FOR UPDATE');
-            $existingStmt->execute([$feeId, $year, $semester]);
+            if (!in_array($level, ['1', '2', '3', '4'], true)) {
+                throw new InvalidArgumentException('Choose one target year level.');
+            }
+            $existingStmt = $this->pdo->prepare('SELECT campaign_id, status FROM fee_billing_campaigns WHERE fee_id = ? AND academic_year = ? AND semester = ? AND year_level <=> ? FOR UPDATE');
+            $existingStmt->execute([$feeId, $year, $semester, $level]);
             $existing = $existingStmt->fetch(PDO::FETCH_ASSOC);
             if ($existing) {
                 if ($existing['status'] !== 'Returned') {
-                    throw new RuntimeException('This fee already has a submitted or processed configuration for that term.');
+                    throw new RuntimeException('This fee already has a bulk billing run for the selected year level and term.');
                 }
                 $stmt = $this->pdo->prepare("UPDATE fee_billing_campaigns SET course = ?, year_level = ?, fee_name_snapshot = ?, amount_snapshot = ?, status = 'Submitted', version = version + 1, submitted_by = ?, submitted_at = NOW(), approved_by = NULL, approved_at = NULL WHERE campaign_id = ?");
                 $stmt->execute([$course, $level, $fee['fee_name'], $fee['default_amount'], $actor, $existing['campaign_id']]);
@@ -71,29 +74,10 @@ final class FeeBillingWorkflow
                 $campaignId = (int) $this->pdo->lastInsertId();
             }
             $this->pdo->commit();
-            $this->notifyAccounting($campaignId, (string) $fee['fee_name'], (float) $fee['default_amount'], $year, $semester);
             return $campaignId;
         } catch (Throwable $e) {
             $this->pdo->rollBack();
             throw $e;
-        }
-    }
-
-    private function notifyAccounting(int $campaignId, string $name, float $amount, string $year, string $semester): void
-    {
-        try {
-            $core = db();
-            if (!$core instanceof PDO) {
-                return;
-            }
-            $users = $core->query("SELECT id FROM users WHERE role_key = 'accounting_officer' AND status = 'active'");
-            $message = $name . ' - PHP ' . number_format($amount, 2) . ' for AY ' . $year . ', ' . $semester . ' requires billing review.';
-            $stmt = $this->pdo->prepare('INSERT INTO payment_notifications (recipient_user_id, event_key, title, body, target_url) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE body = VALUES(body), read_at = NULL');
-            foreach ($users->fetchAll(PDO::FETCH_COLUMN) as $userId) {
-                $stmt->execute([(int) $userId, 'fee-review:' . $campaignId, 'Fee configuration for review', $message, '/modules/payment/pages/accounting/student-billing-invoicing.php?campaign_id=' . $campaignId]);
-            }
-        } catch (Throwable $e) {
-            error_log('Payment fee-review notification failed: ' . $e->getMessage());
         }
     }
 
@@ -111,8 +95,8 @@ final class FeeBillingWorkflow
 
     private function eligibleWhere(array $campaign, array &$params): string
     {
-        // V1 intentionally uses only the locally synced enrollment status.
-        // Course/year-level data is not authoritative until Registrar integration exists.
+        // Bulk billing applies only to locally marked Enrolled students in the
+        // Accounting-selected year level.
         $where = ["s.status = 'Enrolled'"];
         if ($campaign['course'] !== null) {
             $where[] = 's.course = :course';
@@ -121,10 +105,6 @@ final class FeeBillingWorkflow
         if ($campaign['year_level'] !== null) {
             $where[] = 's.year_level = :year_level';
             $params[':year_level'] = $campaign['year_level'];
-        }
-        if (!empty($campaign['approved_at'])) {
-            $where[] = 's.last_sync_at <= :approved_at';
-            $params[':approved_at'] = $campaign['approved_at'];
         }
         return implode(' AND ', $where);
     }
@@ -159,24 +139,17 @@ final class FeeBillingWorkflow
         ];
     }
 
-    public function returnForCorrection(int $campaignId): bool
-    {
-        $stmt = $this->pdo->prepare("UPDATE fee_billing_campaigns SET status = 'Returned', version = version + 1 WHERE campaign_id = ? AND status = 'Submitted'");
-        $stmt->execute([$campaignId]);
-        return $stmt->rowCount() === 1;
-    }
-
-    public function approve(int $campaignId, int $actor, int $version): bool
+    public function start(int $campaignId, int $actor): bool
     {
         if (!$this->generationEnabled()) {
             throw new RuntimeException('Bulk generation is disabled until student cohort data and deployment are verified.');
         }
         $campaign = $this->get($campaignId);
         if (!$campaign || $campaign['fee_status'] !== 'Active' || $campaign['current_name'] !== $campaign['fee_name_snapshot'] || (float) $campaign['current_amount'] !== (float) $campaign['amount_snapshot']) {
-            throw new RuntimeException('Fee changed or is inactive. Request a corrected configuration.');
+            throw new RuntimeException('Fee changed or is inactive. Refresh the active fee list before generating billing.');
         }
-        $stmt = $this->pdo->prepare("UPDATE fee_billing_campaigns SET status = 'Running', approved_by = ?, approved_at = NOW() WHERE campaign_id = ? AND status = 'Submitted' AND version = ?");
-        $stmt->execute([$actor, $campaignId, $version]);
+        $stmt = $this->pdo->prepare("UPDATE fee_billing_campaigns SET status = 'Running', approved_by = ?, approved_at = NOW() WHERE campaign_id = ? AND status = 'Submitted'");
+        $stmt->execute([$actor, $campaignId]);
         return $stmt->rowCount() === 1;
     }
 
