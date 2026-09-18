@@ -1638,6 +1638,9 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
 
 function paymentRoleAllowsPermission(string $role, string $permission): bool
 {
+    // Some legacy sessions still carry the UI alias `admin`; normalize it
+    // before applying the granular payment matrix.
+    $role = smsNormalizeRoleKey($role);
     $accountingPermissions = [
         'payment.billing', 'payment.discount', 'payment.ledger',
         'payment.analytics', 'payment.concern_review',
@@ -1650,6 +1653,9 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
     if (in_array($permission, $accountingPermissions, true)) {
         return in_array($role, ['accounting_officer', 'superadmin'], true);
     } elseif (in_array($permission, $adminPermissions, true)) {
+        if ($permission === 'payment.user_management') {
+            return in_array($role, ['superadmin'], true);
+        }
         return in_array($role, ['finance', 'superadmin'], true);
     } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history') {
         return in_array($role, ['cashier', 'superadmin'], true);

@@ -293,7 +293,6 @@ $MODULES = [
             'ADMIN PORTAL' => [
                 'admin/fee-setup-configuration',
                 'admin/online-payment-integration',
-                'admin/payment-users',
             ],
             'ADMIN REPORTING' => [
                 'admin/transaction-history',
