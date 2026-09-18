@@ -11,7 +11,7 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentReportingScope.php';
 header('Content-Type: application/json');
 
 requireAuth();
-requirePaymentPermission('payment.analytics');
+requirePaymentPermission('payment.collection_analytics_view');
 
 $paymentDb = $pdo;
 

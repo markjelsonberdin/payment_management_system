@@ -8,10 +8,12 @@ if (!isset($MODULES)) {
 }
 require_once ROOT_PATH . '/includes/authentication.php';
 requireAuth();
-requirePaymentPermission('payment.analytics');
+// Finance owns the dashboard; Accounting's analytics page stays separate.
+requirePaymentPermission('payment.collection_analytics_view');
 
 $pageTitle = 'Finance Dashboard';
 $activeModule = 'payment';
+$activePage = 'admin/dashboard';
 $breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Dashboard', 'url' => null]
