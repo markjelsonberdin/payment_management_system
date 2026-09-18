@@ -26,6 +26,9 @@ if (!defined('ROOT_PATH')) {
 // ---------------------------------------------------------
 if (!function_exists('sms2_secure_log_error')) {
     function sms2_secure_log_error($message) {
+        // HostForge/Linux captures PHP stderr; keep this portable and usable
+        // outside the original XAMPP Windows environment.
+        @error_log((string) $message);
         $logDir = 'C:\xampp\sms2_logs';
         if (!is_dir($logDir)) {
             @mkdir($logDir, 0755, true);
