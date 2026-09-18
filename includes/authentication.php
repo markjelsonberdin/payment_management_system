@@ -343,6 +343,15 @@ function getVisibleModules(array $modules): array
     $allowedModules = getAllowedModuleKeys();
     $visible = array_intersect_key($modules, array_flip($allowedModules));
 
+    // Super Admin manages payment configuration and staff roles; operational
+    // Accounting/Cashier portals belong to their respective roles.
+    if (smsNormalizeRoleKey(getCurrentUserRoleKey()) === 'superadmin'
+        && isset($visible['payment']['groups'])
+    ) {
+        unset($visible['payment']['groups']['ACCOUNTING PORTAL']);
+        unset($visible['payment']['groups']['CASHIER PORTAL']);
+    }
+
     if (getCurrentUserRoleKey() === 'research_coordinator' && isset($visible['crad'])) {
         $visible['crad'] = smsResearchCoordinatorCradModule();
     }
@@ -1638,6 +1647,7 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
 
 function paymentRoleAllowsPermission(string $role, string $permission): bool
 {
+    $role = smsNormalizeRoleKey($role);
     // Some legacy sessions still carry the UI alias `admin`; normalize it
     // before applying the granular payment matrix.
     $role = smsNormalizeRoleKey($role);
@@ -1650,6 +1660,10 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
         'payment.user_management', 'payment.transaction_history_view',
         'payment.collection_analytics_view',
     ];
+    // Super Admin is not limited by incomplete granular permission rows.
+    if ($role === 'superadmin') {
+        return true;
+    }
     if (in_array($permission, $accountingPermissions, true)) {
         return in_array($role, ['accounting_officer', 'superadmin'], true);
     } elseif (in_array($permission, $adminPermissions, true)) {
