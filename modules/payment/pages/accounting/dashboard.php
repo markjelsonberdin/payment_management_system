@@ -6,6 +6,9 @@
 if (!isset($MODULES)) {
     require_once __DIR__ . '/../../../../config/config.php';
 }
+require_once ROOT_PATH . '/includes/authentication.php';
+requireAuth();
+requirePaymentPermission('payment.analytics');
 
 $pageTitle = 'Finance Dashboard';
 $activeModule = 'payment';

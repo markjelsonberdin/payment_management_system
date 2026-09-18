@@ -27,7 +27,7 @@ try {
     
     // If not admin/accounting, they must own the concern
     // ensurePaymentAccess will throw an exception if they are not allowed
-    $securityService->ensurePaymentAccess($userId, $role, 'payment.collection', $concernId, 'concern');
+    $securityService->ensurePaymentAccess($userId, $role, 'payment.concern_review', $concernId, 'concern');
     
     // Fetch concern to get the receipt path
     $stmt = $pdo->prepare("SELECT receipt_path FROM payment_concerns WHERE concern_id = ?");

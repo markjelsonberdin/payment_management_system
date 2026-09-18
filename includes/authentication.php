@@ -187,6 +187,7 @@ function smsDefaultModulesForRole(string $roleKey): array
         'research_grant' => ['crad_grant'],
         'review_committee' => ['crad_grant'],
         'finance'      => ['payment'],
+        'accounting_officer' => ['payment'],
         'hr'           => ['faculty'],
         'adviser'      => ['faculty'],
         'panel'        => ['faculty'],
@@ -297,6 +298,9 @@ function userCanAccessModule(string $moduleKey): bool
 {
     if ($moduleKey === '' || $moduleKey === 'dashboard') {
         return true;
+    }
+    if (str_starts_with($moduleKey, 'payment.') && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey)) {
+        return false;
     }
 
     // Student portal alias
@@ -1632,9 +1636,30 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
     return (time() - $ts) <= max(60, $onlineSeconds);
 }
 
+function paymentRoleAllowsPermission(string $role, string $permission): bool
+{
+    $accountingPermissions = [
+        'payment.billing', 'payment.discount', 'payment.ledger',
+        'payment.analytics', 'payment.concern_review',
+    ];
+    $adminPermissions = [
+        'payment.fee_setup', 'payment.online_payment_config',
+        'payment.user_management', 'payment.transaction_history_view',
+        'payment.collection_analytics_view',
+    ];
+    if (in_array($permission, $accountingPermissions, true)) {
+        return in_array($role, ['accounting_officer', 'superadmin'], true);
+    } elseif (in_array($permission, $adminPermissions, true)) {
+        return in_array($role, ['finance', 'superadmin'], true);
+    } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history') {
+        return in_array($role, ['cashier', 'superadmin'], true);
+    }
+    return true;
+}
+
 function requirePaymentPermission(string $permission): void
 {
-    if (!userCanAccessModule($permission)) {
+    if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), $permission) || !userCanAccessModule($permission)) {
         http_response_code(403);
         die('403 Forbidden: You do not have the required permission ('. htmlspecialchars($permission) .') to access this module.');
     }

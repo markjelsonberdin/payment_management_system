@@ -32,11 +32,7 @@ class PaymentSecurityService {
     public function ensurePaymentAccess(int $userId, string $role, string $permission, int $objectId, string $objectType): bool {
         // 1. Enforce global permission (Admin/Accounting/Cashier must have the granular permission)
         if ($role !== 'student') {
-            // userCanAccessModule checks against top-level module slugs (e.g. 'payment'),
-            // not dotted sub-permissions like 'payment.ocr.scan'.
-            // Extract the top-level key for the check.
-            $topLevelModule = explode('.', $permission)[0];
-            if (!userCanAccessModule($topLevelModule)) {
+            if (!paymentRoleAllowsPermission($role, $permission) || !userCanAccessModule($permission)) {
                 throw new Exception("Access Denied: Missing required permission '$permission'.");
             }
         }
@@ -68,7 +64,7 @@ class PaymentSecurityService {
 
         switch ($objectType) {
             case 'billing':
-                $stmt = $this->pdo->prepare("SELECT 1 FROM student_billing WHERE billing_id = ? AND student_id = ?");
+                $stmt = $this->pdo->prepare("SELECT 1 FROM billing WHERE billing_id = ? AND student_id = ?");
                 $stmt->execute([$objectId, $studentId]);
                 $isValid = (bool) $stmt->fetchColumn();
                 break;

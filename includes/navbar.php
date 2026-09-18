@@ -645,6 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = new FormData();
         form.append('notification_id', String(id));
         form.append('batch_key', batchKey);
+        form.append('csrf_token', <?= json_encode(csrfToken()) ?>);
         fetch(notificationEndpoint, {
             method: 'POST',
             body: form,

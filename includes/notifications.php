@@ -888,12 +888,88 @@ function smsNotificationPayloadForCurrentUser(): array
     }, $rows);
 
     return smsNotificationDedupe(array_merge(
+        smsCurrentUserPaymentNotifications(),
         smsCurrentUserAssignmentNotifications(8),
         $items,
         smsStudentResearchStatusNotifications(),
         smsStudentReturnedTitleApprovalNotifications(),
         smsStudentReturnedProposalNotifications()
     ));
+}
+
+function smsPaymentNotificationDb(): ?PDO
+{
+    static $paymentDb = null;
+    if ($paymentDb instanceof PDO) {
+        return $paymentDb;
+    }
+    try {
+        require_once ROOT_PATH . '/modules/payment/config/env_loader.php';
+        payment_load_env(ROOT_PATH . '/modules/payment/.env');
+        $host = getenv('PAYMENT_DB_HOST') ?: (getenv('DB_HOST') ?: '127.0.0.1');
+        $port = getenv('PAYMENT_DB_PORT') ?: (getenv('DB_PORT') ?: '3307');
+        $name = getenv('PAYMENT_DB_DATABASE') ?: (getenv('DB_DATABASE') ?: 'payment_db');
+        $user = getenv('PAYMENT_DB_USER') ?: (getenv('DB_USERNAME') ?: 'root');
+        $pass = getenv('PAYMENT_DB_PASS') ?: (getenv('DB_PASSWORD') ?: '');
+        $paymentDb = new PDO("mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 2]);
+        return $paymentDb;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function smsCurrentUserPaymentNotifications(): array
+{
+    if (!in_array(getCurrentUserRoleKey(), ['student', 'accounting_officer'], true)) {
+        return [];
+    }
+    $userId = (int) getCurrentUserId();
+    $paymentDb = smsPaymentNotificationDb();
+    if ($userId <= 0 || !$paymentDb) {
+        return [];
+    }
+    try {
+        $stmt = $paymentDb->prepare('SELECT notification_id, title, body, target_url, created_at, read_at FROM payment_notifications WHERE recipient_user_id = ? ORDER BY created_at DESC LIMIT 30');
+        $stmt->execute([$userId]);
+        $items = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $body = (string) $row['body'];
+            $items[] = [
+                'id' => 0,
+                'batch_key' => 'payment:' . (int) $row['notification_id'],
+                'icon' => 'fa-receipt',
+                'class' => 'text-primary',
+                'label' => (string) $row['title'],
+                'body' => $body,
+                'preview' => smsNotificationPreviewText($body),
+                'status' => $row['read_at'] === null ? 'unread' : 'read',
+                'is_unread' => $row['read_at'] === null,
+                'time' => date('M j, Y h:i A', strtotime((string) $row['created_at']) ?: time()),
+                'url' => BASE_URL . (string) $row['target_url'],
+            ];
+        }
+        return $items;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function smsMarkCurrentUserPaymentNotificationRead(string $batchKey): void
+{
+    if (!preg_match('/^payment:(\d+)$/', $batchKey, $matches)) {
+        return;
+    }
+    $paymentDb = smsPaymentNotificationDb();
+    $userId = (int) getCurrentUserId();
+    if (!$paymentDb || $userId <= 0) {
+        return;
+    }
+    try {
+        $stmt = $paymentDb->prepare('UPDATE payment_notifications SET read_at = COALESCE(read_at, NOW()) WHERE notification_id = ? AND recipient_user_id = ?');
+        $stmt->execute([(int) $matches[1], $userId]);
+    } catch (Throwable $e) {
+        error_log('Payment notification read failed: ' . $e->getMessage());
+    }
 }
 
 function smsNotificationDedupe(array $items): array

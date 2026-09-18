@@ -21,7 +21,7 @@ $role = getCurrentUserRoleKey();
 $userId = getCurrentUserId();
 global $pdo;
 $securityService = new PaymentSecurityService($pdo);
-$securityService->ensurePaymentAccess($userId, $role, 'payment.bank_reconciliation.import', 0, 'system');
+$securityService->ensurePaymentAccess($userId, $role, 'payment.concern_review', 0, 'system');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

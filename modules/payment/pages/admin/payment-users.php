@@ -1,24 +1,22 @@
 <?php
 /**
  * SMS 2 - Payment User Management
- * Allows Finance Admin to manage Cashier and Finance accounts directly.
+ * Allows Finance Admin to manage Payment staff accounts directly.
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 // Ensure user has the specific payment user management permission
-if (!userCanAccessModule('payment.user_management')) {
-    header('Location: ' . BASE_URL . '/modules/payment/index.php');
-    exit;
-}
+requireAuth();
+requirePaymentPermission('payment.user_management');
 
-$pageTitle = 'Cashier Accounts';
+$pageTitle = 'Payment Staff Accounts';
 $activeModule = 'payment';
 $activePage = 'admin/payment-users';
 $breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Admin Portal', 'url' => null],
-    ['label' => 'Cashier Accounts', 'url' => null],
+    ['label' => 'Payment Staff Accounts', 'url' => null],
 ];
 
 $pdo = db();
@@ -35,12 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $roleKey = $_POST['role_key'] ?? 'cashier';
     $password = $_POST['password'] ?? '';
 
-    // Only allow cashier and finance roles to be managed here
-    if (!in_array($roleKey, ['cashier', 'finance'])) {
-        $roleKey = 'cashier'; 
-    }
-
     try {
+        requireCsrf();
+        if (!in_array($roleKey, ['cashier', 'finance', 'accounting_officer'], true)) {
+            throw new InvalidArgumentException('Invalid payment staff role.');
+        }
         if ($action === 'add') {
             if (empty($fullName) || empty($username) || empty($email) || empty($password)) {
                 throw new Exception("All fields are required for new accounts.");
@@ -53,17 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } elseif ($action === 'edit' && $userId) {
             if (!empty($password)) {
                 $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE users SET full_name = ?, username = ?, email = ?, role_key = ?, password_hash = ? WHERE id = ? AND role_key IN ('cashier', 'finance')");
+                $stmt = $pdo->prepare("UPDATE users SET full_name = ?, username = ?, email = ?, role_key = ?, password_hash = ? WHERE id = ? AND role_key IN ('cashier', 'finance', 'accounting_officer')");
                 $stmt->execute([$fullName, $username, $email, $roleKey, $hash, $userId]);
             } else {
-                $stmt = $pdo->prepare("UPDATE users SET full_name = ?, username = ?, email = ?, role_key = ? WHERE id = ? AND role_key IN ('cashier', 'finance')");
+                $stmt = $pdo->prepare("UPDATE users SET full_name = ?, username = ?, email = ?, role_key = ? WHERE id = ? AND role_key IN ('cashier', 'finance', 'accounting_officer')");
                 $stmt->execute([$fullName, $username, $email, $roleKey, $userId]);
             }
             $message = "User '$fullName' updated successfully.";
             $messageType = 'success';
         } elseif ($action === 'delete' && $userId) {
             // Soft delete or hard delete? User management uses status='inactive'
-            $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE id = ? AND role_key IN ('cashier', 'finance')");
+            $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE id = ? AND role_key IN ('cashier', 'finance', 'accounting_officer')");
             $stmt->execute([$userId]);
             $message = "User deleted (archived).";
             $messageType = 'success';
@@ -75,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Fetch users
-$stmt = $pdo->query("SELECT id, full_name, username, email, role_key, status, last_seen_at FROM users WHERE role_key IN ('finance', 'cashier') AND status != 'inactive' ORDER BY created_at DESC");
+$stmt = $pdo->query("SELECT id, full_name, username, email, role_key, status, last_seen_at FROM users WHERE role_key IN ('finance', 'cashier', 'accounting_officer') AND status != 'inactive' ORDER BY created_at DESC");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
@@ -84,7 +81,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="h3 mb-1 text-gray-800">Cashier & Finance Accounts</h2>
+        <h2 class="h3 mb-1 text-gray-800">Payment Staff Accounts</h2>
         <p class="text-muted mb-0">Manage access to the Payment Management module.</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openAddModal()">
@@ -128,6 +125,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                 <td>
                                     <?php if ($u['role_key'] === 'finance'): ?>
                                         <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Finance Admin</span>
+                                    <?php elseif ($u['role_key'] === 'accounting_officer'): ?>
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info-subtle">Accounting Officer</span>
                                     <?php else: ?>
                                         <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Cashier</span>
                                     <?php endif; ?>
@@ -193,6 +192,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                             <select class="form-select" name="role_key" id="formRoleKey" required>
                                 <option value="cashier">Cashier</option>
                                 <option value="finance">Finance Admin</option>
+                                <option value="accounting_officer">Accounting Officer</option>
                             </select>
                         </div>
                     </div>

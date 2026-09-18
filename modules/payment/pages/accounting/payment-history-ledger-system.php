@@ -10,7 +10,13 @@ require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentHistoryService.php';
 
 requireAuth();
-requirePaymentPermission('payment.ledger');
+$cashierHistoryMode = !empty($cashierHistoryMode);
+requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'payment.ledger');
+if ($cashierHistoryMode && (int) getCurrentUserId() <= 0) {
+    http_response_code(403);
+    exit('Cashier account required.');
+}
+define('PAYMENT_HISTORY_PAGE', $cashierHistoryMode ? 'walk-in-transaction-history.php' : 'payment-history-ledger-system.php');
 
 function paymentHistoryIsOnline(array $pay): bool
 {
@@ -58,7 +64,7 @@ function paymentHistoryQueryUrl(array $base, array $overrides = []): string
         }
     }
     $qs = http_build_query($query);
-    return 'payment-history-ledger-system.php' . ($qs !== '' ? '?' . $qs : '');
+    return PAYMENT_HISTORY_PAGE . ($qs !== '' ? '?' . $qs : '');
 }
 
 $perPage = 8;
@@ -89,7 +95,7 @@ $totalPages = 1;
 $offset = 0;
 
 try {
-    $historyService = new PaymentHistoryService($pdo);
+    $historyService = new PaymentHistoryService($pdo, $cashierHistoryMode ? (int) getCurrentUserId() : null);
     $filters = $historyService->normalizeFilters($filters);
 
     $summary = $historyService->getPaymentSummary();
@@ -128,12 +134,12 @@ $queryBase = array_filter([
 $exportQuery = http_build_query(array_merge($queryBase, ['sort' => $sort, 'dir' => $dir]));
 $exportUrl = BASE_URL . '/modules/payment/api/export-history.php' . ($exportQuery !== '' ? '?' . $exportQuery : '');
 
-$pageTitle    = 'Payment History & Ledger System';
+$pageTitle    = $cashierHistoryMode ? 'My Walk-in Transactions' : 'Payment History & Ledger System';
 $activeModule = 'payment';
-$activePage   = 'accounting/payment-history-ledger-system';
+$activePage   = $cashierHistoryMode ? 'accounting/walk-in-transaction-history' : 'accounting/payment-history-ledger-system';
 $breadcrumbs  = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
-    ['label' => 'Payment History & Ledger System', 'url' => null],
+    ['label' => $pageTitle, 'url' => null],
 ];
 
 require_once __DIR__ . '/../../../../includes/breadcrumbs.php';
@@ -148,8 +154,8 @@ $toRow = min($offset + count($paymentList), $totalRows);
 <div class="container-fluid py-4 ph-ledger">
     <div class="row mb-4 align-items-center">
         <div class="col-lg-7">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-history text-primary me-2"></i>Payment History & Ledger</h2>
-            <p class="text-muted mb-0 fs-6">Audit walk-in and online collections, official receipts, and student ledger balances.</p>
+            <h2 class="mb-1 fw-bolder"><i class="fas fa-history text-primary me-2"></i><?= htmlspecialchars($pageTitle) ?></h2>
+            <p class="text-muted mb-0 fs-6"><?= $cashierHistoryMode ? 'Review walk-in transactions processed by your account.' : 'Audit walk-in and online collections, official receipts, and student ledger balances.' ?></p>
         </div>
         <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
             <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-outline-primary fw-bold shadow-sm" id="btnExportHistory">
@@ -201,7 +207,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
     </div>
 
-    <form method="get" action="payment-history-ledger-system.php" class="card border-0 shadow-sm rounded-4 mb-4" id="historyFilterForm">
+    <form method="get" action="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="card border-0 shadow-sm rounded-4 mb-4" id="historyFilterForm">
         <div class="card-body p-3">
             <div class="row g-2 align-items-end">
                 <div class="col-lg-3">
@@ -242,7 +248,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                     <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
                     <input type="hidden" name="dir" value="<?= htmlspecialchars($dir) ?>">
                     <button type="submit" class="btn btn-primary fw-bold flex-grow-1">Apply Filters</button>
-                    <a href="payment-history-ledger-system.php" class="btn btn-outline-secondary">Reset</a>
+                    <a href="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </div>
         </div>
@@ -382,7 +388,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <h5 class="fw-bold text-dark">No payment history found</h5>
                                         <p class="text-muted mb-3">Try adjusting your search term, payment channel, status, or date range.</p>
                                         <?php if (!empty($filters['search']) || !empty($filters['status']) || !empty($filters['channel']) || !empty($filters['date_range'])): ?>
-                                            <a href="payment-history-ledger-system.php" class="btn btn-sm btn-outline-primary fw-semibold">
+                                            <a href="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="btn btn-sm btn-outline-primary fw-semibold">
                                                 <i class="fas fa-undo me-1"></i> Clear all filters
                                             </a>
                                         <?php endif; ?>

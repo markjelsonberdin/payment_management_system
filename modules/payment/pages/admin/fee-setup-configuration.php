@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/FeeBillingWorkflow.php';
 
 
 requireAuth();
@@ -17,12 +18,43 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 global $pdo;
+$feeWorkflow = new FeeBillingWorkflow($pdo);
+$feeWorkflowAvailable = $feeWorkflow->available();
+
+function feeBillingAssertEditable(PDO $pdo, int $feeId, bool $workflowAvailable): void
+{
+    if (!$workflowAvailable) {
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns WHERE fee_id = ? AND status IN ('Submitted','Running') LIMIT 1");
+    $stmt->execute([$feeId]);
+    if ($stmt->fetchColumn()) {
+        throw new RuntimeException('This fee has a submitted or running billing configuration. Return it for correction before editing.');
+    }
+}
 
 // ==========================================
 // CSRF VALIDATION
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_billing_configuration'])) {
+    try {
+        $campaignId = $feeWorkflow->submit(
+            (int) ($_POST['fee_id'] ?? 0),
+            trim((string) ($_POST['academic_year'] ?? '')),
+            (string) ($_POST['semester'] ?? ''),
+            (string) ($_POST['course'] ?? ''),
+            (string) ($_POST['year_level'] ?? ''),
+            (int) getCurrentUserId()
+        );
+        logActivity('fee_submitted', 'Fee billing campaign #' . $campaignId . ' submitted for Accounting review', 'payment');
+        header('Location: fee-setup-configuration.php?success=submitted');
+    } catch (Throwable $e) {
+        header('Location: fee-setup-configuration.php?error=' . urlencode($e->getMessage()));
+    }
+    exit;
 }
 // ==========================================
 // 1. ADD NEW FEE
@@ -44,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_fee'])) {
             ':amount'   => $default_amount,
             ':required' => $is_required
         ]);
+        logActivity('fee_created', 'Fee #' . (int) $pdo->lastInsertId() . ' created: ' . $fee_name, 'payment');
 
         header("Location: fee-setup-configuration.php?success=1");
         exit();
@@ -64,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_fee'])) {
     $is_required = (int) $_POST['is_required'];
 
     try {
+        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
         $stmt = $pdo->prepare("UPDATE fees SET fee_name = :name, category_id = :category, default_amount = :amount, is_required = :required WHERE fee_id = :id");
         $stmt->execute([
             ':name'     => $fee_name,
@@ -72,9 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_fee'])) {
             ':required' => $is_required,
             ':id'       => $fee_id
         ]);
+        logActivity('fee_modified', 'Fee #' . $fee_id . ' modified: ' . $fee_name, 'payment');
         header("Location: fee-setup-configuration.php?success=edited");
         exit();
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -86,10 +121,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_fee'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_fee'])) {
     $fee_id = (int) $_POST['fee_id'];
     try {
+        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
         $pdo->prepare("UPDATE fees SET status = 'Inactive' WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
         header("Location: fee-setup-configuration.php?success=archived");
         exit();
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -98,11 +134,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_fee'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_category'])) {
     $category_id = (int) $_POST['category_id'];
     try {
+        if ($feeWorkflowAvailable) {
+            $check = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c JOIN fees f ON f.fee_id = c.fee_id WHERE f.category_id = ? AND c.status IN ('Submitted','Running') LIMIT 1");
+            $check->execute([$category_id]);
+            if ($check->fetchColumn()) {
+                throw new RuntimeException('Category contains a submitted or processed fee configuration.');
+            }
+        }
         $stmt = $pdo->prepare("UPDATE fees SET status = 'Inactive' WHERE category_id = :category_id AND status = 'Active'");
         $stmt->execute([':category_id' => $category_id]);
         header("Location: fee-setup-configuration.php?success=archived_category&count=" . $stmt->rowCount());
         exit();
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -126,10 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_fee'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_fee'])) {
     $fee_id = (int) $_POST['fee_id'];
     try {
+        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
         $pdo->prepare("DELETE FROM fees WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
         header("Location: fee-setup-configuration.php?success=deleted");
         exit();
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
         exit();
     }
@@ -153,6 +197,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all_archived']
 $groupedFees = [];
 $archivedFeesList = [];
 $categories = [];
+$rawFeesList = [];
+$availableCourses = [];
+$availableLevels = [];
 
 try {
     // Kunin ang active categories para sa dropdown form
@@ -169,6 +216,8 @@ try {
         ORDER BY c.priority_order ASC, f.fee_name ASC
     ");
     $rawFeesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $availableCourses = $pdo->query("SELECT DISTINCT course FROM students WHERE course IS NOT NULL AND course <> '' AND course <> 'Unknown' ORDER BY course")->fetchAll(PDO::FETCH_COLUMN);
+    $availableLevels = $pdo->query("SELECT DISTINCT year_level FROM students WHERE year_level IS NOT NULL AND year_level <> '' ORDER BY year_level")->fetchAll(PDO::FETCH_COLUMN);
 
     // Group fees by category_name
     foreach ($rawFeesList as $fee) {
@@ -237,6 +286,25 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <i class="ti ti-plus me-1"></i> Add Fee
                 </button>
             </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-2">Submit fee for Accounting billing review</h5>
+            <p class="text-muted small">Choose an active fee and term. V1 applies it to locally marked Enrolled students only; course/year-level rules wait for Registrar integration. This does not charge students; Accounting must review and approve.</p>
+            <?php if (!$feeWorkflowAvailable): ?>
+                <div class="alert alert-warning mb-0">Billing review is disabled until the approved workflow migration is installed.</div>
+            <?php else: ?>
+                <form method="post" class="row g-2 align-items-end">
+                    <?= csrfField(); ?>
+                    <div class="col-md-3"><label class="form-label">Fee</label><select name="fee_id" class="form-select" required><option value="">Select fee</option><?php foreach ($rawFeesList as $fee): ?><option value="<?= (int) $fee['fee_id'] ?>"><?= htmlspecialchars($fee['fee_name']) ?> — ₱<?= number_format((float) $fee['default_amount'], 2) ?></option><?php endforeach; ?></select></div>
+                    <div class="col-md-2"><label class="form-label">Academic Year</label><input name="academic_year" class="form-control" pattern="[0-9]{4}-[0-9]{4}" placeholder="2026-2027" required></div>
+                    <div class="col-md-2"><label class="form-label">Semester</label><select name="semester" class="form-select" required><option value="1st">1st</option><option value="2nd">2nd</option><option value="Summer">Summer</option></select></div>
+                    <input type="hidden" name="course" value=""><input type="hidden" name="year_level" value="">
+                    <div class="col-md-3"><button name="submit_billing_configuration" value="1" class="btn btn-primary w-100">Submit for review</button></div>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 

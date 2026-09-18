@@ -16,8 +16,14 @@ if (!isAuthenticated()) {
 requireAuth();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    smsMarkCurrentUserNotificationRead((int) ($_POST['notification_id'] ?? 0));
-    smsMarkCurrentUserSyntheticNotificationRead((string) ($_POST['batch_key'] ?? ''));
+    requireCsrf();
+    $batchKey = (string) ($_POST['batch_key'] ?? '');
+    if (str_starts_with($batchKey, 'payment:')) {
+        smsMarkCurrentUserPaymentNotificationRead($batchKey);
+    } else {
+        smsMarkCurrentUserNotificationRead((int) ($_POST['notification_id'] ?? 0));
+        smsMarkCurrentUserSyntheticNotificationRead($batchKey);
+    }
 }
 
 $items = smsNotificationPayloadForCurrentUser();

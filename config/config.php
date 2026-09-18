@@ -275,13 +275,17 @@ $MODULES = [
         'label' => 'Payment Management',
         'icon'  => 'fa-credit-card',
         'groups' => [
-            'CASHIER PORTAL' => [
+            'ACCOUNTING PORTAL' => [
                 'accounting/student-billing-invoicing',
-                'accounting/payment-collection-portal',
                 'accounting/discount-scholarship-application',
                 'accounting/payment-history-ledger-system',
                 'accounting/collection-reporting-analytics',
                 'accounting/payment-concern-portal',
+                'accounting/bank-reconciliation',
+            ],
+            'CASHIER PORTAL' => [
+                'accounting/payment-collection-portal',
+                'accounting/walk-in-transaction-history',
             ],
             'ADMIN PORTAL' => [
                 'admin/fee-setup-configuration',
@@ -301,11 +305,13 @@ $MODULES = [
             ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'payment.ledger'],
             ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.analytics'],
             ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern_review'],
+            ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern_review'],
+            ['slug' => 'accounting/walk-in-transaction-history', 'title' => 'My Walk-in Transactions', 'permission' => 'payment.walkin_history'],
             
             // Admin Pages
             ['slug' => 'admin/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
             ['slug' => 'admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
-            ['slug' => 'admin/payment-users', 'title' => 'Cashier Accounts', 'permission' => 'payment.user_management'],
+            ['slug' => 'admin/payment-users', 'title' => 'Payment Staff Accounts', 'permission' => 'payment.user_management'],
             
             // Admin Reporting Pages
             ['slug' => 'admin/transaction-history', 'title' => 'Transaction History', 'permission' => 'payment.transaction_history_view'],
