@@ -7,6 +7,7 @@ require_once __DIR__ . '/PaymentReportingScope.php';
 
 class PaymentHistoryService {
     private $pdo;
+    private ?int $walkInCashierId;
 
     public const STATUSES = ['Pending', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Expired'];
     public const CHANNELS = ['Cash', 'GCash', 'Maya', 'Visa', 'Mastercard', 'Bank', 'PayMongo', 'QRPh'];
@@ -22,8 +23,9 @@ class PaymentHistoryService {
         'total' => 'COALESCE(p.checkout_total, p.amount)',
     ];
 
-    public function __construct($pdo) {
+    public function __construct($pdo, ?int $walkInCashierId = null) {
         $this->pdo = $pdo;
+        $this->walkInCashierId = $walkInCashierId;
     }
 
     /**
@@ -31,14 +33,16 @@ class PaymentHistoryService {
      */
     public function getPaymentSummary() {
         $official = PaymentReportingScope::officialCondition();
-        $stmt = $this->pdo->query("
+        $where = $this->walkInCashierId !== null ? "WHERE transaction_type = 'Walk-in' AND verified_by = :cashier_id" : '';
+        $stmt = $this->pdo->prepare("
             SELECT
                 COALESCE(SUM(CASE WHEN {$official} THEN amount ELSE 0 END), 0) AS total_collections,
                 COUNT(payment_id) AS total_transactions,
                 COALESCE(SUM(CASE WHEN payment_status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_transactions,
                 COALESCE(SUM(CASE WHEN {$official} AND payment_date = CURDATE() THEN amount ELSE 0 END), 0) AS today_collections
-            FROM payments
+            FROM payments {$where}
         ");
+        $stmt->execute($this->walkInCashierId !== null ? [':cashier_id' => $this->walkInCashierId] : []);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
             'total_collections' => 0,
             'total_transactions' => 0,
@@ -107,7 +111,7 @@ class PaymentHistoryService {
 
         $orderBy = self::SORT_COLUMNS[$sortColumn] ?? self::SORT_COLUMNS['date'];
         $dir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
-        $limit = max(1, min(100, $limit));
+        $limit = max(1, min(10000, $limit));
         $offset = max(0, $offset);
 
         $query = "
@@ -211,14 +215,20 @@ class PaymentHistoryService {
         }
 
         $official = PaymentReportingScope::officialCondition();
+        $cashierScope = $this->walkInCashierId !== null ? " AND transaction_type = 'Walk-in' AND verified_by = ?" : '';
         $payStmt = $this->pdo->prepare("
             SELECT billing_id, COALESCE(SUM(amount), 0) AS payments_total
             FROM payments
             WHERE billing_id IN ({$placeholders})
               AND {$official}
+              {$cashierScope}
             GROUP BY billing_id
         ");
-        $payStmt->execute($billingIds);
+        $payParams = $billingIds;
+        if ($this->walkInCashierId !== null) {
+            $payParams[] = $this->walkInCashierId;
+        }
+        $payStmt->execute($payParams);
         foreach ($payStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $bid = (int) $row['billing_id'];
             if (isset($ledgers[$bid])) {
@@ -248,8 +258,13 @@ class PaymentHistoryService {
             JOIN students s ON p.student_id = s.student_id
             LEFT JOIN billing b ON p.billing_id = b.billing_id
             WHERE p.payment_id = :pid
+              " . ($this->walkInCashierId !== null ? "AND p.transaction_type = 'Walk-in' AND p.verified_by = :cashier_scope_id" : '') . "
         ");
-        $stmtHeader->execute([':pid' => $paymentId]);
+        $detailParams = [':pid' => $paymentId];
+        if ($this->walkInCashierId !== null) {
+            $detailParams[':cashier_scope_id'] = $this->walkInCashierId;
+        }
+        $stmtHeader->execute($detailParams);
         $payment = $stmtHeader->fetch(PDO::FETCH_ASSOC);
 
         if (!$payment) {
@@ -280,6 +295,11 @@ class PaymentHistoryService {
     private function buildFilterClause(array $filters): array {
         $where = ['1=1'];
         $params = [];
+        if ($this->walkInCashierId !== null) {
+            $where[] = "p.transaction_type = 'Walk-in'";
+            $where[] = 'p.verified_by = :cashier_scope_id';
+            $params[':cashier_scope_id'] = $this->walkInCashierId;
+        }
 
         if ($filters['search'] !== '') {
             $where[] = '(s.student_number LIKE :search OR s.full_name LIKE :search OR p.reference_number LIKE :search OR p.receipt_number LIKE :search)';

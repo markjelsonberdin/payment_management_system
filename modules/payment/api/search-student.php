@@ -1,9 +1,15 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../includes/authentication.php';
 require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
 header('Content-Type: application/json');
+if (!isAuthenticated() || !userCanAccessModule('payment.billing')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'FORBIDDEN']);
+    exit;
+}
 $student_number = $_GET['student_number'] ?? '';
 
 // Do not run a lookup for partial input. The deployed payment records use

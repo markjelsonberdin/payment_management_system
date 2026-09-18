@@ -57,7 +57,7 @@ class BillingService {
      * @return int The newly created billing_id
      * @throws Exception
      */
-    public function generateBilling($studentId, $academicYear, $semester, $billingType, $feeIds, $discountAmount = 0.00, $generatedBy = null) {
+    public function generateBilling($studentId, $academicYear, $semester, $billingType, $feeIds, $discountAmount = 0.00, $generatedBy = null, ?string $itemContext = null) {
         if (empty($feeIds)) {
             throw new Exception("Cannot generate a billing without fees.");
         }
@@ -115,7 +115,7 @@ class BillingService {
             $billingId = $this->pdo->lastInsertId();
 
             // Keep the stored item context compatible with payment allocation rules.
-            $sourceContext = $billingType === 'Enrollment' ? 'Enrollment Assessment' : $billingType;
+            $sourceContext = $itemContext ?? ($billingType === 'Enrollment' ? 'Enrollment Assessment' : $billingType);
 
             // 7. Create Historical Snapshot (billing_items)
             $stmtItems = $this->pdo->prepare("

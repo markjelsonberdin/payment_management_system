@@ -9,7 +9,8 @@ require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/PaymentHistoryService.php';
 
 requireAuth();
-requirePaymentPermission('payment.ledger');
+$cashierHistoryMode = getCurrentUserRoleKey() === 'cashier';
+requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'payment.ledger');
 
 function exportHistoryIsOnline(array $pay): bool
 {
@@ -33,7 +34,7 @@ if (!in_array($sort, $allowedSort, true)) {
 }
 
 try {
-    $historyService = new PaymentHistoryService($pdo);
+    $historyService = new PaymentHistoryService($pdo, $cashierHistoryMode ? (int) getCurrentUserId() : null);
     $rows = $historyService->getExportPayments($filters, $sort, $dir, 10000);
 } catch (Exception $e) {
     http_response_code(500);

@@ -10,13 +10,8 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentReportingScope.php';
 
 header('Content-Type: application/json');
 
-// Ensure only authorized users can access this data
-$roleKey = getCurrentUserRoleKey();
-if (!in_array($roleKey, ['admin', 'superadmin', 'finance', 'cashier'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Unauthorized access']);
-    exit;
-}
+requireAuth();
+requirePaymentPermission('payment.analytics');
 
 $paymentDb = $pdo;
 

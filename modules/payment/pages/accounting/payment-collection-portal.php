@@ -15,7 +15,11 @@ requirePaymentPermission('payment.collection');
 
 // Tinanggal ko ang session_start() dito dahil karaniwang nasa authentication.php o config.php na ito.
 // Kung mag-throw ng error na walang session, ibalik mo lang sa baba ng requireModuleAccess.
-$cashier_id = $_SESSION['user_id'] ?? 1; // Fallback user ID kung sakaling walang active session
+$cashier_id = (int) getCurrentUserId();
+if ($cashier_id <= 0) {
+    http_response_code(403);
+    exit('Cashier account required.');
+}
 
 // ==========================================
 // BACKEND: PROCESS WALK-IN PAYMENT

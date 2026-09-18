@@ -12,7 +12,7 @@ if (!isAuthenticated()) {
     exit;
 }
 
-if (!userCanAccessModule('payment')) {
+if (!userCanAccessModule('payment.collection')) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'Unauthorized access.']);
     exit;

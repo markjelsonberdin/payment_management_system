@@ -9,10 +9,74 @@ require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/RegistrarStudentClient.php';
 require_once __DIR__ . '/../../includes/BillingService.php';
+require_once __DIR__ . '/../../includes/FeeBillingWorkflow.php';
 
 // I-enforce ang login at module access
 requireAuth();
 requirePaymentPermission('payment.billing');
+$feeWorkflow = new FeeBillingWorkflow($pdo);
+$feeWorkflowAvailable = $feeWorkflow->available();
+$campaignId = max(0, (int) ($_GET['campaign_id'] ?? $_POST['campaign_id'] ?? 0));
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fee_campaign_action'])) {
+    requireCsrf();
+    try {
+        if (!$feeWorkflowAvailable || $campaignId <= 0) {
+            throw new RuntimeException('Billing review is unavailable.');
+        }
+        $action = (string) $_POST['fee_campaign_action'];
+        if ($action === 'return') {
+            if (!$feeWorkflow->returnForCorrection($campaignId)) {
+                throw new RuntimeException('Configuration is no longer awaiting review.');
+            }
+            logActivity('fee_review_returned', 'Fee billing campaign #' . $campaignId . ' returned for correction', 'payment');
+        } elseif ($action === 'approve') {
+            if (!$feeWorkflow->approve($campaignId, (int) getCurrentUserId(), (int) ($_POST['version'] ?? 0))) {
+                throw new RuntimeException('Configuration changed or is no longer awaiting approval. Refresh the preview.');
+            }
+            logActivity('fee_billing_approved', 'Fee billing campaign #' . $campaignId . ' approved', 'payment');
+        } elseif ($action === 'chunk') {
+            $result = $feeWorkflow->runChunk($campaignId, (int) getCurrentUserId());
+            if (($result['status'] ?? '') === 'Completed') {
+                logActivity('fee_billing_complete', 'Campaign #' . $campaignId . ': added ' . (int) ($result['added_count'] ?? 0) . ', existing ' . (int) ($result['existing_count'] ?? 0) . ', failed ' . (int) ($result['failed_count'] ?? 0), 'payment');
+            }
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['ok' => true, 'status' => $result['status'] ?? '', 'added' => (int) ($result['added_count'] ?? 0), 'existing' => (int) ($result['existing_count'] ?? 0), 'failed' => (int) ($result['failed_count'] ?? 0)]);
+            exit;
+        } elseif ($action === 'retry_failed') {
+            if (!$feeWorkflow->retryFailures($campaignId)) {
+                throw new RuntimeException('No completed run with failures is available to retry.');
+            }
+            logActivity('fee_billing_retry', 'Retrying failed assignments in campaign #' . $campaignId, 'payment');
+        } else {
+            throw new InvalidArgumentException('Unknown review action.');
+        }
+        header('Location: student-billing-invoicing.php?campaign_id=' . $campaignId);
+    } catch (Throwable $e) {
+        if (($_POST['fee_campaign_action'] ?? '') === 'chunk') {
+            http_response_code(409);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+            exit;
+        }
+        header('Location: student-billing-invoicing.php?campaign_id=' . $campaignId . '&error=' . urlencode($e->getMessage()));
+    }
+    exit;
+}
+
+$feeCampaigns = [];
+$selectedCampaign = null;
+$feePreview = null;
+if ($feeWorkflowAvailable) {
+    $feeCampaigns = $feeWorkflow->list();
+    if ($campaignId > 0) {
+        $selectedCampaign = $feeWorkflow->get($campaignId);
+        if ($selectedCampaign && $selectedCampaign['status'] === 'Submitted') {
+            $feePreview = $feeWorkflow->preview($selectedCampaign);
+            logActivity('fee_eligibility_preview', 'Previewed campaign #' . $campaignId . ': eligible ' . (int) $feePreview['eligible'] . ', unresolved ' . (int) $feePreview['unresolved'], 'payment');
+        }
+    }
+}
 
 // ==========================================
 // CREATE BILLING LOGIC (POST)
@@ -182,7 +246,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#billingTable" placeholder="Search student no...">
                 </div>
-                <?php if (in_array(getCurrentUserRoleKey(), ['admin', 'superadmin', 'finance', 'cashier'])): ?>
+                <?php if (in_array(getCurrentUserRoleKey(), ['accounting_officer', 'superadmin'], true)): ?>
                     <button type="button" class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#generateBillingModal">
                         <i class="fas fa-file-invoice me-1"></i> Generate Billing
                     </button>
@@ -190,6 +254,65 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             </div>
         </div>
     </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold">Fee billing review &amp; bulk generation</h5>
+            <?php if (!$feeWorkflowAvailable): ?>
+                <div class="alert alert-warning mb-0">Disabled until the approved Payment workflow migration is installed.</div>
+            <?php else: ?>
+                <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Fee</th><th>Term</th><th>Cohort</th><th>Status</th><th>Assigned</th><th>Failed</th><th></th></tr></thead><tbody>
+                    <?php foreach ($feeCampaigns as $campaign): ?>
+                        <tr><td><?= htmlspecialchars($campaign['fee_name_snapshot']) ?> (₱<?= number_format((float) $campaign['amount_snapshot'], 2) ?>)</td><td><?= htmlspecialchars($campaign['academic_year'] . ' / ' . $campaign['semester']) ?></td><td><?= htmlspecialchars(($campaign['course'] ?: 'All courses') . ' / ' . ($campaign['year_level'] ?: 'All levels')) ?></td><td><?= htmlspecialchars($campaign['status']) ?></td><td><?= (int) $campaign['added_count'] ?></td><td><?= (int) $campaign['failed_count'] ?></td><td><a class="btn btn-sm btn-outline-primary" href="?campaign_id=<?= (int) $campaign['campaign_id'] ?>">Review</a></td></tr>
+                    <?php endforeach; ?>
+                </tbody></table></div>
+                <?php if ($selectedCampaign): ?>
+                    <div class="border rounded p-3 bg-light">
+                        <h6 class="fw-bold mb-2">Campaign #<?= (int) $selectedCampaign['campaign_id'] ?> — <?= htmlspecialchars($selectedCampaign['fee_name_snapshot']) ?></h6>
+                        <?php if ($feePreview): ?>
+                            <p class="mb-2">Eligibility rule: <strong>status = Enrolled</strong> · Eligible: <strong><?= number_format($feePreview['eligible']) ?></strong> · Excluded: <strong><?= number_format($feePreview['excluded']) ?></strong> · Already assigned: <strong><?= number_format($feePreview['already_assigned']) ?></strong> · Projected new billing: <strong>₱<?= number_format($feePreview['projected_amount'], 2) ?></strong></p>
+                            <details class="mb-3"><summary>View first eligible students</summary><ul><?php foreach ($feePreview['students'] as $student): ?><li><?= htmlspecialchars($student['student_number'] . ' — ' . $student['full_name'] . ' (' . $student['course'] . ', ' . $student['year_level'] . ')') ?></li><?php endforeach; ?></ul></details>
+                            <form method="post" class="d-inline"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><button name="fee_campaign_action" value="return" class="btn btn-outline-secondary">Return for correction</button></form>
+                            <?php if ($feeWorkflow->generationEnabled()): ?>
+                                <form method="post" class="d-inline" onsubmit="return confirm('Approve this fee and start bulk billing for the current eligible cohort?');"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><input type="hidden" name="version" value="<?= (int) $selectedCampaign['version'] ?>"><button name="fee_campaign_action" value="approve" class="btn btn-primary">Approve &amp; Start</button></form>
+                            <?php else: ?>
+                                <div class="alert alert-warning mt-2 mb-0">Generation remains locked until the student course/year source and Payment database migration are verified.</div>
+                            <?php endif; ?>
+                        <?php elseif ($selectedCampaign['status'] === 'Running'): ?>
+                            <p>Added <?= (int) $selectedCampaign['added_count'] ?> · Already assigned <?= (int) $selectedCampaign['existing_count'] ?> · Failed <?= (int) $selectedCampaign['failed_count'] ?></p>
+                            <button type="button" id="resumeFeeRun" class="btn btn-primary">Process / Resume Billing</button><span id="feeRunProgress" class="ms-2 text-muted"></span>
+                        <?php else: ?>
+                            <p class="mb-0">Status: <?= htmlspecialchars($selectedCampaign['status']) ?>. Added <?= (int) $selectedCampaign['added_count'] ?>; existing <?= (int) $selectedCampaign['existing_count'] ?>; failed <?= (int) $selectedCampaign['failed_count'] ?>.</p>
+                            <?php if ($selectedCampaign['status'] === 'Completed' && (int) $selectedCampaign['failed_count'] > 0 && $feeWorkflow->generationEnabled()): ?>
+                                <form method="post" class="mt-2"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><button name="fee_campaign_action" value="retry_failed" class="btn btn-outline-warning">Retry failed students</button></form>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php if ($selectedCampaign && $selectedCampaign['status'] === 'Running'): ?>
+    <script>
+    document.getElementById('resumeFeeRun')?.addEventListener('click', async function () {
+        this.disabled = true;
+        const progress = document.getElementById('feeRunProgress');
+        const form = new FormData();
+        form.set('csrf_token', <?= json_encode(csrfToken()) ?>);
+        form.set('campaign_id', <?= (int) $campaignId ?>);
+        form.set('fee_campaign_action', 'chunk');
+        try {
+            while (true) {
+                const response = await fetch(location.pathname, {method: 'POST', body: form, credentials: 'same-origin', headers: {'Accept': 'application/json'}});
+                const result = await response.json();
+                if (!response.ok || !result.ok) throw new Error(result.error || 'Processing stopped');
+                progress.textContent = `Added ${result.added}, already assigned ${result.existing}, failed ${result.failed}`;
+                if (result.status === 'Completed') { location.reload(); return; }
+            }
+        } catch (error) { progress.textContent = error.message + '. You can safely resume.'; this.disabled = false; }
+    });
+    </script>
+    <?php endif; ?>
 
     <!-- Alerts -->
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>

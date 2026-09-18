@@ -47,7 +47,7 @@ try {
     global $pdo;
 
     $securityService = new PaymentSecurityService($pdo);
-    $securityService->ensurePaymentAccess($scannedBy, $role, 'payment.ocr.scan', $concernId, 'concern');
+    $securityService->ensurePaymentAccess($scannedBy, $role, 'payment.concern_review', $concernId, 'concern');
 
     // Rate Limiting (User + Concern + Time window)
     $rateLimitKey = "ocr_limit_{$scannedBy}_{$concernId}";
