@@ -18,6 +18,31 @@ $feeWorkflow = new FeeBillingWorkflow($pdo);
 $feeWorkflowAvailable = $feeWorkflow->available();
 $campaignId = max(0, (int) ($_GET['campaign_id'] ?? $_POST['campaign_id'] ?? 0));
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['start_bulk_billing'])) {
+    requireCsrf();
+    try {
+        if (!$feeWorkflowAvailable || !$feeWorkflow->generationEnabled()) {
+            throw new RuntimeException('Bulk billing is unavailable until the Payment migration and PAYMENT_BULK_BILLING_ENABLED setting are ready.');
+        }
+        $campaignId = $feeWorkflow->submit(
+            (int) ($_POST['fee_id'] ?? 0),
+            trim((string) ($_POST['academic_year'] ?? '')),
+            (string) ($_POST['semester'] ?? ''),
+            null,
+            (string) ($_POST['year_level'] ?? ''),
+            (int) getCurrentUserId()
+        );
+        if (!$feeWorkflow->start($campaignId, (int) getCurrentUserId())) {
+            throw new RuntimeException('Bulk billing could not be started. Refresh the page and try again.');
+        }
+        logActivity('bulk_billing_started', 'Campaign #' . $campaignId . ' started by Accounting', 'payment');
+        header('Location: student-billing-invoicing.php?campaign_id=' . $campaignId . '&bulk_started=1');
+    } catch (Throwable $e) {
+        header('Location: student-billing-invoicing.php?error=' . urlencode($e->getMessage()));
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fee_campaign_action'])) {
     requireCsrf();
     try {
@@ -25,16 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fee_campaign_action']
             throw new RuntimeException('Billing review is unavailable.');
         }
         $action = (string) $_POST['fee_campaign_action'];
-        if ($action === 'return') {
-            if (!$feeWorkflow->returnForCorrection($campaignId)) {
-                throw new RuntimeException('Configuration is no longer awaiting review.');
+        if ($action === 'start') {
+            if (!$feeWorkflow->start($campaignId, (int) getCurrentUserId())) {
+                throw new RuntimeException('Billing could not be started. Refresh the page and try again.');
             }
-            logActivity('fee_review_returned', 'Fee billing campaign #' . $campaignId . ' returned for correction', 'payment');
-        } elseif ($action === 'approve') {
-            if (!$feeWorkflow->approve($campaignId, (int) getCurrentUserId(), (int) ($_POST['version'] ?? 0))) {
-                throw new RuntimeException('Configuration changed or is no longer awaiting approval. Refresh the preview.');
-            }
-            logActivity('fee_billing_approved', 'Fee billing campaign #' . $campaignId . ' approved', 'payment');
+            logActivity('bulk_billing_started', 'Campaign #' . $campaignId . ' started by Accounting', 'payment');
         } elseif ($action === 'chunk') {
             $result = $feeWorkflow->runChunk($campaignId, (int) getCurrentUserId());
             if (($result['status'] ?? '') === 'Completed') {
@@ -49,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fee_campaign_action']
             }
             logActivity('fee_billing_retry', 'Retrying failed assignments in campaign #' . $campaignId, 'payment');
         } else {
-            throw new InvalidArgumentException('Unknown review action.');
+            throw new InvalidArgumentException('Unknown billing action.');
         }
         header('Location: student-billing-invoicing.php?campaign_id=' . $campaignId);
     } catch (Throwable $e) {
@@ -247,8 +267,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#billingTable" placeholder="Search student no...">
                 </div>
                 <?php if (in_array(getCurrentUserRoleKey(), ['accounting_officer', 'superadmin'], true)): ?>
-                    <button type="button" class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#generateBillingModal">
-                        <i class="fas fa-file-invoice me-1"></i> Generate Billing
+                    <button type="button" class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#bulkBillingModal">
+                        <i class="fas fa-layer-group me-1"></i> Bulk Generate by Year Level
                     </button>
                 <?php endif; ?>
             </div>
@@ -257,7 +277,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <h5 class="fw-bold">Fee Configuration Reviews</h5>
+            <h5 class="fw-bold">Bulk Billing Runs</h5>
+            <p class="text-muted small">Accounting selects an active fee, term, and year level. The system adds it to every enrolled student in that year level and notifies only students with a newly added billing item.</p>
             <?php if (!$feeWorkflowAvailable): ?>
                 <div class="alert alert-warning mb-0">Disabled until the approved Payment workflow migration is installed.</div>
             <?php else: ?>
@@ -272,9 +293,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <?php if ($feePreview): ?>
                             <p class="mb-2">Eligibility rule: <strong>status = Enrolled</strong> · Eligible: <strong><?= number_format($feePreview['eligible']) ?></strong> · Excluded: <strong><?= number_format($feePreview['excluded']) ?></strong> · Already assigned: <strong><?= number_format($feePreview['already_assigned']) ?></strong> · Projected new billing: <strong>₱<?= number_format($feePreview['projected_amount'], 2) ?></strong></p>
                             <details class="mb-3"><summary>View first eligible students</summary><ul><?php foreach ($feePreview['students'] as $student): ?><li><?= htmlspecialchars($student['student_number'] . ' — ' . $student['full_name'] . ' (' . $student['course'] . ', ' . $student['year_level'] . ')') ?></li><?php endforeach; ?></ul></details>
-                            <form method="post" class="d-inline"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><button name="fee_campaign_action" value="return" class="btn btn-outline-secondary">Return for correction</button></form>
                             <?php if ($feeWorkflow->generationEnabled()): ?>
-                                <form method="post" class="d-inline" onsubmit="return confirm('Approve this fee and start bulk billing for the current eligible cohort?');"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><input type="hidden" name="version" value="<?= (int) $selectedCampaign['version'] ?>"><button name="fee_campaign_action" value="approve" class="btn btn-primary">Approve &amp; Start</button></form>
+                                <form method="post" class="d-inline" onsubmit="return confirm('Start bulk billing for this enrolled year level?');"><?= csrfField(); ?><input type="hidden" name="campaign_id" value="<?= (int) $campaignId ?>"><button name="fee_campaign_action" value="start" class="btn btn-primary">Start Bulk Billing</button></form>
                             <?php else: ?>
                                 <div class="alert alert-warning mt-2 mb-0">Generation remains locked until the student course/year source and Payment database migration are verified.</div>
                             <?php endif; ?>
@@ -311,6 +331,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             }
         } catch (error) { progress.textContent = error.message + '. You can safely resume.'; this.disabled = false; }
     });
+    <?php if (isset($_GET['bulk_started'])): ?>
+    document.getElementById('resumeFeeRun')?.click();
+    <?php endif; ?>
     </script>
     <?php endif; ?>
 
@@ -457,6 +480,34 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- BULK BILLING BY YEAR LEVEL -->
+<!-- ========================================== -->
+<div class="modal fade" id="bulkBillingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-layer-group me-2"></i>Bulk Generate Billing</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <?= csrfField(); ?>
+                <div class="modal-body bg-light">
+                    <p class="text-muted small">This applies one active fee to every student marked <strong>Enrolled</strong> in the selected year level. Existing fee items for the same term are skipped.</p>
+                    <div class="mb-3"><label class="form-label fw-bold">Fee</label><select name="fee_id" class="form-select" required><option value="">Select active fee</option><?php foreach ($activeFees as $fee): ?><option value="<?= (int) $fee['fee_id'] ?>"><?= htmlspecialchars($fee['fee_name']) ?> — ₱<?= number_format((float) $fee['default_amount'], 2) ?></option><?php endforeach; ?></select></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label fw-bold">Academic Year</label><input name="academic_year" class="form-control" pattern="[0-9]{4}-[0-9]{4}" value="2026-2027" required></div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Semester</label><select name="semester" class="form-select" required><option value="1st">1st Semester</option><option value="2nd">2nd Semester</option><option value="Summer">Summer</option></select></div>
+                        <div class="col-12"><label class="form-label fw-bold">Target Year Level</label><select name="year_level" class="form-select" required><option value="">Select year level</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option></select></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button name="start_bulk_billing" value="1" class="btn btn-primary">Generate Billing</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Individual billing remains available for exceptional/manual adjustments. -->
 <!-- ========================================== -->
 <!-- GENERATE BILLING MODAL -->
 <!-- ========================================== -->
