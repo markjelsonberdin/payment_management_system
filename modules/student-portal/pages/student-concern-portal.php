@@ -206,12 +206,14 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                             $statusBg = match($concern['verification_status']) {
                                                 'Verified' => '#bbf7d0',
                                                 'Pending' => '#fef08a',
+                                                'On Hold' => '#dbeafe',
                                                 'Rejected' => '#fecaca',
                                                 default => '#e5e7eb'
                                             };
                                             $statusText = match($concern['verification_status']) {
                                                 'Verified' => '#15803d',
                                                 'Pending' => '#b45309',
+                                                'On Hold' => '#1d4ed8',
                                                 'Rejected' => '#b91c1c',
                                                 default => '#374151'
                                             };

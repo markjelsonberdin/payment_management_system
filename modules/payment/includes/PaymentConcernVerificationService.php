@@ -75,7 +75,7 @@ class PaymentConcernVerificationService {
         // Note: We deliberately DO NOT fail if payment_id is empty, because manual receipt uploads often have no initial payment record until verified.
 
         // Bank/channel validation
-        $supportedBanks = ['GCash', 'Maya', 'BDO', 'BPI', 'UnionBank', 'LandBank', 'Metrobank', 'AUB'];
+        $supportedBanks = ['GCash', 'Maya', 'BDO', 'BPI', 'UnionBank', 'LandBank', 'Metrobank', 'AUB', 'HelloMoney'];
         $bankMatched = false;
         if (!empty($ocr['bank_name'])) {
             foreach ($supportedBanks as $bank) {

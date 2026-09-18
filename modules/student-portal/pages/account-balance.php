@@ -79,8 +79,7 @@ try {
 
                 // Kunin ang breakdown ng fees naka-join sa fees table at fee_categories
                 $stmtItems = $pdo->prepare("
-                    SELECT bi.*, COALESCE(f.fee_name, bi.fee_name) AS fee_name,
-                           f.description, f.category_id, fc.category_name, bi.source_context
+                    SELECT bi.*, f.description, f.category_id, fc.category_name
                     FROM billing_items bi
                     LEFT JOIN fees f ON bi.fee_id = f.fee_id
                     LEFT JOIN fee_categories fc ON f.category_id = fc.category_id

@@ -81,20 +81,7 @@ $bodyClass = $bodyClass ?? '';
     <link href="<?= BASE_URL ?>/assets/css/icons.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/dashboard-glass.css" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/loader.css?v=2" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/sms-security-ui.css?v=19" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/research-monitoring.css?v=1" rel="stylesheet">
 </head>
 <body class="<?= htmlspecialchars($bodyClass) ?>"<?= strpos(' ' . $bodyClass . ' ', ' login-page ') !== false ? ' style="background:#071c48"' : '' ?>>
-<?php if (strpos(' ' . $bodyClass . ' ', ' login-page ') === false && strpos(' ' . $bodyClass . ' ', ' welcome-page ') === false): ?>
-<div id="smsPageLoader" class="sms-page-loader" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
-    <div class="sms-loader-backdrop" aria-hidden="true"></div>
-    <div class="sms-loader-content">
-        <div class="sms-loader-spinner" aria-hidden="true"></div>
-        <span class="sms-loader-label">Loading</span>
-    </div>
-</div>
-<script src="<?= BASE_URL ?>/assets/js/loader.js?v=2"></script>
-<?php else: ?>
-<script>document.documentElement.classList.add('sms-app-ready');</script>
-<?php endif; ?>

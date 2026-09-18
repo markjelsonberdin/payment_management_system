@@ -24,9 +24,19 @@ try {
         ORDER BY s.uploaded_at DESC
     ");
     $statements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $recentRows = $pdo->query("
+        SELECT r.id, r.reference_number, r.amount, r.transaction_date, r.status,
+               r.matched_concern_id, r.matched_payment_id, s.filename
+        FROM bank_statement_rows r
+        JOIN bank_statements s ON s.id = r.statement_id
+        WHERE s.source_bank = 'AUB'
+        ORDER BY r.id DESC LIMIT 100
+    ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $statements = [];
+    $recentRows = [];
     $dbError = $e->getMessage();
+    error_log('AUB reconciliation page load failed: ' . $dbError);
 }
 
 $pageTitle    = 'Bank Reconciliation';
@@ -48,7 +58,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
             <h2 class="mb-1 fw-bolder"><i class="fas fa-university text-primary me-2"></i>Bank Reconciliation</h2>
-            <p class="text-muted mb-0 fs-6">Upload AUB CSV statements to automatically verify student payment concerns.</p>
+            <p class="text-muted mb-0 fs-6">Upload AUB CSV records for comparison with student payment concerns. Final verification requires staff review.</p>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
             <a href="payment-concern-portal.php" class="btn btn-outline-secondary shadow-sm">
@@ -59,6 +69,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <!-- Alert Container for AJAX Responses -->
     <div id="alertContainer"></div>
+    <?php if (isset($dbError)): ?>
+        <div class="alert alert-danger">AUB transaction records could not be loaded. Confirm the matching migration was applied, then check the server log.</div>
+    <?php endif; ?>
 
     <div class="row g-4">
         <!-- Upload Card -->
@@ -72,14 +85,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <?= csrfField(); ?>
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Bank Name</label>
-                            <select class="form-select bg-light" name="bank_name" disabled>
-                                <option value="AUB" selected>AUB (Asia United Bank)</option>
-                            </select>
+                            <div class="form-control bg-light" aria-label="Bank: AUB (Asia United Bank)">AUB (Asia United Bank)</div>
                             <small class="text-muted" style="font-size: 0.7rem;">Currently only AUB format is supported.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">CSV File</label>
                             <input type="file" class="form-control" name="statement_file" accept=".csv" required>
+                            <small class="text-muted">Supported columns (in order): Date, Time, Reference, Description, Amount. Import is a snapshot, not a live bank feed.</small>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm" id="btnUpload">
                             <i class="ti ti-upload me-1"></i> Import Records
@@ -119,7 +131,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <td class="text-center fw-bold text-primary"><?= number_format($stmt['row_count']) ?></td>
                                             <td class="text-center">
                                                 <?php if($stmt['status'] === 'Processed'): ?>
-                                                    <span class="badge bg-success rounded-pill px-3">Processed</span>
+                                                    <span class="badge bg-success rounded-pill px-3">Imported</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary rounded-pill px-3"><?= htmlspecialchars($stmt['status']) ?></span>
                                                 <?php endif; ?>
@@ -141,6 +153,30 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             </div>
         </div>
     </div>
+
+    <div class="card shadow-sm border-0 rounded-4 mt-4">
+        <div class="card-header bg-white py-3"><h6 class="fw-bold mb-0">Imported AUB Transactions <small class="text-muted fw-normal">(latest 100; review evidence only)</small></h6></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light"><tr><th class="ps-4">Row</th><th>Statement</th><th>Reference</th><th>Amount</th><th>Transaction Date</th><th>Status</th><th>Linked Concern / Payment</th></tr></thead>
+                <tbody>
+                    <?php if (!$recentRows): ?>
+                        <tr><td colspan="7" class="text-center text-muted py-4">No imported AUB transaction rows yet.</td></tr>
+                    <?php else: foreach ($recentRows as $bankRow): ?>
+                        <tr>
+                            <td class="ps-4">#<?= (int)$bankRow['id'] ?></td>
+                            <td><?= htmlspecialchars($bankRow['filename']) ?></td>
+                            <td><?= htmlspecialchars($bankRow['reference_number'] ?? '') ?></td>
+                            <td>PHP <?= number_format((float)$bankRow['amount'], 2) ?></td>
+                            <td><?= htmlspecialchars($bankRow['transaction_date']) ?></td>
+                            <td><?= htmlspecialchars($bankRow['status']) ?></td>
+                            <td><?= $bankRow['matched_concern_id'] ? 'Concern #' . (int)$bankRow['matched_concern_id'] . ' / Payment #' . (int)$bankRow['matched_payment_id'] : '—' ?></td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -160,7 +196,7 @@ document.getElementById('uploadCsvForm').addEventListener('submit', function(e) 
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', 'Bank statement imported successfully! Reloading...');
+            showAlert('success', 'Bank records imported for review. No payment was verified automatically. Reloading...');
             setTimeout(() => window.location.reload(), 1500);
         } else {
             showAlert('danger', 'Error: ' + data.message);
@@ -178,12 +214,16 @@ document.getElementById('uploadCsvForm').addEventListener('submit', function(e) 
 
 function showAlert(type, message) {
     const container = document.getElementById('alertContainer');
-    container.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible shadow-sm">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-' + (type === 'success' ? 'success' : 'danger') + ' alert-dismissible shadow-sm';
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-circle') + ' me-2';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn-close';
+    close.setAttribute('data-bs-dismiss', 'alert');
+    alert.append(icon, document.createTextNode(message), close);
+    container.replaceChildren(alert);
 }
 </script>
 
