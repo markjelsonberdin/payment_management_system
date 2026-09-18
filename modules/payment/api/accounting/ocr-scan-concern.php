@@ -16,6 +16,7 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
 header('Content-Type: application/json');
 
 requireAuth();
+requirePaymentPermission('payment.concern_review');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -73,12 +74,15 @@ try {
 
     $ocrService = new GoogleOCRService($pdo);
     
-    $stmt = $pdo->prepare("SELECT receipt_path FROM payment_concerns WHERE concern_id = ?");
+    $stmt = $pdo->prepare("SELECT receipt_path, verification_status FROM payment_concerns WHERE concern_id = ?");
     $stmt->execute([$concernId]);
     $concern = $stmt->fetch();
 
     if (!$concern || empty($concern['receipt_path'])) {
         throw new Exception("No receipt found for this concern.");
+    }
+    if (!in_array($concern['verification_status'], ['Pending', 'On Hold'], true)) {
+        throw new Exception('A finalized concern cannot be scanned again.');
     }
 
     $result = $ocrService->processReceipt($concernId, $concern['receipt_path'], $scannedBy);
@@ -104,7 +108,7 @@ try {
     error_log("OCR Processing Failed for Concern ID {$concernId}: " . $e->getMessage());
     if (isset($pdo) && $pdo instanceof PDO && $concernId > 0) {
         try {
-            $failed = $pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Failed' WHERE concern_id = ? AND verification_status = 'Pending'");
+            $failed = $pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Failed' WHERE concern_id = ? AND verification_status IN ('Pending', 'On Hold')");
             $failed->execute([$concernId]);
         } catch (Throwable $statusError) {
             error_log("Unable to mark OCR failure for Concern ID {$concernId}: " . $statusError->getMessage());

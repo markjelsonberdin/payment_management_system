@@ -17,42 +17,23 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$reviewer_id = $_SESSION['user_id'] ?? 1;
+$reviewer_id = getCurrentUserId();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_concern'])) {
-    $concern_id = $_POST['concern_id'];
-    $payment_id = $_POST['payment_id'] ?? null;
-    $billing_id = $_POST['billing_id'] ?? null;
-    $action     = $_POST['action_concern']; // 'Verify' or 'Reject'
+    requireCsrf();
+    $concern_id = (int)($_POST['concern_id'] ?? 0);
+    $billing_id = filter_var($_POST['billing_id'] ?? null, FILTER_VALIDATE_INT) ?: null;
+    $action     = $_POST['action_concern'];
     $remarks    = trim($_POST['remarks'] ?? '');
 
-    $verifiedData = [
-        'amount' => $_POST['verified_amount'] ?? null,
-        'reference' => $_POST['verified_reference'] ?? null,
-        'channel' => $_POST['verified_channel'] ?? null,
-        'date' => $_POST['verified_date'] ?? null,
-    ];
-
     try {
-        $concernService = new PaymentConcernService($pdo);
-        
-        if ($action === 'Verify') {
-            $concernService->verifyConcern($concern_id, 'Verify', $reviewer_id, $remarks, $billing_id, $verifiedData);
-            logActivity(
-                'verify_payment_concern',
-                "Verified payment concern ID #{$concern_id}",
-                'payment',
-                (int) $reviewer_id
-            );
-        } else {
-            $concernService->verifyConcern($concern_id, 'Reject', $reviewer_id, $remarks);
-            logActivity(
-                'reject_payment_concern',
-                "Rejected payment concern ID #{$concern_id}",
-                'payment',
-                (int) $reviewer_id
-            );
+        if ($concern_id < 1 || !in_array($action, ['Verify', 'Hold', 'Reject'], true)) {
+            throw new Exception('Invalid concern decision.');
         }
+        $concernService = new PaymentConcernService($pdo);
+        $concernService->verifyConcern($concern_id, $action, $reviewer_id, $remarks, $billing_id);
+        $activity = ['Verify' => 'verify_payment_concern', 'Hold' => 'hold_payment_concern', 'Reject' => 'reject_payment_concern'][$action];
+        logActivity($activity, "$action payment concern ID #{$concern_id}" . ($remarks !== '' ? "; Reason: " . substr($remarks, 0, 500) : ''), 'payment', (int)$reviewer_id);
 
         header("Location: payment-concern-portal.php?success=1");
         exit();
@@ -73,7 +54,7 @@ try {
     $reconService = new BankReconciliationService($pdo);
 
     foreach ($concernsList as &$concern) {
-        if ($concern['verification_status'] === 'Pending' && $concern['ocr_status'] === 'Completed') {
+        if ($concern['ocr_status'] === 'Completed') {
             $eval = $ruleEngine->evaluateConcern($concern['concern_id']);
             $concern['rule_status'] = $eval['status'];
             $concern['rule_remarks'] = $eval['remarks'];
@@ -84,9 +65,17 @@ try {
         }
     }
 
+    $billingChoices = [];
+    $billingRows = $pdo->query("SELECT billing_id, student_id, academic_year, semester, remaining_balance FROM billing ORDER BY billing_id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($billingRows as $billingRow) {
+        $billingChoices[(int)$billingRow['student_id']][] = $billingRow;
+    }
+
 } catch (Exception $e) {
     $concernsList = [];
+    $billingChoices = [];
     $dbError = $e->getMessage();
+    error_log('Payment matching review load failed: ' . $dbError);
 }
 
 $pageTitle    = 'Payment Concern Portal';
@@ -111,6 +100,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <p class="text-muted mb-0 fs-6">Review student-submitted payment receipts, analyze Google OCR extractions, and verify bank transfers.</p>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2">
+            <a href="payment-concern-portal.php" class="btn btn-outline-secondary shadow-sm" title="Re-check imported AUB rows against existing OCR results">Refresh Matches</a>
             <a href="bank-reconciliation.php" class="btn btn-outline-primary shadow-sm" title="Bank Reconciliation">
                 <i class="fas fa-university"></i>
             </a>
@@ -126,6 +116,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger alert-dismissible shadow-sm"><i class="ti ti-alert-circle me-2"></i> <?= htmlspecialchars($_GET['error']) ?> <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    <?php endif; ?>
+    <?php if (isset($dbError)): ?>
+        <div class="alert alert-danger">Matching review is unavailable. Confirm the AUB matching migration was applied, then check the server log.</div>
     <?php endif; ?>
 
     <!-- Table of Concerns -->
@@ -154,7 +147,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <small class="text-muted"><?= htmlspecialchars($row['student_number']) ?></small>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark">₱ <?= number_format((float)($row['payment_amount'] ?? 0), 2) ?></div>
+                                        <div class="fw-bold text-dark"><?= $row['payment_amount'] !== null ? 'PHP ' . number_format((float)$row['payment_amount'], 2) : 'Not linked' ?></div>
                                         <small class="text-muted"><?= htmlspecialchars((string)($row['payment_channel'] ?? 'N/A')) ?></small>
                                     </td>
                                     <td>
@@ -165,8 +158,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     <td class="text-center">
                                         <span class="badge bg-info text-dark px-2 py-1 mb-1"><?= htmlspecialchars($row['ocr_status']) ?></span>
                                         <?php if (isset($row['rule_status'])): ?>
-                                            <div class="small fw-bold <?= $row['rule_status'] === 'Valid for Review' ? 'text-success' : 'text-danger' ?>">
-                                                <i class="fas <?= $row['rule_status'] === 'Valid for Review' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i> 
+                                            <div class="small fw-bold <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'text-success' : 'text-danger' ?>">
+                                                <i class="fas <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
                                                 <?= htmlspecialchars($row['rule_status']) ?>
                                             </div>
                                         <?php endif; ?>
@@ -176,6 +169,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         $vStatus = match($row['verification_status']) {
                                             'Verified' => 'bg-success',
                                             'Rejected' => 'bg-danger',
+                                            'On Hold' => 'bg-info text-dark',
                                             default => 'bg-warning text-dark'
                                         };
                                         ?>
@@ -209,7 +203,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 <?php if (count($concernsList) > 0): ?>
     <?php foreach ($concernsList as $row): ?>
         <div class="modal fade" id="reviewModal<?= $row['concern_id'] ?>" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header bg-primary text-white border-0">
                         <h5 class="modal-title fw-bold"><i class="ti ti-receipt me-2"></i>Review Payment Concern #<?= $row['concern_id'] ?></h5>
@@ -219,7 +213,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <div class="modal-body bg-light text-start p-0">
                         <div class="row g-0">
                             <!-- LEFT COLUMN: Image & OCR Scan -->
-                            <div class="col-lg-6 border-end p-4 bg-white d-flex flex-column">
+                            <div class="col-lg-4 border-end p-4 bg-white d-flex flex-column">
                                 <h6 class="fw-bold text-muted mb-3"><i class="fas fa-image me-2"></i>Receipt Image</h6>
                                 <div class="text-center bg-light rounded border flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden position-relative" style="min-height: 400px; max-height: 600px;">
                                     <?php if (!empty($row['receipt_path'])): ?>
@@ -228,20 +222,27 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <span class="text-muted"><i class="ti ti-ban fs-3 d-block mb-2"></i>No image attached</span>
                                     <?php endif; ?>
                                 </div>
+                                <div class="small text-muted mt-3">
+                                    <div><strong>Student:</strong> <?= htmlspecialchars($row['full_name']) ?> (<?= htmlspecialchars($row['student_number']) ?>)</div>
+                                    <div><strong>Concern submitted:</strong> <?= htmlspecialchars($row['submitted_at']) ?></div>
+                                    <div><strong>Linked payment:</strong> <?= $row['payment_id'] ? '#' . (int)$row['payment_id'] . ' · PHP ' . number_format((float)$row['payment_amount'], 2) : 'None yet' ?></div>
+                                </div>
                                 <div class="mt-3">
-                                    <button class="btn btn-outline-primary w-100 fw-bold" onclick="scanConcernOCR(<?= $row['concern_id'] ?>, this)">
+                                    <button class="btn btn-outline-primary w-100 fw-bold" onclick="scanConcernOCR(<?= $row['concern_id'] ?>, this)" <?= in_array($row['verification_status'], ['Pending', 'On Hold'], true) ? '' : 'disabled' ?>>
                                         <i class="fas fa-robot me-2"></i>Run Google Vision OCR Scan
                                     </button>
                                 </div>
                             </div>
                             
                             <!-- RIGHT COLUMN: Data & Verification -->
-                            <div class="col-lg-6 p-4 d-flex flex-column">
+                            <div class="col-lg-8 p-4 d-flex flex-column">
+                                <?php $match = $row['bank_match'] ?? ['status' => 'OCR_PENDING', 'message' => 'Run OCR to compare the receipt with imported AUB records.', 'candidates' => []]; ?>
+                                <?php $bank = $match['matched_transaction'] ?? null; ?>
+                                <?php $canDecide = in_array($row['verification_status'], ['Pending', 'On Hold'], true); ?>
                                 <form action="" method="POST" class="d-flex flex-column h-100">
                                     <?= csrfField(); ?>
                                     <input type="hidden" name="concern_id" value="<?= $row['concern_id'] ?>">
-                                    <input type="hidden" name="payment_id" value="<?= $row['payment_id'] ?>">
-                                    <input type="hidden" name="billing_id" value="<?= $row['billing_id'] ?>">
+                                    <?php if ($row['payment_id']): ?><input type="hidden" name="billing_id" value="<?= (int)$row['billing_id'] ?>"><?php endif; ?>
 
                                     <h6 class="fw-bold text-muted mb-3"><i class="fas fa-clipboard-check me-2"></i>Extracted Data & Verification</h6>
                                     
@@ -251,8 +252,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <div class="col-6 text-dark fw-bold"><?= htmlspecialchars($row['full_name']) ?> <small class="text-muted fw-normal">(<?= htmlspecialchars($row['student_number']) ?>)</small></div>
                                         </div>
                                         <div class="row mb-2">
-                                            <div class="col-6 text-muted small fw-bold">Claimed Amount</div>
-                                            <div class="col-6 text-primary fw-bold">₱ <?= number_format($row['payment_amount'], 2) ?></div>
+                                            <div class="col-6 text-muted small fw-bold">Linked Payment Amount</div>
+                                            <div class="col-6 text-primary fw-bold"><?= $row['payment_amount'] !== null ? 'PHP ' . number_format((float)$row['payment_amount'], 2) : 'No linked payment' ?></div>
                                         </div>
                                         <hr class="my-2">
                                         
@@ -263,7 +264,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </div>
                                         <div class="row mb-2">
                                             <div class="col-6 text-muted small fw-bold">OCR Extracted Amount</div>
-                                            <div class="col-6 text-success fw-bold" id="ocr_amount_<?= $row['concern_id'] ?>">₱ <?= number_format((float)($row['ocr_amount'] ?? 0), 2) ?></div>
+                                            <div class="col-6 text-success fw-bold" id="ocr_amount_<?= $row['concern_id'] ?>"><?= $row['extracted_amount'] !== null ? 'PHP ' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
                                         </div>
                                         <div class="row mb-3">
                                             <div class="col-6 text-muted small fw-bold">OCR Reference No.</div>
@@ -276,8 +277,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                                     <?php 
                                                         $bmBadge = match($row['bank_match']['status']) {
                                                             'PERFECT_MATCH' => 'bg-success',
-                                                            'DATE_MISMATCH', 'AMOUNT_MISMATCH', 'PARTIAL_MATCH' => 'bg-warning text-dark',
-                                                            'NOT_FOUND' => 'bg-danger',
+                                                            'POSSIBLE_MATCH' => 'bg-warning text-dark',
+                                                            'MISMATCH', 'NO_MATCH', 'SOURCE_UNSUPPORTED' => 'bg-danger',
                                                             default => 'bg-secondary'
                                                         };
                                                     ?>
@@ -289,46 +290,115 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </div>
                                     </div>
 
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-6">
+                                            <div class="bg-white border rounded-3 p-3 h-100">
+                                                <h6 class="fw-bold">Google OCR evidence</h6>
+                                                <div class="small"><strong>Status:</strong> <?= htmlspecialchars($row['extraction_status'] ?? $row['ocr_status']) ?></div>
+                                                <div class="small"><strong>Reference:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'Not extracted') ?></div>
+                                                <div class="small"><strong>Amount:</strong> <?= $row['extracted_amount'] !== null ? 'PHP ' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
+                                                <div class="small"><strong>Date:</strong> <?= htmlspecialchars($row['transaction_date'] ?? 'Not extracted') ?></div>
+                                                <div class="small"><strong>Receipt channel:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'Not extracted') ?></div>
+                                                <?php if (!empty($match['receipt_student_number'])): ?>
+                                                    <div class="small"><strong>Receipt student no.:</strong> <?= htmlspecialchars($match['receipt_student_number']) ?></div>
+                                                    <div class="small <?= $match['student_number_match'] ? 'text-success' : 'text-danger' ?>"><strong>Concern student no.:</strong> <?= htmlspecialchars($match['expected_student_number']) ?> · <?= $match['student_number_match'] ? 'Match' : 'Mismatch' ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="bg-white border rounded-3 p-3 h-100">
+                                                <h6 class="fw-bold">Imported AUB transaction</h6>
+                                                <?php if ($bank): ?>
+                                                    <div class="small"><strong>Reference:</strong> <?= htmlspecialchars($bank['reference']) ?></div>
+                                                    <div class="small"><strong>Amount:</strong> PHP <?= number_format((float)$bank['amount'], 2) ?></div>
+                                                    <div class="small"><strong>Date:</strong> <?= htmlspecialchars($bank['date']) ?></div>
+                                                    <div class="small"><strong>Import:</strong> <?= htmlspecialchars($bank['statement']) ?> · Row #<?= (int)$bank['id'] ?></div>
+                                                    <div class="small"><strong>Status:</strong> <?= htmlspecialchars($bank['row_status']) ?><?= $bank['linked_concern_id'] ? ' · Concern #' . (int)$bank['linked_concern_id'] : '' ?></div>
+                                                <?php else: ?>
+                                                    <div class="small text-muted">No AUB transaction candidate is available yet.</div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted mb-2"><?= htmlspecialchars($match['message']) ?></div>
+                                    <?php if ($bank): ?>
+                                        <div class="table-responsive mb-3"><table class="table table-sm table-bordered bg-white mb-0">
+                                            <thead><tr><th>Compared field</th><th>OCR receipt</th><th>AUB import</th><th>Result</th></tr></thead>
+                                            <tbody>
+                                                <tr><th>Reference</th><td><?= htmlspecialchars($row['ocr_ref'] ?? '') ?></td><td><?= htmlspecialchars($bank['reference']) ?></td><td>Match</td></tr>
+                                                <tr><th>Amount</th><td><?= htmlspecialchars((string)$row['extracted_amount']) ?></td><td><?= htmlspecialchars((string)$bank['amount']) ?></td><td class="<?= $bank['amount_match'] ? 'text-success' : 'text-danger' ?>"><?= $bank['amount_match'] ? 'Match' : 'Difference' ?></td></tr>
+                                                <tr><th>Date</th><td><?= htmlspecialchars($row['transaction_date'] ?? '') ?></td><td><?= htmlspecialchars($bank['date']) ?></td><td class="<?= $bank['date_match'] ? 'text-success' : 'text-danger' ?>"><?= $bank['date_match'] ? 'Match' : 'Difference' ?></td></tr>
+                                            </tbody>
+                                        </table></div>
+                                    <?php endif; ?>
+                                    <?php if (count($match['candidates'] ?? []) > 1): ?>
+                                        <details class="mb-3"><summary class="fw-bold">Other AUB candidates (review only)</summary>
+                                            <div class="bg-white border rounded p-2 small">
+                                                <?php foreach ($match['candidates'] as $candidate): ?>
+                                                    <div>Row #<?= (int)$candidate['id'] ?> · <?= htmlspecialchars($candidate['reference']) ?> · PHP <?= htmlspecialchars($candidate['amount']) ?> · <?= htmlspecialchars($candidate['date']) ?> · <?= $candidate['used_elsewhere'] ? 'Already used' : 'Available' ?></div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </details>
+                                    <?php endif; ?>
+                                    <?php if ($row['verification_status'] === 'On Hold'): ?>
+                                        <div class="alert alert-info py-2"><strong>On hold:</strong> <?= htmlspecialchars($row['hold_reason'] ?? '') ?></div>
+                                    <?php endif; ?>
+
                                     <hr class="my-3">
-                                    <h6 class="fw-bold text-primary mb-3"><i class="ti ti-edit me-2"></i>Accounting Verified Data</h6>
+                                    <h6 class="fw-bold text-primary mb-2"><i class="ti ti-edit me-2"></i>AUB posting preview</h6>
+                                    <p class="small text-muted">These values come from the imported AUB row. The server checks the match again before posting.</p>
                                     <div class="row g-2 mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Verified Amount</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text">₱</span>
-                                                <input type="number" step="0.01" class="form-control" name="verified_amount" value="<?= htmlspecialchars($row['payment_amount'] ?? $row['ocr_amount'] ?? '') ?>">
+                                                <input type="text" class="form-control" value="<?= htmlspecialchars($bank['amount'] ?? '') ?>" readonly>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Reference No.</label>
-                                            <input type="text" class="form-control form-control-sm" name="verified_reference" value="<?= htmlspecialchars($row['ocr_ref'] ?? '') ?>">
+                                            <input type="text" class="form-control form-control-sm" value="<?= htmlspecialchars($bank['reference'] ?? '') ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Payment Channel / Bank</label>
-                                            <input type="text" class="form-control form-control-sm" name="verified_channel" value="<?= htmlspecialchars($row['payment_channel'] ?? $row['bank_name'] ?? '') ?>">
+                                            <input type="text" class="form-control form-control-sm" value="<?= $bank ? 'AUB / Bank' : '' ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Transaction Date</label>
-                                            <input type="date" class="form-control form-control-sm" name="verified_date" value="<?= htmlspecialchars($row['transaction_date'] ?? date('Y-m-d')) ?>">
+                                            <input type="date" class="form-control form-control-sm" value="<?= htmlspecialchars($bank['date'] ?? '') ?>" readonly>
                                         </div>
                                     </div>
 
+                                    <?php if (!$row['payment_id'] && $canDecide): ?>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold small">Billing to credit after approval</label>
+                                            <select name="billing_id" class="form-select">
+                                                <option value="">Select the student's billing</option>
+                                                <?php foreach ($billingChoices[(int)$row['student_id']] ?? [] as $bill): ?>
+                                                    <option value="<?= (int)$bill['billing_id'] ?>">#<?= (int)$bill['billing_id'] ?> · <?= htmlspecialchars($bill['academic_year']) ?> <?= htmlspecialchars($bill['semester']) ?> · Balance PHP <?= number_format((float)$bill['remaining_balance'], 2) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small text-muted">Accounting Remarks / Notes</label>
-                                        <textarea class="form-control" name="remarks" rows="3" placeholder="Optional notes for verification..."><?= htmlspecialchars($row['remarks'] ?? '') ?></textarea>
+                                        <label class="form-label fw-bold small text-muted">Review reason / notes (required for Hold or Reject)</label>
+                                        <textarea class="form-control" name="remarks" rows="3" placeholder="Describe your investigation or rejection reason"></textarea>
                                     </div>
 
                                     <div class="mb-4">
                                         <label class="form-label fw-bold small text-muted">Decision <span class="text-danger">*</span></label>
-                                        <select class="form-select fw-bold" name="action_concern" required>
-                                            <option value="Verify" selected>Approve & Verify (Update Ledger)</option>
+                                        <select class="form-select fw-bold" name="action_concern" required <?= $canDecide ? '' : 'disabled' ?>>
+                                            <option value="">Select decision</option>
+                                            <?php if ($match['status'] === 'PERFECT_MATCH'): ?><option value="Verify">Approve &amp; Verify (Update Ledger)</option><?php endif; ?>
+                                            <option value="Hold">Hold for Investigation</option>
                                             <option value="Reject">Reject Concern</option>
                                         </select>
                                     </div>
 
                                     <div class="mt-auto pt-3 border-top d-flex gap-2 justify-content-end">
                                         <button type="button" class="btn btn-light border shadow-sm" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">Submit Decision</button>
+                                        <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm" <?= $canDecide ? '' : 'disabled' ?>>Submit Decision</button>
                                     </div>
                                 </form>
                             </div>
@@ -362,58 +432,8 @@ function scanConcernOCR(concernId, btnElement) {
     })
     .then(data => {
         if (data.success) {
-            const extractionStatus = data.extraction_status || 'PARTIAL';
-            const statusStyles = {
-                COMPLETE: ['badge bg-success', 'Complete'],
-                PARTIAL: ['badge bg-warning text-dark', 'Partial - Review'],
-                AMBIGUOUS: ['badge bg-warning text-dark', 'Ambiguous - Review'],
-                NO_TEXT_DETECTED: ['badge bg-secondary', 'No Text - Review']
-            };
-            const statusStyle = statusStyles[extractionStatus] || ['badge bg-secondary', extractionStatus.replace(/_/g, ' ')];
-            const statusBadge = document.getElementById('ocr_status_badge_' + concernId);
-            statusBadge.className = statusStyle[0];
-            statusBadge.innerText = statusStyle[1];
-            const extracted = data.data || {};
-            
-            const amt = extracted.amount ? 'PHP ' + parseFloat(extracted.amount).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Not Found';
-            document.getElementById('ocr_amount_' + concernId).innerText = amt;
-            document.getElementById('ocr_ref_' + concernId).innerText = extracted.reference || 'Not Found';
-            
-            // Auto-fill verified fields inside this specific modal
-            const modal = document.getElementById('reviewModal' + concernId);
-            if (modal) {
-                if (extracted.amount) {
-                    const amtInput = modal.querySelector(`input[name="verified_amount"]`);
-                    if(amtInput) amtInput.value = extracted.amount;
-                }
-                if (extracted.reference) {
-                    const refInput = modal.querySelector(`input[name="verified_reference"]`);
-                    if(refInput) refInput.value = extracted.reference;
-                }
-                if (extracted.bank) {
-                    const bankInput = modal.querySelector(`input[name="verified_channel"]`);
-                    if(bankInput) bankInput.value = extracted.bank;
-                }
-            }
-
-            // Render Bank Match if available
-            if (data.bank_match) {
-                let badgeClass = 'bg-secondary';
-                if (data.bank_match.status === 'PERFECT_MATCH') badgeClass = 'bg-success';
-                else if (data.bank_match.status === 'NOT_FOUND') badgeClass = 'bg-danger';
-                else badgeClass = 'bg-warning text-dark';
-
-                const displayStatus = data.bank_match.status.replace(/_/g, ' ');
-                document.getElementById('bank_match_container_' + concernId).innerHTML = `<span class="badge ${badgeClass}" title="${data.bank_match.message}">${displayStatus}</span>`;
-            }
-            
-            btnElement.innerHTML = extractionStatus === 'COMPLETE'
-                ? '<i class="fas fa-check text-success me-2"></i> Scan Complete'
-                : '<i class="ti ti-alert-triangle text-warning me-2"></i> Manual Review Needed';
-            setTimeout(() => {
-                btnElement.innerHTML = originalText;
-                btnElement.disabled = false;
-            }, 3000);
+            // Re-render the complete, server-escaped matching workspace after OCR.
+            window.location.reload();
         } else {
             alert("OCR Failed: " + (data.message || data.error || "Unknown error"));
             btnElement.innerHTML = originalText;

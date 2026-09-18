@@ -92,6 +92,22 @@ class PaymentAllocationService {
                 if (!$billingItemId) {
                     throw new Exception("Billing item ID is required for SPECIFIC_ITEM allocation.");
                 }
+
+                // Walk-in allocations may include Tuition. Online allocations
+                // must enforce the same exclusion as checkout validation.
+                $stmtPaymentType = $this->pdo->prepare("SELECT transaction_type FROM payments WHERE payment_id = :payment_id AND student_id = :student_id AND billing_id = :billing_id");
+                $stmtPaymentType->execute([
+                    ':payment_id' => $paymentId,
+                    ':student_id' => $studentId,
+                    ':billing_id' => $billingId,
+                ]);
+                $transactionType = $stmtPaymentType->fetchColumn();
+                if ($transactionType === false) {
+                    throw new Exception("Payment record does not match this billing and student.");
+                }
+                $onlineTuitionFilter = $transactionType === 'Online'
+                    ? ' AND f.category_id IS NOT NULL AND f.category_id != :tuition_category_id'
+                    : '';
                 
                 // Strict allocation only to the exact billing item
                 $stmt = $this->pdo->prepare("
@@ -102,12 +118,17 @@ class PaymentAllocationService {
                       AND bi.billing_item_id = :item_id
                       AND bi.status != 'Paid'
                       AND bi.remaining_amount > 0
+                      {$onlineTuitionFilter}
                     FOR UPDATE
                 ");
-                $stmt->execute([
+                $itemParams = [
                     ':billing_id' => $billingId, 
                     ':item_id' => $billingItemId
-                ]);
+                ];
+                if ($transactionType === 'Online') {
+                    $itemParams[':tuition_category_id'] = self::TUITION_CATEGORY_ID;
+                }
+                $stmt->execute($itemParams);
             } elseif ($allocationContext === 'CATEGORY_PRIORITY') {
                 if (!$billingItemId) {
                     throw new Exception("Category ID is required for CATEGORY_PRIORITY allocation.");

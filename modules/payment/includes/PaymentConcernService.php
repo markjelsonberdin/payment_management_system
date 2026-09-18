@@ -4,6 +4,7 @@
  * Handles submission, retrieval, and verification of payment concerns.
  */
 require_once __DIR__ . '/PaymentAllocationService.php';
+require_once __DIR__ . '/bank_recon/BankReconciliationService.php';
 
 class PaymentConcernService {
     private $pdo;
@@ -90,7 +91,8 @@ class PaymentConcernService {
         $stmt = $this->pdo->prepare("
             SELECT pc.*, p.amount as payment_amount, p.billing_id, p.payment_channel, 
                    s.student_number, s.full_name,
-                   o.ocr_result_id, o.extracted_amount, o.bank_name, o.confidence_score, o.reference_number as ocr_ref, o.transaction_date
+                   o.ocr_result_id, o.extracted_amount, o.bank_name, o.confidence_score,
+                   o.reference_number as ocr_ref, o.transaction_date, o.extraction_status
             FROM payment_concerns pc
             LEFT JOIN payments p ON pc.payment_id = p.payment_id
             JOIN students s ON pc.student_id = s.student_id
@@ -105,96 +107,111 @@ class PaymentConcernService {
      * Verifies or rejects a payment concern (Phase 7H / 7I)
      */
     public function verifyConcern($concernId, $action, $reviewerId, $remarks, $billingId = null, $verifiedData = []) {
+        if (!in_array($action, ['Verify', 'Reject', 'Hold'], true)) {
+            throw new Exception('Invalid concern decision.');
+        }
         try {
             $this->pdo->beginTransaction();
 
-            $stmtGet = $this->pdo->prepare("SELECT payment_id, student_id, verification_status FROM payment_concerns WHERE concern_id = :cid FOR UPDATE");
+            $stmtGet = $this->pdo->prepare("SELECT payment_id, student_id, verification_status, ocr_status FROM payment_concerns WHERE concern_id = :cid FOR UPDATE");
             $stmtGet->execute([':cid' => $concernId]);
             $concern = $stmtGet->fetch(PDO::FETCH_ASSOC);
             
             if (!$concern) {
                 throw new Exception("Payment concern not found.");
             }
-            if ($concern['verification_status'] !== 'Pending') {
+            if (!in_array($concern['verification_status'], ['Pending', 'On Hold'], true)) {
                 throw new Exception("This concern has already been processed (Status: {$concern['verification_status']}).");
             }
 
             $paymentId = $concern['payment_id'];
             $studentId = $concern['student_id'];
 
-            if ($action === 'Verify') {
-                // Update concern
-                $stmtConc = $this->pdo->prepare("
-                    UPDATE payment_concerns 
-                    SET verification_status = 'Verified', reviewed_by = :reviewer, reviewed_at = CURRENT_TIMESTAMP, remarks = :remarks 
-                    WHERE concern_id = :cid
-                ");
-                $stmtConc->execute([':reviewer' => $reviewerId, ':remarks' => $remarks, ':cid' => $concernId]);
-
-                if (!$paymentId) {
-                    // Fetch latest billing_id if not provided
-                    if (!$billingId) {
-                        $stmtFindBilling = $this->pdo->prepare("SELECT billing_id FROM billing WHERE student_id = :sid ORDER BY billing_id DESC LIMIT 1");
-                        $stmtFindBilling->execute([':sid' => $studentId]);
-                        $billingId = $stmtFindBilling->fetchColumn();
-                        if (!$billingId) {
-                            throw new Exception("Cannot verify: Student does not have an active billing record.");
-                        }
-                    }
-
-                    // Create official payment record
-                    if (empty($verifiedData['amount']) || empty($verifiedData['reference']) || empty($verifiedData['channel']) || empty($verifiedData['date'])) {
-                        throw new Exception("Cannot create payment: Missing verified data (amount, reference, channel, date).");
-                    }
-
-                    $stmtInsertPay = $this->pdo->prepare("
-                        INSERT INTO payments (student_id, billing_id, amount, payment_date, payment_channel, reference_number, payment_status, verified_by, verified_at, transaction_type, payment_method)
-                        VALUES (:sid, :bid, :amt, :pdate, :chan, :ref, 'Verified', :reviewer, CURRENT_TIMESTAMP, 'Payment Concern', 'Bank Transfer')
-                    ");
-                    $stmtInsertPay->execute([
-                        ':sid' => $studentId,
-                        ':bid' => $billingId,
-                        ':amt' => $verifiedData['amount'],
-                        ':pdate' => $verifiedData['date'],
-                        ':chan' => $verifiedData['channel'],
-                        ':ref' => $verifiedData['reference'],
-                        ':reviewer' => $reviewerId
-                    ]);
-                    $paymentId = $this->pdo->lastInsertId();
-
-                    // Update concern with new payment_id
-                    $updConc = $this->pdo->prepare("UPDATE payment_concerns SET payment_id = ? WHERE concern_id = ?");
-                    $updConc->execute([$paymentId, $concernId]);
-                } else {
-                    $stmtPay = $this->pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_by = :reviewer, verified_at = CURRENT_TIMESTAMP WHERE payment_id = :pid");
-                    $stmtPay->execute([':reviewer' => $reviewerId, ':pid' => $paymentId]);
-                    
-                    // Fetch billing_id and amount for allocation
-                    $stmtGetBill = $this->pdo->prepare("SELECT billing_id, amount FROM payments WHERE payment_id = :pid");
-                    $stmtGetBill->execute([':pid' => $paymentId]);
-                    $payData = $stmtGetBill->fetch(PDO::FETCH_ASSOC);
-                    $billingId = $payData['billing_id'];
-                    $verifiedData['amount'] = $payData['amount'];
+            if ($action === 'Hold') {
+                if ($remarks === '') {
+                    throw new Exception('An investigation reason is required to hold this concern.');
+                }
+                $hold = $this->pdo->prepare("UPDATE payment_concerns SET verification_status = 'On Hold', hold_reason = ?, held_by = ?, held_at = CURRENT_TIMESTAMP WHERE concern_id = ?");
+                $hold->execute([$remarks, $reviewerId, $concernId]);
+            } elseif ($action === 'Reject') {
+                if ($remarks === '') {
+                    throw new Exception('A rejection reason is required.');
+                }
+                $reject = $this->pdo->prepare("UPDATE payment_concerns SET verification_status = 'Rejected', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, remarks = CONCAT(COALESCE(remarks, ''), '\n[Review] ', ?), hold_reason = NULL, held_by = NULL, held_at = NULL WHERE concern_id = ?");
+                $reject->execute([$reviewerId, $remarks, $concernId]);
+                // Rejecting a concern must not reverse or reject an existing payment.
+            } else {
+                if ($concern['ocr_status'] !== 'Completed') {
+                    throw new Exception('Run OCR and review the receipt before approval.');
+                }
+                $stmtOcr = $this->pdo->prepare("SELECT ocr_result_id FROM ocr_results WHERE concern_id = ? LIMIT 1");
+                $stmtOcr->execute([$concernId]);
+                $ocrResultId = $stmtOcr->fetchColumn();
+                if (!$ocrResultId) {
+                    throw new Exception('OCR evidence is missing.');
+                }
+                $recon = new BankReconciliationService($this->pdo);
+                $match = $recon->reconcileConcern((int)$ocrResultId, true);
+                if ($match['status'] !== 'PERFECT_MATCH') {
+                    throw new Exception('Approval requires one available exact AUB match. Current result: ' . $match['status']);
+                }
+                $bank = $match['matched_transaction'];
+                if ($bank['row_status'] !== 'Unmatched' || $bank['linked_concern_id'] !== null || $bank['linked_payment_id'] !== null) {
+                    throw new Exception('The AUB transaction has already been used.');
                 }
 
-                // Phase 7F Convergence: Call the PaymentAllocationService
-                $allocationService = new PaymentAllocationService($this->pdo);
-                $allocationService->allocatePayment($paymentId, $studentId, $billingId, (float)$verifiedData['amount']);
-
-
-            } else {
-                // Action: Reject
-                $stmtConc = $this->pdo->prepare("
-                    UPDATE payment_concerns 
-                    SET verification_status = 'Rejected', reviewed_by = :reviewer, reviewed_at = CURRENT_TIMESTAMP, remarks = :remarks 
-                    WHERE concern_id = :cid
-                ");
-                $stmtConc->execute([':reviewer' => $reviewerId, ':remarks' => $remarks, ':cid' => $concernId]);
+                // Older verified payments predate the bank-row link. Do not
+                // credit the same AUB reference again through a new concern.
+                $existingVerified = $this->pdo->prepare("SELECT payment_id FROM payments WHERE UPPER(TRIM(reference_number)) = ? AND payment_status = 'Verified' AND payment_id <> ? LIMIT 1 FOR UPDATE");
+                $existingVerified->execute([strtoupper(trim((string)$bank['reference'])), (int)$paymentId]);
+                if ($existingVerified->fetchColumn()) {
+                    throw new Exception('A verified payment already uses this reference. Investigate before posting another.');
+                }
 
                 if ($paymentId) {
-                    $stmtPay = $this->pdo->prepare("UPDATE payments SET payment_status = 'Rejected' WHERE payment_id = :pid");
-                    $stmtPay->execute([':pid' => $paymentId]);
+                    $stmtPay = $this->pdo->prepare("SELECT * FROM payments WHERE payment_id = ? AND student_id = ? FOR UPDATE");
+                    $stmtPay->execute([$paymentId, $studentId]);
+                    $payment = $stmtPay->fetch(PDO::FETCH_ASSOC);
+                    if (!$payment || $payment['payment_status'] !== 'Pending' || $payment['transaction_type'] !== 'Payment Concern' || $payment['payment_channel'] !== 'Bank') {
+                        throw new Exception('Linked payment is not an unposted AUB concern payment. Investigate it instead of posting again.');
+                    }
+                    if (BankReconciliationService::amountInCents($payment['amount']) !== BankReconciliationService::amountInCents($bank['amount'])
+                        || strtoupper(trim((string)$payment['reference_number'])) !== strtoupper(trim((string)$bank['reference']))
+                        || $payment['payment_date'] !== $bank['date']) {
+                        throw new Exception('Linked payment details differ from the AUB transaction.');
+                    }
+                    $allocated = $this->pdo->prepare("SELECT COUNT(*) FROM payment_allocations WHERE payment_id = ?");
+                    $allocated->execute([$paymentId]);
+                    if ((int)$allocated->fetchColumn() > 0) {
+                        throw new Exception('This payment already has allocations.');
+                    }
+                    $billingId = (int)$payment['billing_id'];
+                    $this->pdo->prepare("UPDATE payments SET payment_status = 'Verified', verified_by = ?, verified_at = CURRENT_TIMESTAMP WHERE payment_id = ?")
+                        ->execute([$reviewerId, $paymentId]);
+                } else {
+                    if (!$billingId) {
+                        throw new Exception('Select the student billing to credit before approval.');
+                    }
+                    // The chosen billing must belong to the concern's student.
+                    $stmtBilling = $this->pdo->prepare("SELECT billing_id FROM billing WHERE billing_id = ? AND student_id = ? FOR UPDATE");
+                    $stmtBilling->execute([$billingId, $studentId]);
+                    if (!$stmtBilling->fetchColumn()) {
+                        throw new Exception('No billing owned by this student is available for the concern.');
+                    }
+                    $insert = $this->pdo->prepare("INSERT INTO payments (student_id, billing_id, amount, payment_date, payment_channel, reference_number, payment_status, verified_by, verified_at, transaction_type, payment_method) VALUES (?, ?, ?, ?, 'Bank', ?, 'Verified', ?, CURRENT_TIMESTAMP, 'Payment Concern', 'Bank Transfer')");
+                    $insert->execute([$studentId, $billingId, $bank['amount'], $bank['date'], $bank['reference'], $reviewerId]);
+                    $paymentId = (int)$this->pdo->lastInsertId();
                 }
+
+                $link = $this->pdo->prepare("UPDATE bank_statement_rows SET status = 'Matched', matched_concern_id = ?, matched_payment_id = ?, matched_by = ?, matched_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'Unmatched' AND matched_concern_id IS NULL AND matched_payment_id IS NULL");
+                $link->execute([$concernId, $paymentId, $reviewerId, $bank['id']]);
+                if ($link->rowCount() !== 1) {
+                    throw new Exception('AUB transaction was consumed during approval. No payment was posted.');
+                }
+                $allocationService = new PaymentAllocationService($this->pdo);
+                $allocationService->allocatePayment($paymentId, $studentId, $billingId, (float)$bank['amount']);
+                $approve = $this->pdo->prepare("UPDATE payment_concerns SET payment_id = ?, verification_status = 'Verified', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, hold_reason = NULL, held_by = NULL, held_at = NULL WHERE concern_id = ?");
+                $approve->execute([$paymentId, $reviewerId, $concernId]);
             }
 
             $this->pdo->commit();

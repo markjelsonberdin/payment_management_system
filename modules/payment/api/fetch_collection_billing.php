@@ -59,7 +59,7 @@ try {
         $stmtItems = $pdo->prepare("
             SELECT 
                 bi.billing_item_id, 
-                f.fee_name, 
+                bi.fee_name,
                 fc.category_name, 
                 bi.remaining_amount, 
                 bi.source_context, 

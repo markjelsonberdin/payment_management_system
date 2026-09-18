@@ -119,8 +119,11 @@ class GoogleOCRService {
 
             // Partial, ambiguous, and no-text results remain evidence for manual
             // Accounting review; OCR must never reject a concern automatically.
-            $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ?");
+            $upd = $this->pdo->prepare("UPDATE payment_concerns SET ocr_status = 'Completed' WHERE concern_id = ? AND verification_status IN ('Pending', 'On Hold')");
             $upd->execute([$concernId]);
+            if ($upd->rowCount() !== 1) {
+                throw new Exception('Concern was finalized while OCR was running. OCR result was not saved.');
+            }
 
             $this->pdo->commit();
 
@@ -282,10 +285,19 @@ class GoogleOCRService {
         // 4. Bank / Channel Extraction
         $banks = ['GCash', 'Maya', 'AUB', 'BDO', 'BPI', 'UnionBank', 'LandBank', 'Metrobank'];
         $foundBanks = [];
+        // HelloMoney/HMA identifies the receipt channel, not the authoritative
+        // reconciliation source. The corresponding transaction must still be
+        // present in an imported AUB statement.
+        if (preg_match('/\bhello\s*money\b|\bHMA\b/i', $rawText)) {
+            $foundBanks[] = 'HelloMoney';
+        }
         foreach ($banks as $b) {
             if (stripos($rawText, $b) !== false) {
                 $foundBanks[] = $b;
             }
+        }
+        if (in_array('HelloMoney', $foundBanks, true) && in_array('AUB', $foundBanks, true)) {
+            $foundBanks = array_values(array_diff($foundBanks, ['AUB']));
         }
         if (count($foundBanks) === 1) {
             $data['bank'] = $foundBanks[0];

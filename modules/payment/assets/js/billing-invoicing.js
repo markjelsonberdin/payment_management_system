@@ -20,6 +20,17 @@ document.addEventListener("DOMContentLoaded", function () {
         box.addEventListener('change', updateTotal);
     });
 
+    const billingTypeSelect = document.getElementById('billingTypeSelect');
+    if (billingTypeSelect) {
+        billingTypeSelect.addEventListener('change', function () {
+            // Required enrollment fees are not automatically additional assessments.
+            checkboxes.forEach(box => {
+                box.checked = this.value === 'Enrollment' && box.dataset.required === '1';
+            });
+            updateTotal();
+        });
+    }
+
     updateTotal();
 
 

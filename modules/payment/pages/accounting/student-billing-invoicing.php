@@ -136,7 +136,7 @@ try {
         SELECT f.fee_id, f.fee_name, f.default_amount, f.is_required, c.category_name
         FROM fees f
         JOIN fee_categories c ON f.category_id = c.category_id
-        WHERE f.status = 'Active' 
+        WHERE f.status = 'Active' AND c.status = 'Active'
         ORDER BY c.priority_order ASC, f.fee_name ASC
     ");
     $activeFees = $stmtFees->fetchAll(PDO::FETCH_ASSOC);
@@ -361,7 +361,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold text-dark">Billing Type <span class="text-danger">*</span></label>
-                            <select class="form-select" name="billing_type" required>
+                            <select class="form-select" name="billing_type" id="billingTypeSelect" required>
                                 <option value="Enrollment">Enrollment Assessment</option>
                                 <option value="Assessment">Standard Assessment</option>
                                 <option value="Adjustment">Adjustment</option>
@@ -410,7 +410,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                                 <tr class="border-bottom">
                                                     <td class="text-center" style="width: 8%;">
                                                         <div class="form-check d-flex justify-content-center m-0">
-                                                            <input class="form-check-input fee-checkbox" type="checkbox" name="selected_fees[]" value="<?= $fee['fee_id'] ?>" data-amount="<?= $fee['default_amount'] ?>" id="fee_<?= $fee['fee_id'] ?>" <?= $fee['is_required'] ? 'checked' : '' ?>>
+                                                            <input class="form-check-input fee-checkbox" type="checkbox" name="selected_fees[]" value="<?= $fee['fee_id'] ?>" data-amount="<?= $fee['default_amount'] ?>" data-required="<?= $fee['is_required'] ? '1' : '0' ?>" id="fee_<?= $fee['fee_id'] ?>" <?= $fee['is_required'] ? 'checked' : '' ?>>
                                                         </div>
                                                     </td>
                                                     <td class="ps-0 py-2">

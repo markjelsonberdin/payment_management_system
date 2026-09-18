@@ -3,11 +3,17 @@
  * SMS 2 - Printable Statement of Account
  */
 require_once __DIR__ . '/../../../config/config.php';
-require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
+requireAuth();
+if (getCurrentUserRoleKey() !== 'student' || empty($_SESSION['student_id'])) {
+    http_response_code(403);
+    exit('Access denied.');
+}
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+
 $pageTitle = 'Statement of Account';
-$studentId = $_SESSION['student_id'] ?? 'S230106713'; // Default fallback
+$studentId = (string) $_SESSION['student_id'];
 
 $studentName = 'Unknown Student';
 $course = 'N/A';
@@ -50,9 +56,8 @@ try {
                 $semester = $billingDetails['semester'];
 
                 $stmtItems = $pdo->prepare("
-                    SELECT bi.*, f.fee_name 
+                    SELECT bi.*
                     FROM billing_items bi 
-                    JOIN fees f ON bi.fee_id = f.fee_id 
                     WHERE bi.billing_id = :billing_id
                 ");
                 $stmtItems->execute([':billing_id' => $billingDetails['billing_id']]);
@@ -61,7 +66,9 @@ try {
         }
     }
 } catch (PDOException $e) {
-    die("Database Error: " . $e->getMessage());
+    error_log('Statement of Account query failed: ' . $e->getMessage());
+    http_response_code(503);
+    exit('Statement of Account is temporarily unavailable.');
 }
 ?>
 <!DOCTYPE html>

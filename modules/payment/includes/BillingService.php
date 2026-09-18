@@ -10,6 +10,40 @@ class BillingService {
         $this->pdo = $pdo;
     }
 
+    /** Resolve every submitted ID; never silently accept only the valid subset. */
+    private function getActiveSelectedFees($feeIds): array {
+        if (!is_array($feeIds) || !$feeIds) {
+            throw new Exception("Please select at least one fee.");
+        }
+
+        $ids = [];
+        foreach ($feeIds as $feeId) {
+            if (!is_scalar($feeId) || !ctype_digit((string) $feeId) || (int) $feeId <= 0) {
+                throw new Exception("Invalid fee selection.");
+            }
+            $ids[] = (int) $feeId;
+        }
+        if (count(array_unique($ids)) !== count($ids)) {
+            throw new Exception("Duplicate fee selection.");
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->pdo->prepare("
+            SELECT f.fee_id, f.fee_name, f.default_amount
+            FROM fees f
+            JOIN fee_categories c ON c.category_id = f.category_id
+            WHERE f.fee_id IN ($placeholders)
+              AND f.status = 'Active' AND c.status = 'Active'
+              AND TRIM(f.fee_name) <> ''
+        ");
+        $stmt->execute($ids);
+        $fees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (count($fees) !== count($ids)) {
+            throw new Exception("One or more selected fees are invalid or inactive.");
+        }
+        return $fees;
+    }
+
     /**
      * Generates a billing statement for a student in a single transaction.
      * 
@@ -38,19 +72,8 @@ class BillingService {
                 throw new Exception("Student not found in local cache. Please ensure they are synced from Registrar.");
             }
 
-            // 2. Fetch active fees
-            $placeholders = str_repeat('?,', count($feeIds) - 1) . '?';
-            $stmtFees = $this->pdo->prepare("
-                SELECT fee_id, fee_name, default_amount 
-                FROM fees 
-                WHERE fee_id IN ($placeholders) AND status = 'Active'
-            ");
-            $stmtFees->execute($feeIds);
-            $activeFees = $stmtFees->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($activeFees)) {
-                throw new Exception("None of the selected fees are active or exist.");
-            }
+            // 2. Resolve every submitted fee before any financial insert.
+            $activeFees = $this->getActiveSelectedFees($feeIds);
 
             // 3. Calculate Gross Assessment
             $grossAssessment = 0;
@@ -149,19 +172,8 @@ class BillingService {
                 throw new Exception("Billing record not found.");
             }
 
-            // 2. Fetch active fees
-            $placeholders = str_repeat('?,', count($feeIds) - 1) . '?';
-            $stmtFees = $this->pdo->prepare("
-                SELECT fee_id, fee_name, default_amount 
-                FROM fees 
-                WHERE fee_id IN ($placeholders) AND status = 'Active'
-            ");
-            $stmtFees->execute($feeIds);
-            $activeFees = $stmtFees->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($activeFees)) {
-                throw new Exception("None of the selected fees are active or exist.");
-            }
+            // 2. Resolve every submitted fee before changing this billing.
+            $activeFees = $this->getActiveSelectedFees($feeIds);
 
             // 3. Find existing fees in this billing to prevent duplicates
             $stmtExisting = $this->pdo->prepare("SELECT fee_id FROM billing_items WHERE billing_id = :bid");

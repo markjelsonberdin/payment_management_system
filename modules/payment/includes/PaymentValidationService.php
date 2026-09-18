@@ -61,11 +61,13 @@ class PaymentValidationService {
                     return ['valid' => false, 'error' => 'Billing item ID is required for specific item payments.'];
                 }
 
-                // Verify exact billing item belongs to this billing and is unpaid
+                // Verify the exact item and its current online eligibility on the
+                // server; the student portal's hidden Tuition option is only UX.
                 $stmtItem = $this->pdo->prepare("
-                    SELECT remaining_amount 
-                    FROM billing_items 
-                    WHERE billing_item_id = :item_id AND billing_id = :billing_id
+                    SELECT bi.remaining_amount, f.category_id
+                    FROM billing_items bi
+                    JOIN fees f ON f.fee_id = bi.fee_id
+                    WHERE bi.billing_item_id = :item_id AND bi.billing_id = :billing_id
                 ");
                 $stmtItem->execute([
                     ':item_id' => $billingItemId, 
@@ -76,6 +78,10 @@ class PaymentValidationService {
 
                 if (!$item) {
                     return ['valid' => false, 'error' => 'Specific billing item not found in this SOA.'];
+                }
+
+                if ($item['category_id'] === null || (int) $item['category_id'] === 1) {
+                    return ['valid' => false, 'error' => 'Tuition or uncategorized fees cannot be paid online.'];
                 }
 
                 if ((float)$item['remaining_amount'] <= 0) {

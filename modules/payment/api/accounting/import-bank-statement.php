@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/security.php';
+require_once ROOT_PATH . '/includes/audit.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/bank_recon/BankReconciliationService.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
@@ -13,6 +14,7 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
 header('Content-Type: application/json');
 
 requireAuth();
+requirePaymentPermission('payment.concern_review');
 
 // Ensure proper role
 $role = getCurrentUserRoleKey();
@@ -45,7 +47,8 @@ if (!isset($_FILES['statement_file']) || $_FILES['statement_file']['error'] !== 
 $file = $_FILES['statement_file'];
 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-if ($ext !== 'csv' || $file['type'] !== 'text/csv') {
+$detectedMime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+if ($ext !== 'csv' || !in_array($detectedMime, ['text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'INVALID_TYPE', 'message' => 'Only CSV files are allowed.']);
     exit;
@@ -64,6 +67,7 @@ try {
     $reconService = new BankReconciliationService($pdo);
     
     $result = $reconService->importAUBStatement($file['tmp_name'], $uploaderId, $file['name']);
+    logActivity('import_aub_statement', 'AUB statement #' . (int)$result['statement_id'] . ' imported; rows: ' . (int)$result['rows_imported'], 'payment', (int)$uploaderId);
     
     echo json_encode($result);
 
