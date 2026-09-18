@@ -136,7 +136,7 @@ $exportUrl = BASE_URL . '/modules/payment/api/export-history.php' . ($exportQuer
 
 $pageTitle    = $cashierHistoryMode ? 'My Walk-in Transactions' : 'Payment History & Ledger System';
 $activeModule = 'payment';
-$activePage   = $cashierHistoryMode ? 'accounting/walk-in-transaction-history' : 'accounting/payment-history-ledger-system';
+$activePage   = $cashierHistoryMode ? 'cashier/walk-in-transaction-history' : 'accounting/payment-history-ledger-system';
 $breadcrumbs  = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => $pageTitle, 'url' => null],

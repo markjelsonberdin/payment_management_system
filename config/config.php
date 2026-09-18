@@ -287,8 +287,8 @@ $MODULES = [
                 'accounting/bank-reconciliation',
             ],
             'CASHIER PORTAL' => [
-                'accounting/payment-collection-portal',
-                'accounting/walk-in-transaction-history',
+                'cashier/payment-collection-portal',
+                'cashier/walk-in-transaction-history',
             ],
             'ADMIN PORTAL' => [
                 'admin/fee-setup-configuration',
@@ -302,13 +302,13 @@ $MODULES = [
         'pages' => [
             // Accounting / Cashier Pages
             ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'payment.billing'],
-            ['slug' => 'accounting/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
+            ['slug' => 'cashier/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
             ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'payment.discount'],
             ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'payment.ledger'],
             ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.analytics'],
             ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern_review'],
             ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern_review'],
-            ['slug' => 'accounting/walk-in-transaction-history', 'title' => 'My Walk-in Transactions', 'permission' => 'payment.walkin_history'],
+            ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'My Walk-in Transactions', 'permission' => 'payment.walkin_history'],
             
             // Admin Pages
             ['slug' => 'admin/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
