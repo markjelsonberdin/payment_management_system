@@ -543,6 +543,10 @@ if ($roleKey === 'admin') {
     require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
     require_once __DIR__ . '/../includes/layout-end.php';
     return;
+} elseif (in_array($roleKey, ['payment_admin', 'finance'], true)) {
+    require_once __DIR__ . '/../modules/payment/pages/payment_admin/dashboard.php';
+    require_once __DIR__ . '/../includes/layout-end.php';
+    return;
 } elseif ($roleKey === 'hr') {
     $statCards = [
         ['icon'=>'fa-chalkboard-teacher', 'label'=>'Total Faculty',          'value'=>'102', 'type'=>'primary', 'delta'=>'+1.0%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last month'],

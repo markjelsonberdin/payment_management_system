@@ -42,6 +42,8 @@ try {
         SELECT 
             billing_id, 
             billing_type,
+            academic_year,
+            semester,
             total_amount,
             remaining_balance
         FROM billing
@@ -125,6 +127,9 @@ try {
             'student_number' => $student['student_number'],
             'course_year' => $course_str,
             'billing_type' => $billing['billing_type'],
+            'academic_year' => $billing['academic_year'],
+            'semester' => $billing['semester'],
+            'year_level' => $student['year_level'] ?? null,
             'total_amount' => (float) $billing['total_amount'],
             'balance' => (float) $billing['remaining_balance'],
             'breakdown' => $breakdownResponse

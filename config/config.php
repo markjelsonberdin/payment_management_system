@@ -295,6 +295,7 @@ $MODULES = [
                 'cashier/walk-in-transaction-history',
             ],
             'PAYMENT ADMIN PORTAL' => [
+                'payment_admin/dashboard',
                 'payment_admin/online-payment-integration',
                 'payment_admin/school-sales-catalog',
             ],
@@ -315,6 +316,7 @@ $MODULES = [
             ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'My Walk-in Transactions', 'permission' => 'payment.walkin_history'],
             
             // Payment Admin Pages
+            ['slug' => 'payment_admin/dashboard', 'title' => 'Payment Admin Dashboard', 'permission' => 'payment.online_payment_config'],
             ['slug' => 'payment_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
             ['slug' => 'payment_admin/school-sales-catalog', 'title' => 'School Sales Catalog', 'permission' => 'payment.school_sales_catalog'],
             ['slug' => 'payment_admin/payment-users', 'title' => 'Payment Staff Accounts', 'permission' => 'payment.user_management'],

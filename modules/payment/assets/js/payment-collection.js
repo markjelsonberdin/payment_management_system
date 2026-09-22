@@ -25,7 +25,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     document.getElementById('lblStudentNo').textContent = data.student_number;
                     document.getElementById('lblCourseYear').textContent = data.course_year;
                     document.getElementById('lblBillingId').textContent = '#' + data.billing_id.toString().padStart(5, '0');
-                    document.getElementById('lblBillingTerm').textContent = data.billing_type;
+                    document.getElementById('lblBillingTerm').textContent = data.billing_type || 'Assessment';
+                    document.getElementById('lblAcademicTerm').textContent = [data.academic_year, data.semester].filter(Boolean).join(' • ') || 'Not available';
                     document.getElementById('lblTotalAmount').textContent = '₱ ' + data.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 });
                     document.getElementById('lblRemainingBalance').textContent = '₱ ' + data.balance.toLocaleString('en-US', { minimumFractionDigits: 2 });
 
@@ -67,40 +68,17 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                             let html = '';
                             let grandTotal = 0;
-                            
                             data.breakdown.categories.forEach(cat => {
-                                html += `<div class="mb-3">
-                                            <div class="fw-bold text-dark mb-1 border-bottom pb-1" style="font-size: 0.85rem;">${cat.category_name}</div>`;
-                                
+                                const categoryTotal = Number(cat.category_total || 0);
+                                grandTotal += categoryTotal;
+                                html += `<details class="border rounded mb-2 bg-white"><summary class="d-flex justify-content-between align-items-center px-2 py-2 fw-bold" style="cursor:pointer"><span>${cat.category_name}</span><span class="text-danger">₱ ${categoryTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></summary><div class="border-top px-2 pt-2 pb-1">`;
                                 cat.fees.forEach(fee => {
-                                    let sourceBadge = '';
-                                    if (fee.source_context) {
-                                        let badgeColor = fee.source_context === 'Enrollment Assessment' ? 'bg-info' : 'bg-secondary';
-                                        sourceBadge = `<span class="badge ${badgeColor} text-white ms-2" style="font-size: 0.65rem;">${fee.source_context}</span>`;
-                                    }
-                                    
-                                    html += `<div class="d-flex justify-content-between align-items-center mb-1 text-muted" style="font-size: 0.8rem;">
-                                                <div>
-                                                    <span class="fw-medium">${fee.fee_name}</span>
-                                                    ${sourceBadge}
-                                                </div>
-                                                <span class="fw-bold text-dark">₱ ${parseFloat(fee.remaining_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                             </div>`;
+                                    const source = fee.source_context ? `<span class="badge bg-light text-secondary border ms-1">${fee.source_context}</span>` : '';
+                                    html += `<div class="d-flex justify-content-between gap-2 align-items-start mb-2 small"><span>${fee.fee_name}${source}</span><strong>₱ ${Number(fee.remaining_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></div>`;
                                 });
-                                
-                                html += `<div class="d-flex justify-content-between align-items-center mt-1 text-dark">
-                                            <span class="small fst-italic">Category Total</span>
-                                            <span class="fw-bold small">₱ ${parseFloat(cat.category_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                         </div>
-                                       </div>`;
-                                grandTotal += cat.category_total;
+                                html += `</div></details>`;
                             });
-                            
-                            html += `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-dark">
-                                        <span class="fw-bolder">BREAKDOWN TOTAL</span>
-                                        <span class="fw-bolder text-danger">₱ ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                     </div>`;
-                                     
+                            html += `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-dark"><span class="fw-bolder">TOTAL OUTSTANDING</span><span class="fw-bolder text-danger">₱ ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>`;
                             breakdownList.innerHTML = html;
                             breakdownContainer.classList.remove('d-none');
                         } else {
@@ -174,3 +152,38 @@ document.addEventListener("DOMContentLoaded", function () {
         inputCashReceived.addEventListener('input', validateAndCompute);
     }
 });
+
+    // The browser only presents a review; PHP remains authoritative for validation and allocation.
+    const paymentForm = document.getElementById('paymentForm');
+    const reviewModalElement = document.getElementById('paymentReviewModal');
+    const confirmPaymentButton = document.getElementById('btnConfirmPayment');
+    if (paymentForm && reviewModalElement && confirmPaymentButton && window.bootstrap) {
+        const reviewModal = new bootstrap.Modal(reviewModalElement);
+        const money = value => '₱ ' + (Number(value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        paymentForm.addEventListener('submit', function (event) {
+            if (paymentForm.dataset.confirmed === '1') return;
+            event.preventDefault();
+            const applied = Number(inputAmountPaid.value) || 0;
+            const cash = Number(inputCashReceived.value) || applied;
+            const selectedCategory = document.getElementById('inputCategoryId');
+            const context = selectedCategory && selectedCategory.value ? selectedCategory.options[selectedCategory.selectedIndex].text : 'General allocation';
+            document.getElementById('reviewStudent').textContent = document.getElementById('lblStudentName').textContent + ' (' + document.getElementById('lblStudentNo').textContent + ')';
+            document.getElementById('reviewContext').textContent = context;
+            document.getElementById('reviewBalance').textContent = money(activeBalance);
+            document.getElementById('reviewAmount').textContent = money(applied);
+            document.getElementById('reviewCash').textContent = money(cash);
+            document.getElementById('reviewChange').textContent = money(cash - applied);
+            document.getElementById('reviewCashier').textContent = paymentForm.dataset.cashierName || 'Authenticated cashier';
+            reviewModal.show();
+        });
+        confirmPaymentButton.addEventListener('click', function () {
+            confirmPaymentButton.disabled = true;
+            confirmPaymentButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+            btnProcess.disabled = true;
+            paymentForm.dataset.confirmed = '1';
+            paymentForm.submit();
+        });
+        reviewModalElement.addEventListener('hidden.bs.modal', function () {
+            if (paymentForm.dataset.confirmed !== '1') confirmPaymentButton.disabled = false;
+        });
+    }
