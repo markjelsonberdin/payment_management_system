@@ -60,6 +60,7 @@ try {
             SELECT 
                 bi.billing_item_id, 
                 bi.fee_name,
+                fc.category_id,
                 fc.category_name, 
                 bi.remaining_amount, 
                 bi.source_context, 
@@ -83,6 +84,7 @@ try {
             $cat = $item['category_name'];
             if (!isset($groupedBreakdown[$cat])) {
                 $groupedBreakdown[$cat] = [
+                    'category_id' => (int) $item['category_id'],
                     'category_name' => $cat,
                     'category_total' => 0,
                     'fees' => []

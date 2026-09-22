@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 require_once __DIR__ . '/../../includes/PaymentSecurityService.php';
 require_once __DIR__ . '/../../includes/PaymentNotificationService.php';
+require_once __DIR__ . '/../../includes/OfficialReceiptService.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection');
@@ -40,13 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
     $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
     $payment_context  = $_POST['payment_context'] ?? 'GENERAL_PRIORITY';
     $category_id      = isset($_POST['category_id']) ? (int)$_POST['category_id'] : null;
-    $payment_channel  = $_POST['payment_channel'] ?? 'Cash'; // Dedicated Cash Walk-in
-    $reference_number = trim($_POST['reference_number']) ?: 'OR-' . date('Ymd') . '-' . rand(1000, 9999);
+    // Cashier collection is cash-only. Never accept channel or OR data from the browser.
+    $payment_channel  = 'Cash';
     $remarks          = trim($_POST['remarks']);
 
     try {
         if (empty($billing_id)) {
             throw new Exception("Cache Error: Walang naipasang Billing ID ang form! Paki-Hard Refresh (CTRL + F5) ang iyong browser.");
+        }
+        if ((int) $student_id <= 0) {
+            throw new Exception('Student record is required.');
         }
 
         // Start transaction for atomic payment record + allocation
@@ -83,6 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         $change_amount = $cash_received - $amount_paid;
 
         $change_amount = $cash_received - $amount_paid;
+
+        // Reserve an immutable OR inside the same transaction before posting payment.
+        $reference_number = (new OfficialReceiptService($pdo))->reserve();
 
         // 2. Insert main payment record
         $stmtPayment = $pdo->prepare("
@@ -127,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             (int) $cashier_id
         );
 
-        header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number));
+        header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number) . '&payment_id=' . (int) $payment_id);
         exit();
 
     } catch (Exception $e) {
@@ -158,14 +165,17 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
             <h2 class="mb-1 fw-bolder"><i class="fas fa-cash-register text-primary me-2"></i>Walk-In Payment Collection</h2>
-            <p class="text-muted mb-0 fs-6">Receive physical cash or check payments, compute balances, and issue Official Receipts (OR).</p>
+            <p class="text-muted mb-0 fs-6">Receive cash payments, allocate them to student billing, and issue Official Receipts (OR).</p>
         </div>
     </div>
 
     <!-- Alerts -->
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success alert-dismissible shadow-sm">
-            <i class="ti ti-circle-check me-2"></i> Payment successfully processed! Official Receipt <strong>#<?= htmlspecialchars($_GET['or'] ?? '') ?></strong> generated.
+            <i class="ti ti-circle-check me-2"></i> Payment successfully processed! Receipt <strong>#<?= htmlspecialchars($_GET['or'] ?? '') ?></strong> generated.
+            <?php if ((int) ($_GET['payment_id'] ?? 0) > 0): ?>
+                <a class="btn btn-sm btn-success ms-3" target="_blank" href="print-receipt.php?payment_id=<?= (int) $_GET['payment_id'] ?>"><i class="ti ti-printer me-1"></i>Print Student Copy</a>
+            <?php endif; ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -252,11 +262,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <div class="col-md-12 mb-3 d-none" id="categorySelectionWrapper">
                                 <label class="form-label fw-bold small text-muted">Select Specific Category <span class="text-danger">*</span></label>
                                 <select class="form-select" name="category_id" id="inputCategoryId">
-                                    <option value="2">Miscellaneous</option>
-                                    <option value="3">Laboratory & Computer</option>
-                                    <option value="4">Student Council & Organization</option>
-                                    <option value="5">Supplementary Fees</option>
-                                    <option value="6">Other</option>
+                                    <option value="">Search a student first</option>
                                 </select>
                                 <small class="text-muted d-block mt-1">Payment will strictly be allocated only to items under this category.</small>
                             </div>
@@ -289,7 +295,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold small text-muted">Official Receipt (OR) / Ref No.</label>
-                                <input type="text" class="form-control bg-light text-muted" name="reference_number" placeholder="System Auto-Generated" readonly>
+                                <input type="text" class="form-control bg-light text-muted" placeholder="System Auto-Generated" readonly>
                                 <small class="text-primary fw-bold" style="font-size: 0.75rem;"><i class="fas fa-magic me-1"></i>Automatically generated upon save.</small>
                             </div>
 

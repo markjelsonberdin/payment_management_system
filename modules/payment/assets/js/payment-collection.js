@@ -55,6 +55,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             alert(data.breakdown.error_message);
                             return;
                         } else if (data.breakdown.categories && data.breakdown.categories.length > 0) {
+                            const categorySelect = document.getElementById('inputCategoryId');
+                            if (categorySelect) {
+                                categorySelect.innerHTML = '<option value="">Select unpaid category</option>';
+                                data.breakdown.categories.forEach(cat => {
+                                    const option = document.createElement('option');
+                                    option.value = cat.category_id;
+                                    option.textContent = `${cat.category_name} — ₱ ${parseFloat(cat.category_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                                    categorySelect.appendChild(option);
+                                });
+                            }
                             let html = '';
                             let grandTotal = 0;
                             

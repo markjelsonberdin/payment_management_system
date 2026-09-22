@@ -46,6 +46,19 @@ try {
         LIMIT 10
     ");
     $recentCollections = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
+    // Academic collection efficiency intentionally excludes direct school-sales revenue.
+    $totalAcademicReceivables = $pdo->query("SELECT COALESCE(SUM(total_amount - COALESCE(discount_amount, 0)), 0) FROM billing WHERE billing_status <> 'Cancelled'")->fetchColumn() ?: 0;
+    $collectionEfficiency = $totalAcademicReceivables > 0 ? ((float) $totalCollections / (float) $totalAcademicReceivables) * 100 : 0;
+
+    $trendCurrentStmt = $pdo->query("SELECT DATE(p.payment_date) AS payment_day, COALESCE(SUM(p.amount), 0) AS total FROM payments p WHERE {$officialPaymentP} AND p.payment_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE() GROUP BY DATE(p.payment_date)");
+    $trendPriorStmt = $pdo->query("SELECT DATE(p.payment_date) AS payment_day, COALESCE(SUM(p.amount), 0) AS total FROM payments p WHERE {$officialPaymentP} AND p.payment_date BETWEEN DATE_SUB(DATE_SUB(CURDATE(), INTERVAL 6 DAY), INTERVAL 1 YEAR) AND DATE_SUB(CURDATE(), INTERVAL 1 YEAR) GROUP BY DATE(p.payment_date)");
+    $currentTrendMap = []; foreach ($trendCurrentStmt->fetchAll(PDO::FETCH_ASSOC) as $row) { $currentTrendMap[$row['payment_day']] = (float) $row['total']; }
+    $priorTrendMap = []; foreach ($trendPriorStmt->fetchAll(PDO::FETCH_ASSOC) as $row) { $priorTrendMap[$row['payment_day']] = (float) $row['total']; }
+    $trendLabels = []; $trendCurrent = []; $trendPrior = [];
+    for ($day = 6; $day >= 0; $day--) { $date = date('Y-m-d', strtotime("-$day days")); $priorDate = date('Y-m-d', strtotime("$date -1 year")); $trendLabels[] = date('M j', strtotime($date)); $trendCurrent[] = $currentTrendMap[$date] ?? 0; $trendPrior[] = $priorTrendMap[$priorDate] ?? 0; }
+
+    $categoryStmt = $pdo->query("SELECT fc.category_name, COALESCE(SUM(pa.allocated_amount), 0) AS total_amount FROM payment_allocations pa JOIN payments p ON p.payment_id = pa.payment_id JOIN billing_items bi ON bi.billing_item_id = pa.billing_item_id JOIN fees f ON f.fee_id = bi.fee_id JOIN fee_categories fc ON fc.category_id = f.category_id WHERE {$officialPaymentP} GROUP BY fc.category_id, fc.category_name ORDER BY total_amount DESC");
+    $categoryBreakdown = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     $totalCollections = 0;
@@ -53,6 +66,7 @@ try {
     $fullyPaidCount = 0;
     $channelBreakdown = [];
     $recentCollections = [];
+    $totalAcademicReceivables = 0; $collectionEfficiency = 0; $trendLabels = []; $trendCurrent = []; $trendPrior = []; $categoryBreakdown = [];
     $dbError = $e->getMessage();
 }
 
@@ -117,6 +131,12 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
     </div>
 
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 border-start border-info border-4"><div class="card-body"><p class="text-muted fw-bold mb-1 text-uppercase" style="font-size:.8rem;">Collection Efficiency</p><h3 class="fw-bolder mb-0 text-info"><?= number_format($collectionEfficiency, 1) ?>%</h3><small class="text-muted">Academic collections ÷ academic receivables</small></div></div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4"><div class="col-lg-7"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-header bg-white border-0 pt-4 px-4"><h5 class="fw-bold mb-0">Current vs. Matching Prior Period</h5></div><div class="card-body"><canvas id="collectionTrendChart" height="120"></canvas></div></div></div><div class="col-lg-5"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-header bg-white border-0 pt-4 px-4"><h5 class="fw-bold mb-0">Collections by Fee Category</h5></div><div class="card-body"><canvas id="feeCategoryChart" height="120"></canvas></div></div></div></div>
     <!-- Breakdown By Channels & Summary -->
     <div class="row mb-4">
         <div class="col-lg-5 mb-4 mb-lg-0">
@@ -197,4 +217,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 </div>
 
-<?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+ const money = value => '₱' + Number(value || 0).toLocaleString('en-PH', {minimumFractionDigits:2});
+ const labels = <?= json_encode($trendLabels) ?>, current = <?= json_encode($trendCurrent) ?>, prior = <?= json_encode($trendPrior) ?>;
+ new Chart(document.getElementById('collectionTrendChart'), {type:'line',data:{labels,datasets:[{label:'Current period',data:current,borderColor:'#2563eb',backgroundColor:'#2563eb22',fill:true,tension:.3},{label:'Matching prior period',data:prior,borderColor:'#94a3b8',backgroundColor:'#94a3b822',fill:true,tension:.3}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{callback:money}}}}});
+ const categories = <?= json_encode($categoryBreakdown) ?>;
+ new Chart(document.getElementById('feeCategoryChart'), {type:'bar',data:{labels:categories.map(row=>row.category_name),datasets:[{label:'Academic collections',data:categories.map(row=>row.total_amount),backgroundColor:'#059669'}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:money}}}}});
+})();
+</script><?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

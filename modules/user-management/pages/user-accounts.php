@@ -313,7 +313,9 @@ renderBreadcrumbs($breadcrumbs);
                 <option value="admission">Admission</option>
                 <option value="registrar">Registrar</option>
                 <option value="finance">Finance</option>
+                <option value="payment_admin">Payment Admin</option>
                 <option value="accounting_officer">Accounting Officer</option>
+                <option value="cashier">Cashier</option>
                 <option value="hr">Dean</option>
                 <option value="adviser">Adviser</option>
                 <option value="research_director">Research Director</option>
@@ -526,6 +528,7 @@ renderBreadcrumbs($breadcrumbs);
                                 <option value="admission">Admission</option>
                                 <option value="registrar">Registrar</option>
                                 <option value="finance">Finance</option>
+                                <option value="payment_admin">Payment Admin</option>
                                 <option value="accounting_officer">Accounting Officer</option>
                                 <option value="cashier">Cashier</option>
                                 <option value="hr">Dean</option>

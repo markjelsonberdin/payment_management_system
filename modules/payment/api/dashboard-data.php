@@ -1,6 +1,6 @@
 <?php
 /**
- * Finance Dashboard Data API
+ * Payment Dashboard Data API
  * Returns JSON data for the Chart.js dashboard.
  */
 require_once __DIR__ . '/../../../config/config.php';
@@ -11,7 +11,7 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentReportingScope.php';
 header('Content-Type: application/json');
 
 requireAuth();
-requirePaymentPermission('payment.collection_analytics_view');
+requirePaymentPermission('payment.analytics');
 
 $paymentDb = $pdo;
 
