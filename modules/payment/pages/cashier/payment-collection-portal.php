@@ -213,8 +213,12 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <span class="fw-bold text-primary" id="lblBillingId">---</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Billing Type & Term:</span>
+                            <span class="text-muted">Billing Type:</span>
                             <span class="fw-bold text-dark" id="lblBillingTerm">---</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Academic Year / Semester:</span>
+                            <span class="fw-bold text-dark text-end" id="lblAcademicTerm">---</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Total Assessment:</span>
@@ -227,7 +231,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
                         <!-- Unpaid Fees Breakdown Container -->
                         <div id="unpaidFeesContainer" class="d-none mt-2">
-                            <h6 class="text-muted fw-bolder small text-uppercase mb-3 mt-3"><i class="ti ti-list-ul me-2"></i>Unpaid Fees Breakdown</h6>
+                            <h6 class="text-muted fw-bolder small text-uppercase mb-3 mt-3"><i class="ti ti-list-ul me-2"></i>Unpaid Fees by Category</h6>
                             <div id="unpaidFeesList" class="small">
                                 <!-- Dynamic breakdown will be injected here by JS -->
                             </div>
@@ -243,7 +247,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3"><i class="ti ti-cash text-success me-2"></i>2. Receive Payment & Issue OR</h5>
                     
-                    <form action="" method="POST" id="paymentForm">
+                    <form action="" method="POST" id="paymentForm" data-cashier-name="<?= htmlspecialchars(getCurrentUserName(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="process_payment" value="1">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="billing_id" id="inputBillingId">
@@ -324,6 +328,15 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
+<div class="modal fade" id="paymentReviewModal" tabindex="-1" aria-labelledby="paymentReviewTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow">
+    <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="paymentReviewTitle"><i class="ti ti-receipt me-2"></i>Review Cash Payment</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><p class="text-muted small">Confirm the cash payment before it is posted. The server performs the final validation and allocation.</p>
+      <dl class="row mb-0"><dt class="col-5">Student</dt><dd class="col-7" id="reviewStudent">—</dd><dt class="col-5">Billing / Category</dt><dd class="col-7" id="reviewContext">—</dd><dt class="col-5">Current balance</dt><dd class="col-7" id="reviewBalance">—</dd><dt class="col-5">Amount applied</dt><dd class="col-7 fw-bold" id="reviewAmount">—</dd><dt class="col-5">Cash received</dt><dd class="col-7" id="reviewCash">—</dd><dt class="col-5">Change</dt><dd class="col-7" id="reviewChange">—</dd><dt class="col-5">Processed by</dt><dd class="col-7" id="reviewCashier">—</dd></dl>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Back</button><button type="button" class="btn btn-success" id="btnConfirmPayment"><i class="ti ti-check me-1"></i>Confirm & Process Payment</button></div>
+  </div></div>
+</div>
 <!-- Dinagdagan ng ?v=time() para laging fresh ang basahin ng browser na JavaScript file -->
 <script src="../../assets/js/payment-collection.js?v=<?= time() ?>"></script>
 <script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js"></script>
