@@ -5,6 +5,14 @@
 $pageTitle    = 'Dashboard';
 $activeModule = 'dashboard';
 $breadcrumbs  = [];
+// Preflight before layout output: only Accounting Officer enters the protected
+// Accounting financial dashboard. Legacy Finance remains Payment Admin scoped.
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/authentication.php';
+$dashboardRoleKey = getCurrentUserRoleKey();
+if ($dashboardRoleKey === 'accounting_officer') {
+    requirePaymentPermission('payment.analytics');
+}
 
 require_once __DIR__ . '/../includes/breadcrumbs.php';
 require_once __DIR__ . '/../includes/layout-start.php';
@@ -532,10 +540,6 @@ if ($roleKey === 'admin') {
 } elseif ($roleKey === 'cashier') {
     require_once __DIR__ . '/../modules/payment/pages/cashier/dashboard.php';
 } elseif ($roleKey === 'accounting_officer') {
-    require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
-    require_once __DIR__ . '/../includes/layout-end.php';
-    return;
-} elseif ($roleKey === 'finance') {
     require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
     require_once __DIR__ . '/../includes/layout-end.php';
     return;
