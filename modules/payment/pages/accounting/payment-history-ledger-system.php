@@ -132,7 +132,7 @@ $queryBase = array_filter([
 });
 
 $exportQuery = http_build_query(array_merge($queryBase, ['sort' => $sort, 'dir' => $dir]));
-$exportUrl = BASE_URL . '/modules/payment/api/export-history.php' . ($exportQuery !== '' ? '?' . $exportQuery : '');
+$exportUrl = BASE_URL . '/modules/payment/api/' . ($cashierHistoryMode ? 'export-cashier-history.php' : 'export-history.php') . ($exportQuery !== '' ? '?' . $exportQuery : '');
 
 $pageTitle    = $cashierHistoryMode ? 'My Walk-in Transactions' : 'Payment History & Ledger System';
 $activeModule = 'payment';
@@ -159,7 +159,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
         <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
             <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-outline-primary fw-bold shadow-sm" id="btnExportHistory">
-                <i class="fas fa-file-csv me-1"></i> Export CSV
+                <i class="fas fa-file-excel me-1"></i> Export Excel
             </a>
         </div>
     </div>
@@ -224,6 +224,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                         <option value="today" <?= ($filters['date_range'] ?? '') === 'today' ? 'selected' : '' ?>>Today</option>
                         <option value="week" <?= ($filters['date_range'] ?? '') === 'week' ? 'selected' : '' ?>>This Week</option>
                         <option value="month" <?= ($filters['date_range'] ?? '') === 'month' ? 'selected' : '' ?>>This Month</option>
+                        <option value="year" <?= ($filters['date_range'] ?? '') === 'year' ? 'selected' : '' ?>>This Year</option>
                     </select>
                 </div>
                 <div class="col-sm-6 col-lg-2">
@@ -372,6 +373,9 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <small class="text-muted"><?= !empty($pay['created_at']) ? date('h:i A', strtotime($pay['created_at'])) : '' ?></small>
                                     </td>
                                     <td class="text-end pe-4">
+                                        <?php if ($cashierHistoryMode && ($pay['transaction_type'] ?? '') === 'Walk-in' && strtolower((string) ($pay['payment_channel'] ?? '')) === 'cash' && ($pay['payment_status'] ?? '') === 'Verified'): ?>
+                                            <a class="btn btn-sm btn-light text-success border shadow-sm text-nowrap" target="_blank" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?payment_id=' . (int) $pay['payment_id']) ?>"><i class="ti ti-printer me-1"></i>Receipt</a>
+                                        <?php endif; ?>
                                         <button type="button"
                                             class="btn btn-sm btn-light text-primary border shadow-sm js-view-ledger text-nowrap"
                                             data-ledger="<?= htmlspecialchars(json_encode($modalPayload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES) ?>">

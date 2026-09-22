@@ -37,6 +37,7 @@ if (!$studentId) {
 }
 
 $paymentTransactions = [];
+$schoolSales = [];
 
 try {
     if (isset($pdo) && $pdo instanceof PDO) {
@@ -54,6 +55,9 @@ try {
         ");
         $stmtPayments->execute([':student_number' => $studentId]);
         $paymentTransactions = $stmtPayments->fetchAll(PDO::FETCH_ASSOC);
+        $stmtSales = $pdo->prepare("SELECT cs.cash_sale_id, cs.receipt_number, cs.total_amount, cs.cash_received, cs.change_amount, cs.sold_at, cs.sale_status, GROUP_CONCAT(CONCAT(csi.item_name_snapshot, ' x', csi.quantity) ORDER BY csi.cash_sale_line_id SEPARATOR ', ') AS items FROM cash_sales cs JOIN cash_sale_items csi ON csi.cash_sale_id = cs.cash_sale_id JOIN students s ON s.student_id = cs.student_id WHERE s.student_number = :student_number GROUP BY cs.cash_sale_id ORDER BY cs.sold_at DESC");
+        $stmtSales->execute([':student_number' => $studentId]);
+        $schoolSales = $stmtSales->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
     // Silently handle errors
@@ -174,9 +178,11 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                     </td>
                                     <td class="py-3 text-end pe-2">
                                         <?php if ($txn['payment_status'] === 'Verified'): ?>
-                                            <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Download Receipt">
-                                                <i class="ti ti-download"></i>
-                                            </button>
+                                            <?php if (($txn['transaction_type'] ?? '') === 'Walk-in' && strtolower((string)($txn['payment_channel'] ?? '')) === 'cash'): ?>
+                                                <a class="btn btn-sm btn-light border text-primary shadow-sm" target="_blank" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?payment_id=' . (int)$txn['payment_id']) ?>" title="Print Student Copy"><i class="ti ti-printer"></i></a>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Payment posted"><i class="ti ti-circle-check"></i></button>
+                                            <?php endif; ?>
                                         <?php elseif ($txn['payment_status'] === 'Pending'): ?>
                                             <button
                                                 type="button"
@@ -219,6 +225,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 </div>
             </div>
 
+        </div>
+    </section>
+
+    <section class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-semibold mb-3">School Purchases</h5>
+            <p class="text-muted small">Uniform, books, and other direct cash purchases. These do not change your academic balance.</p>
+            <div class="table-responsive"><table class="table student-table align-middle mb-0"><thead class="border-bottom text-muted" style="font-size:.75rem"><tr><th>DATE</th><th>OR NO.</th><th>ITEMS</th><th class="text-end">TOTAL</th><th>STATUS</th></tr></thead><tbody>
+            <?php if ($schoolSales): foreach ($schoolSales as $sale): ?><tr><td><?= htmlspecialchars(date('M d, Y h:i A', strtotime($sale['sold_at']))) ?></td><td class="fw-semibold"><?= htmlspecialchars($sale['receipt_number']) ?></td><td><?= htmlspecialchars($sale['items']) ?></td><td class="text-end fw-bold">₱ <?= number_format((float)$sale['total_amount'], 2) ?></td><td><span class="badge bg-<?= $sale['sale_status']==='Completed'?'success':'secondary' ?>"><?= htmlspecialchars($sale['sale_status']) ?></span> <?php if($sale['sale_status']==='Completed'): ?><a class="btn btn-sm btn-light border text-primary ms-2" target="_blank" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?cash_sale_id=' . (int)$sale['cash_sale_id']) ?>"><i class="ti ti-printer"></i></a><?php endif;?></td></tr><?php endforeach; else: ?><tr><td colspan="5" class="text-center text-muted py-4">No school purchases yet.</td></tr><?php endif; ?>
+            </tbody></table></div>
         </div>
     </section>
 

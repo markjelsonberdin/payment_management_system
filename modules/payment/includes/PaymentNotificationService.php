@@ -27,4 +27,24 @@ final class PaymentNotificationService
             error_log('Student payment notification failed: ' . $e->getMessage());
         }
     }
+
+    public function notifySchoolSale(int $studentId, int $saleId, float $amount, string $reference): void
+    {
+        try {
+            $student = $this->pdo->prepare('SELECT user_id FROM students WHERE student_id = ? LIMIT 1');
+            $student->execute([$studentId]);
+            $userId = (int) $student->fetchColumn();
+            if ($userId <= 0 || $saleId <= 0) return;
+            $notice = $this->pdo->prepare('INSERT IGNORE INTO payment_notifications (recipient_user_id, event_key, title, body, target_url) VALUES (?, ?, ?, ?, ?)');
+            $notice->execute([
+                $userId,
+                'school-sale:' . $saleId,
+                'School Purchase Posted',
+                sprintf('Your cash school purchase of PHP %s was successfully posted. Official Receipt: %s.', number_format($amount, 2), $reference),
+                '/modules/student-portal/pages/statement-of-account.php',
+            ]);
+        } catch (Throwable $e) {
+            error_log('Student school-sale notification failed: ' . $e->getMessage());
+        }
+    }
 }

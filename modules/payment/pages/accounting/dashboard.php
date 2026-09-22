@@ -1,6 +1,6 @@
 <?php
 /**
- * Finance Dashboard
+ * Payment Dashboard
  * Live metrics and charts using data from payment_db
  */
 if (!isset($MODULES)) {
@@ -8,12 +8,12 @@ if (!isset($MODULES)) {
 }
 require_once ROOT_PATH . '/includes/authentication.php';
 requireAuth();
-// Finance owns the dashboard; Accounting's analytics page stays separate.
-requirePaymentPermission('payment.collection_analytics_view');
+// Shared payment reporting dashboard; Accounting's operational analytics stay separate.
+requirePaymentPermission('payment.analytics');
 
-$pageTitle = 'Finance Dashboard';
+$pageTitle = 'Financial Monitoring Dashboard';
 $activeModule = 'payment';
-$activePage = 'admin/dashboard';
+$activePage = 'accounting/dashboard';
 $breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Dashboard', 'url' => null]
@@ -27,8 +27,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="h3 mb-1 text-gray-800">Finance Dashboard</h2>
-        <p class="text-muted mb-0">Real-time payment analytics and collection tracking.</p>
+        <h2 class="h3 mb-1 text-gray-800">Payment Dashboard</h2>
+        <p class="text-muted mb-0">Academic receivables, collections, balances, and payment-channel monitoring. Direct school sales are excluded.</p>
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-sms-primary shadow-sm fw-bold px-4" onclick="fetchDashboardData()">
@@ -200,4 +200,4 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <script>
     const API_URL = '<?= BASE_URL ?>/modules/payment/api/dashboard-data.php';
 </script>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/finance-dashboard.js"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-dashboard.js"></script>

@@ -12,7 +12,7 @@ requirePaymentPermission('payment.user_management');
 
 $pageTitle = 'Payment Staff Accounts';
 $activeModule = 'payment';
-$activePage = 'admin/payment-users';
+$activePage = 'payment_admin/payment-users';
 $breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Admin Portal', 'url' => null],

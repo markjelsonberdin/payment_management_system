@@ -254,7 +254,7 @@ try {
 
 $pageTitle    = 'Fee Setup & Configuration';
 $activeModule = 'payment';
-$activePage   = 'fee-setup-configuration';
+$activePage   = 'accounting/fee-setup-configuration';
 $breadcrumbs  = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Fee Setup & Configuration', 'url' => null],

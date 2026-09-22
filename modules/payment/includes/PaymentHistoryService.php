@@ -11,7 +11,7 @@ class PaymentHistoryService {
 
     public const STATUSES = ['Pending', 'Verified', 'Rejected', 'Failed', 'Cancelled', 'Expired'];
     public const CHANNELS = ['Cash', 'GCash', 'Maya', 'Visa', 'Mastercard', 'Bank', 'PayMongo', 'QRPh'];
-    public const DATE_RANGES = ['today', 'week', 'month'];
+    public const DATE_RANGES = ['today', 'week', 'month', 'year'];
 
     private const SORT_COLUMNS = [
         'date' => 'p.created_at',
@@ -33,7 +33,13 @@ class PaymentHistoryService {
      */
     public function getPaymentSummary() {
         $official = PaymentReportingScope::officialCondition();
-        $where = $this->walkInCashierId !== null ? "WHERE transaction_type = 'Walk-in' AND verified_by = :cashier_id" : '';
+        $whereParts = [];
+        $summaryParams = [];
+        if ($this->walkInCashierId !== null) {
+            $whereParts[] = "transaction_type = 'Walk-in' AND verified_by = :cashier_id";
+            $summaryParams[':cashier_id'] = $this->walkInCashierId;
+        }
+        $where = $whereParts ? 'WHERE ' . implode(' AND ', $whereParts) : '';
         $stmt = $this->pdo->prepare("
             SELECT
                 COALESCE(SUM(CASE WHEN {$official} THEN amount ELSE 0 END), 0) AS total_collections,
@@ -42,7 +48,7 @@ class PaymentHistoryService {
                 COALESCE(SUM(CASE WHEN {$official} AND payment_date = CURDATE() THEN amount ELSE 0 END), 0) AS today_collections
             FROM payments {$where}
         ");
-        $stmt->execute($this->walkInCashierId !== null ? [':cashier_id' => $this->walkInCashierId] : []);
+        $stmt->execute($summaryParams);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
             'total_collections' => 0,
             'total_transactions' => 0,
@@ -62,7 +68,7 @@ class PaymentHistoryService {
         // No cross-database joins to sms2_db.users to prevent schema coupling issues.
         $query = "
             SELECT
-                p.payment_id, p.reference_number, p.amount, p.processing_fee, p.checkout_total, p.category_id, p.checkout_session_id, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel,
+                p.payment_id, p.reference_number, p.receipt_number, p.amount, p.processing_fee, p.checkout_total, p.category_id, p.checkout_session_id, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel, p.transaction_type,
                 s.student_number, s.full_name, s.course,
                 b.total_amount, b.remaining_balance, b.billing_status
             FROM payments p
@@ -92,6 +98,7 @@ class PaymentHistoryService {
         $channel = (string) ($filters['channel'] ?? '');
         $dateRange = (string) ($filters['date_range'] ?? '');
         $processedBy = trim((string) ($filters['processed_by'] ?? ''));
+        $categoryId = trim((string) ($filters['category_id'] ?? ''));
 
         return [
             'search' => trim((string) ($filters['search'] ?? '')),
@@ -99,6 +106,7 @@ class PaymentHistoryService {
             'channel' => in_array($channel, self::CHANNELS, true) ? $channel : '',
             'date_range' => in_array($dateRange, self::DATE_RANGES, true) ? $dateRange : '',
             'processed_by' => ($processedBy !== '' && ctype_digit($processedBy)) ? $processedBy : '',
+            'category_id' => ($categoryId !== '' && ctype_digit($categoryId)) ? $categoryId : '',
         ];
     }
 
@@ -323,11 +331,18 @@ class PaymentHistoryService {
             $where[] = 'p.payment_date <= CURDATE()';
         } elseif ($filters['date_range'] === 'month') {
             $where[] = 'YEAR(p.payment_date) = YEAR(CURDATE()) AND MONTH(p.payment_date) = MONTH(CURDATE())';
+        } elseif ($filters['date_range'] === 'year') {
+            $where[] = 'YEAR(p.payment_date) = YEAR(CURDATE())';
         }
 
         if ($filters['processed_by'] !== '') {
             $where[] = 'p.verified_by = :processed_by';
             $params[':processed_by'] = (int) $filters['processed_by'];
+        }
+
+        if ($filters['category_id'] !== '') {
+            $where[] = 'EXISTS (SELECT 1 FROM payment_allocations pa2 JOIN billing_items bi2 ON bi2.billing_item_id = pa2.billing_item_id JOIN fees f2 ON f2.fee_id = bi2.fee_id WHERE pa2.payment_id = p.payment_id AND f2.category_id = :category_id)';
+            $params[':category_id'] = (int) $filters['category_id'];
         }
 
         return [implode(' AND ', $where), $params];

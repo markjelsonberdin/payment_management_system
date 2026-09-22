@@ -186,7 +186,7 @@ function smsDefaultModulesForRole(string $roleKey): array
         'research_office' => ['crad'],
         'research_grant' => ['crad_grant'],
         'review_committee' => ['crad_grant'],
-        'finance'      => ['payment'],
+        'payment_admin'      => ['payment'],
         'accounting_officer' => ['payment'],
         'hr'           => ['faculty'],
         'adviser'      => ['faculty'],
@@ -302,10 +302,10 @@ function userCanAccessModule(string $moduleKey): bool
     if (str_starts_with($moduleKey, 'payment.') && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey)) {
         return false;
     }
-    // The global payment dashboard is intentionally shared by Finance,
+    // The global payment dashboard is intentionally shared by Payment Admin,
     // Accounting Officer, and Cashier even when legacy DB grants omit it.
     if ($moduleKey === 'payment.collection_analytics_view'
-        && in_array(smsNormalizeRoleKey(getCurrentUserRoleKey()), ['finance', 'accounting_officer', 'cashier', 'superadmin'], true)) {
+        && in_array(smsNormalizeRoleKey(getCurrentUserRoleKey()), ['payment_admin', 'finance', 'accounting_officer', 'cashier', 'superadmin'], true)) {
         return true;
     }
 
@@ -1655,11 +1655,11 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
 {
     $role = smsNormalizeRoleKey($role);
     $accountingPermissions = [
-        'payment.billing', 'payment.discount', 'payment.ledger',
-        'payment.analytics', 'payment.concern_review',
+        'payment.fee_setup', 'payment.billing',
+        'payment.discount', 'payment.ledger', 'payment.analytics', 'payment.concern_review',
     ];
     $adminPermissions = [
-        'payment.fee_setup', 'payment.online_payment_config',
+        'payment.online_payment_config', 'payment.school_sales_catalog',
         'payment.user_management', 'payment.transaction_history_view',
         'payment.collection_analytics_view',
     ];
@@ -1674,10 +1674,10 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
             return in_array($role, ['superadmin'], true);
         }
         if ($permission === 'payment.collection_analytics_view') {
-            return in_array($role, ['finance', 'accounting_officer', 'cashier', 'superadmin'], true);
+            return in_array($role, ['payment_admin', 'finance', 'accounting_officer', 'cashier', 'superadmin'], true);
         }
-        return in_array($role, ['finance', 'superadmin'], true);
-    } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history') {
+        return in_array($role, ['payment_admin', 'finance', 'superadmin'], true);
+    } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history' || $permission === 'payment.school_sales' || $permission === 'payment.cashier_dashboard') {
         return in_array($role, ['cashier', 'superadmin'], true);
     }
     return true;
