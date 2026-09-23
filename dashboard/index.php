@@ -9,9 +9,18 @@ $breadcrumbs  = [];
 // Accounting financial dashboard. Legacy Finance remains Payment Admin scoped.
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/authentication.php';
+requireAuth();
+
 $dashboardRoleKey = getCurrentUserRoleKey();
-if ($dashboardRoleKey === 'accounting_officer') {
-    requirePaymentPermission('payment.analytics');
+$paymentDashboardRoutes = [
+    'accounting_officer' => '/modules/payment/pages/accounting/dashboard.php',
+    'payment_admin' => '/modules/payment/pages/payment_admin/dashboard.php',
+    'finance' => '/modules/payment/pages/payment_admin/dashboard.php',
+    'cashier' => '/modules/payment/pages/cashier/dashboard.php',
+];
+if (isset($paymentDashboardRoutes[$dashboardRoleKey])) {
+    header('Location: ' . BASE_URL . $paymentDashboardRoutes[$dashboardRoleKey]);
+    exit;
 }
 
 require_once __DIR__ . '/../includes/breadcrumbs.php';
@@ -537,16 +546,6 @@ if ($roleKey === 'admin') {
         ['icon'=>'fa-folder-open',   'label'=>'Document Requests',   'value'=>'28',    'type'=>'info',    'delta'=>'+9.2%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last week'],
         ['icon'=>'fa-check-circle',  'label'=>'Enrolled This Term',  'value'=>'1,204', 'type'=>'success', 'delta'=>'+6.1%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last term'],
     ];
-} elseif ($roleKey === 'cashier') {
-    require_once __DIR__ . '/../modules/payment/pages/cashier/dashboard.php';
-} elseif ($roleKey === 'accounting_officer') {
-    require_once __DIR__ . '/../modules/payment/pages/accounting/dashboard.php';
-    require_once __DIR__ . '/../includes/layout-end.php';
-    return;
-} elseif (in_array($roleKey, ['payment_admin', 'finance'], true)) {
-    require_once __DIR__ . '/../modules/payment/pages/payment_admin/dashboard.php';
-    require_once __DIR__ . '/../includes/layout-end.php';
-    return;
 } elseif ($roleKey === 'hr') {
     $statCards = [
         ['icon'=>'fa-chalkboard-teacher', 'label'=>'Total Faculty',          'value'=>'102', 'type'=>'primary', 'delta'=>'+1.0%', 'deltaDir'=>'up',   'deltaLabel'=>'vs last month'],

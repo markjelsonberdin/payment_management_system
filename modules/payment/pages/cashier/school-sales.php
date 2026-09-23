@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_sale'])) {
         $result = (new CashSaleService($pdo))->create((int) $_POST['student_id'], $cashierId, $items, (float) $_POST['cash_received'], trim((string) ($_POST['remarks'] ?? '')));
         (new PaymentNotificationService($pdo))->notifySchoolSale((int) $_POST['student_id'], $result['cash_sale_id'], $result['total'], $result['receipt_number']);
         logActivity('process_cash_school_sale', 'Processed school sale of PHP ' . number_format($result['total'], 2) . ' with OR ' . $result['receipt_number'], 'payment', $cashierId);
-        header('Location: school-sales.php?success=1&or=' . urlencode($result['receipt_number']) . '&cash_sale_id=' . (int) $result['cash_sale_id']); exit;
+        header('Location: print-receipt.php?cash_sale_id=' . (int) $result['cash_sale_id'] . '&autoprint=1'); exit;
     } catch (Throwable $e) {
         header('Location: school-sales.php?error=' . urlencode($e->getMessage())); exit;
     }
@@ -47,5 +47,6 @@ const findBtn=document.getElementById('findSaleStudent'), studentInput=document.
 findBtn.onclick=async()=>{const n=studentInput.value.trim(); const r=await fetch('../../api/fetch_cash_sale_student.php?student_number='+encodeURIComponent(n)); const d=await r.json(); if(!d.success){alert(d.message);return;} studentId.value=d.student_id; studentName.textContent=d.name+' ('+d.student_number+')'; studentMeta.textContent=d.course_year; studentInfo.classList.remove('d-none'); calc();};
 function calc(){let total=0, items=[];document.querySelectorAll('.sale-quantity').forEach(i=>{const q=parseInt(i.value)||0;if(q>0){total+=q*parseFloat(i.dataset.price);items.push({sale_item_id:i.dataset.id,quantity:q});}});saleTotal.value=total.toFixed(2); saleItems.value=JSON.stringify(items);const cash=parseFloat(saleCash.value)||0;saleChange.value=Math.max(0,cash-total).toFixed(2);completeSale.disabled=!(studentId.value&&items.length&&cash>=total)}
 document.querySelectorAll('.sale-quantity').forEach(i=>i.oninput=calc); saleCash.oninput=calc;
+const prefillStudent=new URLSearchParams(window.location.search).get('student_number'); if(prefillStudent){studentInput.value=prefillStudent; findBtn.click();}
 </script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

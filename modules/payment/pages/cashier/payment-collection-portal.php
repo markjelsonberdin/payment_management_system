@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             (int) $cashier_id
         );
 
-        header("Location: payment-collection-portal.php?success=1&or=" . urlencode($reference_number) . '&payment_id=' . (int) $payment_id);
+        header("Location: print-receipt.php?payment_id=" . (int) $payment_id . "&autoprint=1");
         exit();
 
     } catch (Exception $e) {

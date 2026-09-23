@@ -5,7 +5,6 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
-require_once __DIR__ . '/../../database/db_connect.php';
 
 header('Content-Type: application/json');
 
@@ -16,6 +15,7 @@ if (!isAuthenticated()) {
     exit;
 }
 requirePaymentPermission('payment.online_payment_config');
+require_once __DIR__ . '/../../database/db_connect.php';
 
 // 2. Cache Check (if not manually forced)
 if (session_status() === PHP_SESSION_NONE) {
@@ -34,6 +34,7 @@ if (!$forceRefresh && isset($_SESSION['paymongo_status_cache'])) {
 // 3. Load Configurations securely via the new env loader inside paymongo.php
 $paymongoConfig = require __DIR__ . '/../../config/paymongo.php';
 require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 $mode = $paymongoConfig['env']; // 'test' or 'live'
 $isLive = ($mode === 'live');
@@ -122,7 +123,7 @@ if (!empty($secretKey)) {
             $response['api']['message'] = 'Authentication Failed: Invalid Secret Key.';
         } else {
             $response['api']['status'] = 'unavailable';
-            $response['api']['message'] = 'API Error: ' . $msg;
+            $response['api']['message'] = 'Provider status check failed. Verify server connectivity and configuration.';
         }
     }
 }
@@ -165,6 +166,51 @@ if ($mode === 'test') {
             $response['gateway']['message'] = 'Live environment is missing required configuration.';
         }
     }
+}
+
+// Safe channel-readiness summary for authorized payment administrators.
+// Do not expose PayMongo capabilities payloads, credentials, or raw errors.
+$response['channels'] = ['status' => 'not_checked', 'items' => []];
+try {
+    $channelService = new PaymentChannelService($pdo);
+    $adminSettings = $channelService->getAdminSettings($mode);
+    $providerStatuses = null;
+    if ($mode === 'test' && $apiOk) {
+        $providerStatuses = [];
+        foreach (['gcash', 'maya', 'card', 'qrph'] as $code) {
+            $providerStatuses[$code] = ['provider_active' => true];
+        }
+    } elseif ($apiOk && isset($service)) {
+        $capabilities = $service->getMerchantCapabilities();
+        // PayMongoService returns an empty array both for an empty capability
+        // response and for a suppressed request failure; stay conservative.
+        if ($capabilities !== []) {
+            $providerStatuses = [];
+            foreach (['gcash' => 'gcash', 'maya' => 'maya', 'card' => 'card', 'qrph' => 'qrph'] as $code => $providerCode) {
+                $providerStatuses[$code] = ['provider_active' => ($capabilities[$providerCode] ?? null) === 'active'];
+            }
+        }
+    }
+    if ($providerStatuses !== null) {
+        $items = [];
+        foreach (['gcash' => 'GCash', 'maya' => 'Maya', 'card' => 'Card', 'qrph' => 'QRPh'] as $code => $label) {
+            $policyAllowed = $mode !== 'live' || $code === 'qrph';
+            $providerActive = !empty($providerStatuses[$code]['provider_active']);
+            $configured = !empty($adminSettings[$code]);
+            $items[] = [
+                'code' => $code,
+                'name' => $label,
+                'configured' => $configured,
+                'provider_active' => $providerActive,
+                'policy_allowed' => $policyAllowed,
+                'available_to_students' => $configured && $providerActive && $policyAllowed,
+            ];
+        }
+        $response['channels'] = ['status' => 'ok', 'items' => $items];
+    }
+} catch (Throwable $e) {
+    error_log('PayMongo channel readiness check: ' . $e->getMessage());
+    $response['channels'] = ['status' => 'error', 'items' => []];
 }
 
 // Save to Cache
