@@ -58,7 +58,7 @@ try {
             LEFT JOIN fee_categories fc ON fc.category_id=f.category_id
             GROUP BY pa.payment_id
         ) aa ON aa.payment_id=p.payment_id
-        WHERE p.transaction_type='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official}
+        WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official}
         UNION ALL
         SELECT 'School Sale', cs.cash_sale_id, cs.receipt_number, cs.receipt_number,
             s.student_number, s.full_name, cs.total_amount, cs.sold_at,
