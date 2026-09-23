@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const btnProcess = document.getElementById('btnProcessPayment');
 
     let activeBalance = 0;
+    const prefillStudent = new URLSearchParams(window.location.search).get('student_number');
 
     btnSearch.addEventListener('click', function () {
         let sn = searchInput.value.trim();
@@ -151,7 +152,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (inputCashReceived) {
         inputCashReceived.addEventListener('input', validateAndCompute);
     }
-});
+    if (prefillStudent) {
+        searchInput.value = prefillStudent;
+        btnSearch.click();
+    }
 
     // The browser only presents a review; PHP remains authoritative for validation and allocation.
     const paymentForm = document.getElementById('paymentForm');
@@ -187,3 +191,4 @@ document.addEventListener("DOMContentLoaded", function () {
             if (paymentForm.dataset.confirmed !== '1') confirmPaymentButton.disabled = false;
         });
     }
+});

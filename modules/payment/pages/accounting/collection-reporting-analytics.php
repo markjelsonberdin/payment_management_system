@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__.'/collection-reporting-integrated.php';
+return;
 /**
  * SMS 2 - Collection Reporting & Analytics
  * Module: Payment Management
