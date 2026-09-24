@@ -6,11 +6,6 @@
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/security.php';
-require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
-require_once __DIR__ . '/../../includes/PaymentValidationService.php';
-require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
-require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
@@ -18,6 +13,12 @@ header('Content-Type: application/json');
 if (!isAuthenticated()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'AUTHENTICATION_REQUIRED']);
+    exit;
+}
+
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PORTAL_ACCESS_REQUIRED']);
     exit;
 }
 
@@ -32,6 +33,12 @@ $input = json_decode(file_get_contents('php://input'), true);
 // 1.5 CSRF Validation
 requireCsrfJson($input);
 
+require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
+require_once __DIR__ . '/../../includes/PaymentValidationService.php';
+require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
+
 // 1.6 Rate Limiting (5 requests per minute)
 require_once __DIR__ . '/../../includes/PaymentRateLimiter.php';
 $throttleKey = 'checkout:user:' . (getCurrentUserId() ?? 'anon');
@@ -41,7 +48,8 @@ if (!PaymentRateLimiter::throttle($throttleKey, 5, 60)) {
     exit;
 }
 
-$studentId = $input['student_id'] ?? null;
+$submittedStudentId = $input['student_id'] ?? null;
+$studentId = null;
 $billingId = $input['billing_id'] ?? null;
 $categoryId = $input['category_id'] ?? null;
 $amount = $input['amount'] ?? 0;
@@ -49,62 +57,23 @@ $channel = $input['channel'] ?? '';
 $allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
 $billingItemId = $input['billing_item_id'] ?? null;
 
-// Resolve the external student number or numeric ID to the authoritative
-// payment-db students.student_id before validation and payment creation.
-$submittedStudentId = $studentId;
-if ($submittedStudentId !== null && $submittedStudentId !== '') {
-    $stmtStudent = $pdo->prepare(
-        "SELECT student_id, student_number, user_id
-         FROM students
-         WHERE student_id = :numeric_id
-            OR LOWER(student_number) = LOWER(:student_number)
-         LIMIT 1"
-    );
-    $stmtStudent->execute([
-        ':numeric_id' => (string) $submittedStudentId,
-        ':student_number' => (string) $submittedStudentId,
-    ]);
-    $resolvedStudent = $stmtStudent->fetch(PDO::FETCH_ASSOC);
-    if ($resolvedStudent) {
-        $studentId = (int) $resolvedStudent['student_id'];
-    }
+// Resolve the student only from the authenticated user; request data is never
+// authoritative for who owns the checkout.
+$stmtStudent = $pdo->prepare('SELECT student_id, student_number FROM students WHERE user_id = :user_id LIMIT 1');
+$stmtStudent->execute([':user_id' => (int) getCurrentUserId()]);
+$studentRow = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+if (!$studentRow) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PROFILE_NOT_FOUND']);
+    exit;
 }
-
-// Object-Level Authorization: Students can only checkout for themselves
-if (getCurrentUserRoleKey() === 'student') {
-    $sessionStudentId = $_SESSION['student_id'] ?? null;
-    $isAuthorized = false;
-
-    $resolvedStudentNumber = $resolvedStudent['student_number'] ?? null;
-
-    // Match the canonical student number from the payment database.
-    if (!empty($sessionStudentId) && (
-        strcasecmp((string) $sessionStudentId, (string) $resolvedStudentNumber) === 0
-        || (string) $sessionStudentId === (string) $studentId
-    )) {
-        $isAuthorized = true;
-    }
-    
-    // Older payment schemas also map users through students.user_id.
-    if (!$isAuthorized) {
-        $hasUserIdColumn = (bool) $pdo->query("SHOW COLUMNS FROM students LIKE 'user_id'")->fetch(PDO::FETCH_ASSOC);
-        if ($hasUserIdColumn) {
-            $stmtCheck = $pdo->prepare("SELECT student_id, student_number FROM students WHERE user_id = ? LIMIT 1");
-            $stmtCheck->execute([getCurrentUserId()]);
-            $studentRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-
-            if ($studentRow && ((string)$studentRow['student_id'] === (string)$studentId || strcasecmp((string)$studentRow['student_number'], (string)$resolvedStudentNumber) === 0)) {
-                $isAuthorized = true;
-            }
-        }
-    }
-    
-    // Fallback for local testing
-    if (!$isAuthorized) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'Unauthorized object access.']);
-        exit;
-    }
+$studentId = (int) $studentRow['student_id'];
+if ($submittedStudentId !== null && $submittedStudentId !== ''
+    && (string) $submittedStudentId !== (string) $studentId
+    && strcasecmp((string) $submittedStudentId, (string) $studentRow['student_number']) !== 0) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'FORBIDDEN']);
+    exit;
 }
 
 // Normalize target_id to billing_item_id to prevent confusion
@@ -152,7 +121,10 @@ try {
     $validation = $validationService->validatePaymentRequest($studentId, $billingId, $amount, $channel, $allocationContext, $billingItemId);
 
     if (!$validation['valid']) {
-        throw new Exception($validation['error']);
+        $pdo->rollBack();
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'PAYMENT_VALIDATION_FAILED', 'message' => $validation['error']]);
+        exit;
     }
 
     // 2.5. Backend Enforcement: Verify channel is actually available
@@ -272,8 +244,11 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    error_log('PayMongo checkout creation failed.');
+    http_response_code(502);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'CHECKOUT_CREATION_FAILED',
+        'message' => 'Unable to create the payment session right now. Please try again.'
     ]);
 }

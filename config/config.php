@@ -302,21 +302,21 @@ $MODULES = [
         ],
         'pages' => [
             // Accounting / Cashier Pages
-            ['slug' => 'accounting/dashboard', 'title' => 'Financial Monitoring Dashboard', 'permission' => 'payment.analytics'],
+            ['slug' => 'accounting/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.analytics'],
             ['slug' => 'accounting/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
             ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'payment.billing'],
             ['slug' => 'cashier/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
-            ['slug' => 'cashier/dashboard', 'title' => 'Cashier Dashboard', 'permission' => 'payment.cashier_dashboard'],
+            ['slug' => 'cashier/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.cashier_dashboard'],
             ['slug' => 'cashier/school-sales', 'title' => 'School Sales', 'permission' => 'payment.school_sales'],
             ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'payment.discount'],
             ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'payment.ledger'],
             ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.analytics'],
             ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern_review'],
             ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern_review'],
-            ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'My Walk-in Transactions', 'permission' => 'payment.walkin_history'],
+            ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'Transactions', 'permission' => 'payment.walkin_history'],
             
             // Payment Admin Pages
-            ['slug' => 'payment_admin/dashboard', 'title' => 'Payment Admin Dashboard', 'permission' => 'payment.online_payment_config'],
+            ['slug' => 'payment_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.online_payment_config'],
             ['slug' => 'payment_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
             ['slug' => 'payment_admin/school-sales-catalog', 'title' => 'School Sales Catalog', 'permission' => 'payment.school_sales_catalog'],
             ['slug' => 'payment_admin/payment-users', 'title' => 'Payment Staff Accounts', 'permission' => 'payment.user_management'],

@@ -385,13 +385,16 @@ $researchDirectorNavGroups = [
                             <?php endif; ?>
                         </span>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && $activePage === '') ? 'active' : '' ?>"
-                           href="<?= htmlspecialchars($overviewUrl) ?>">
-                            <i class="fas fa-th-large" aria-hidden="true"></i>
-                            <span>Overview</span>
-                        </a>
-                    </li>
+                    <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'payment_admin', 'finance', 'cashier'], true); ?>
+                    <?php if (!$hasCanonicalPaymentDashboard): ?>
+                        <li class="nav-item">
+                            <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && $activePage === '') ? 'active' : '' ?>"
+                               href="<?= htmlspecialchars($overviewUrl) ?>">
+                                <i class="fas fa-th-large" aria-hidden="true"></i>
+                                <span>Overview</span>
+                            </a>
+                        </li>
+                    <?php endif; ?>
                     <?php
                     // Check if module has grouped sidebar sections
                     $hasGroups = !empty($module['groups']) && is_array($module['groups']);

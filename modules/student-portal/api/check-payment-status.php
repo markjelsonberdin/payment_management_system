@@ -5,7 +5,6 @@
  */
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../includes/authentication.php';
-require_once __DIR__ . '/../../payment/database/db_connect.php';
 
 header('Content-Type: application/json');
 
@@ -15,11 +14,19 @@ if (!isAuthenticated()) {
     exit;
 }
 
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PORTAL_ACCESS_REQUIRED']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     echo json_encode(['success' => false, 'error' => 'Invalid request method']);
     http_response_code(405);
     exit;
 }
+
+require_once __DIR__ . '/../../payment/database/db_connect.php';
 
 $paymentIntentId = $_GET['payment_intent_id'] ?? '';
 $referenceNumber = $_GET['reference_number'] ?? '';

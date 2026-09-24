@@ -6,6 +6,7 @@ if (!function_exists('smsNavPageIcon')) {
     function smsNavPageIcon(string $slug): string
     {
         static $map = [
+            'cashier/walk-in-transaction-history' => 'fa-receipt',
             'user-accounts' => 'fa-user-cog',
             'role-permissions' => 'fa-shield-alt',
             'module-security' => 'fa-lock',

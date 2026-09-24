@@ -5,8 +5,15 @@
  */
 
 require_once __DIR__ . '/../../../config/config.php';
-require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/authentication.php';
+
+requireAuth();
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    exit('Student Portal access required.');
+}
+
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 
 $pageTitle = 'Payment Processing';
@@ -34,11 +41,11 @@ if ($studentId && $referenceNumber) {
                 FROM payments p
                 JOIN students s ON p.student_id = s.student_id
                 LEFT JOIN billing b ON p.billing_id = b.billing_id
-                WHERE p.reference_number = :ref AND s.student_number = :sid
+                WHERE p.reference_number = :ref AND s.user_id = :user_id
             ");
             $stmt->execute([
                 ':ref' => $referenceNumber,
-                ':sid' => $studentId
+                ':user_id' => (int) getCurrentUserId()
             ]);
             
             $paymentData = $stmt->fetch(PDO::FETCH_ASSOC);

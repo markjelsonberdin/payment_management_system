@@ -5,10 +5,6 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
-require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../config/paymongo.php';
-require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
-require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
@@ -18,6 +14,17 @@ if (!isAuthenticated()) {
     http_response_code(401);
     exit;
 }
+if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.online_payment_config')
+    || !userCanAccessModule('payment.online_payment_config')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'FORBIDDEN']);
+    exit;
+}
+
+require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../config/paymongo.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 try {
     // Mode to check (defaults to active gateway_mode, but UI can pass ?mode=test to preview)
@@ -56,7 +63,9 @@ try {
         'channels' => $statuses
     ]);
 
-} catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+} catch (Throwable $e) {
+    error_log('PayMongo channel status lookup failed.');
+    http_response_code(502);
+    echo json_encode(['error' => 'CHANNEL_STATUS_UNAVAILABLE']);
 }
 

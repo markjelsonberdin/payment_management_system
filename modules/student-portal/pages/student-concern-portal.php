@@ -7,10 +7,24 @@
 // 1. Core Configurations & Authentication
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../../payment/database/db_connect.php';
-require_once __DIR__ . '/../../payment/includes/PaymentConcernService.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
+
+requireAuth();
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    exit('Student Portal access required.');
+}
+
+require_once __DIR__ . '/../../payment/database/db_connect.php';
+require_once __DIR__ . '/../../payment/includes/PaymentConcernService.php';
+$studentLookup = $pdo->prepare('SELECT student_number FROM students WHERE user_id = :user_id LIMIT 1');
+$studentLookup->execute([':user_id' => (int) getCurrentUserId()]);
+$studentId = (string) ($studentLookup->fetchColumn() ?: '');
+if ($studentId === '') {
+    http_response_code(403);
+    exit('Student profile is not available.');
+}
 
 // 2. Page Meta Setup
 $pageTitle = 'Payment Concern Portal';
@@ -22,7 +36,6 @@ $breadcrumbs = [
     ['label' => 'Payment Concern Portal', 'url' => null],
 ];
 
-$studentId = $_SESSION['student_id'] ?? 'S230106713';
 $successMsg = '';
 $errorMsg = '';
 
