@@ -6,11 +6,6 @@
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
 require_once __DIR__ . '/../../../../includes/security.php';
-require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
-require_once __DIR__ . '/../../includes/PaymentValidationService.php';
-require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
-require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
@@ -27,6 +22,12 @@ if (!isAuthenticated()) {
     exit;
 }
 
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PORTAL_ACCESS_REQUIRED']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => 'Invalid request method']);
@@ -38,6 +39,12 @@ $input = json_decode(file_get_contents('php://input'), true);
 // 1.5 CSRF Validation
 requireCsrfJson($input);
 
+require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
+require_once __DIR__ . '/../../includes/PaymentValidationService.php';
+require_once __DIR__ . '/../../includes/ConvenienceFeeService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
+
 // 1.6 Rate Limiting (5 requests per minute)
 require_once __DIR__ . '/../../includes/PaymentRateLimiter.php';
 $throttleKey = 'qr_checkout:user:' . (getCurrentUserId() ?? 'anon');
@@ -47,7 +54,8 @@ if (!PaymentRateLimiter::throttle($throttleKey, 5, 60)) {
     exit;
 }
 
-$studentId = $input['student_id'] ?? null;
+$submittedStudentId = $input['student_id'] ?? null;
+$studentId = null;
 $billingId = $input['billing_id'] ?? null;
 $categoryId = $input['category_id'] ?? null;
 $amount = $input['amount'] ?? 0;
@@ -55,61 +63,23 @@ $channel = $input['channel'] ?? '';
 $allocationContext = $input['allocation_context'] ?? 'ENROLLMENT_PRIORITY';
 $billingItemId = $input['billing_item_id'] ?? null;
 
-// Resolve the external student number or numeric ID to the authoritative
-// payment-db students.student_id before validation and payment creation.
-$submittedStudentId = $studentId;
-if ($submittedStudentId !== null && $submittedStudentId !== '') {
-    $stmtStudent = $pdo->prepare(
-        "SELECT student_id, student_number
-         FROM students
-         WHERE student_id = :numeric_id
-            OR LOWER(student_number) = LOWER(:student_number)
-         LIMIT 1"
-    );
-    $stmtStudent->execute([
-        ':numeric_id' => (string) $submittedStudentId,
-        ':student_number' => (string) $submittedStudentId,
-    ]);
-    $resolvedStudent = $stmtStudent->fetch(PDO::FETCH_ASSOC);
-    if ($resolvedStudent) {
-        $studentId = (int) $resolvedStudent['student_id'];
-    }
+// Resolve the student only from the authenticated user; request data is never
+// authoritative for who owns the checkout.
+$stmtStudent = $pdo->prepare('SELECT student_id, student_number FROM students WHERE user_id = :user_id LIMIT 1');
+$stmtStudent->execute([':user_id' => (int) getCurrentUserId()]);
+$studentRow = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+if (!$studentRow) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PROFILE_NOT_FOUND']);
+    exit;
 }
-
-// Object-Level Authorization: Students can only checkout for themselves
-if (getCurrentUserRoleKey() === 'student') {
-    $sessionStudentId = $_SESSION['student_id'] ?? null;
-    $isAuthorized = false;
-
-    $resolvedStudentNumber = $resolvedStudent['student_number'] ?? null;
-
-    // Match the canonical student number from the payment database.
-    if (!empty($sessionStudentId) && (
-        strcasecmp((string) $sessionStudentId, (string) $resolvedStudentNumber) === 0
-        || (string) $sessionStudentId === (string) $studentId
-    )) {
-        $isAuthorized = true;
-    }
-    
-    // Older payment schemas also map users through students.user_id.
-    if (!$isAuthorized) {
-        $hasUserIdColumn = (bool) $pdo->query("SHOW COLUMNS FROM students LIKE 'user_id'")->fetch(PDO::FETCH_ASSOC);
-        if ($hasUserIdColumn) {
-            $stmtCheck = $pdo->prepare("SELECT student_id, student_number FROM students WHERE user_id = ? LIMIT 1");
-            $stmtCheck->execute([getCurrentUserId()]);
-            $studentRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-
-            if ($studentRow && ((string)$studentRow['student_id'] === (string)$studentId || strcasecmp((string)$studentRow['student_number'], (string)$resolvedStudentNumber) === 0)) {
-                $isAuthorized = true;
-            }
-        }
-    }
-    
-    if (!$isAuthorized) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'FORBIDDEN', 'message' => 'You can only process payments for your own account.']);
-        exit;
-    }
+$studentId = (int) $studentRow['student_id'];
+if ($submittedStudentId !== null && $submittedStudentId !== ''
+    && (string) $submittedStudentId !== (string) $studentId
+    && strcasecmp((string) $submittedStudentId, (string) $studentRow['student_number']) !== 0) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'FORBIDDEN']);
+    exit;
 }
 
 // Normalize target_id
@@ -295,31 +265,29 @@ try {
         try {
             $stmtFail = $pdo->prepare("UPDATE payments SET payment_status = 'Failed', remarks = :remarks WHERE payment_id = :payment_id");
             $stmtFail->execute([
-                ':remarks' => 'Error: ' . substr($e->getMessage(), 0, 200),
+                ':remarks' => 'QR payment initialization failed at ' . $providerStage . '.',
                 ':payment_id' => $paymentId
             ]);
         } catch (Throwable $innerE) {
-            error_log("Secondary error while marking payment as failed: " . $innerE->getMessage());
+            error_log('Secondary failure while recording the QR checkout error.');
         }
     }
-    error_log("QR Creation Error [$providerStage]: " . $e->getMessage());
+    error_log("QR payment creation failed at stage [$providerStage].");
     http_response_code(400);
     echo json_encode([
         'success' => false,
         'error' => 'QR_PAYMENT_CREATION_FAILED',
         'message' => 'Unable to create the QR payment right now. Please try again.',
-        'stage' => $providerStage,
-        'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
+        'stage' => $providerStage
     ]);
 }
 } catch (Throwable $e) {
-    error_log('QR Bootstrap Error: ' . $e->getMessage());
+    error_log('QR payment endpoint bootstrap failed.');
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'QR_PAYMENT_BOOTSTRAP_FAILED',
         'message' => 'QR payment endpoint failed before payment initialization.',
-        'stage' => $providerStage,
-        'provider_message' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 240))
+        'stage' => $providerStage
     ]);
 }

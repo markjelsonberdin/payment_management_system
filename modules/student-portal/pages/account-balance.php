@@ -8,15 +8,19 @@
 // Main System Config (para sa ROOT_PATH at BASE_URL)
 require_once __DIR__ . '/../../../config/config.php';
 
-// Use the payment database as the authoritative source for billing data.
-require_once __DIR__ . '/../../payment/database/db_connect.php';
-
 require_once ROOT_PATH . '/includes/authentication.php';
+
+requireAuth();
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    exit('Student Portal access required.');
+}
+
+// Connect to financial data only after Student Portal authorization.
+require_once __DIR__ . '/../../payment/database/db_connect.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentChannelService.php';
 require_once ROOT_PATH . '/modules/payment/includes/ConvenienceFeeService.php';
-
-requireAuth();
 
 if (isset($_GET['process']) && $_GET['process'] === 'soa') {
     header('Location: statement-of-account.php');

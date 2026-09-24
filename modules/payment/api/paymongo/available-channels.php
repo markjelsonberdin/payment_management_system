@@ -6,9 +6,6 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
-require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
-require_once __DIR__ . '/../../includes/PaymentChannelService.php';
 
 header('Content-Type: application/json');
 
@@ -16,6 +13,16 @@ header('Content-Type: application/json');
 if (!isAuthenticated()) {
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     http_response_code(401);
+    exit;
+}
+
+require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/paymongo/PayMongoService.php';
+require_once __DIR__ . '/../../includes/PaymentChannelService.php';
+
+if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'STUDENT_PORTAL_ACCESS_REQUIRED']);
     exit;
 }
 
@@ -52,4 +59,3 @@ try {
     ]);
     http_response_code(500);
 }
-
