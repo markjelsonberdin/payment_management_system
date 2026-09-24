@@ -137,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       if (version !== requestVersion) return;
       if (!response.ok || !data.ok) throw new Error(data.error || 'Dashboard data could not be loaded. Please try again.');
-      window.PaymentReportingPeriodControls?.setAvailableYears(data.filter_options?.report_years || []);
       if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       content.classList.remove('d-none');
       document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
@@ -168,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.className = 'alert ' + (hasPartial ? 'alert-warning' : (data.recent_collections || []).length ? 'alert-success' : 'alert-light');
       state.textContent = hasPartial ? 'Some report sections are currently unavailable.' :
         (data.recent_collections || []).length
-          ? (data.scope?.academic_year || '') + ' · ' + (data.scope?.semester || '') + ' · ' + (data.scope?.period_label || 'Report loaded')
+          ? (data.scope?.academic_year || '') + ' · ' + (data.scope?.semester || '') + ' · Report loaded'
           : 'No transactions found for this period.';
       document.getElementById('integrityAlerts').innerHTML = (data.integrity_warnings || []).map(warning =>
         '<div class="alert alert-warning"><i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>' + esc(warning) + '</div>').join('');

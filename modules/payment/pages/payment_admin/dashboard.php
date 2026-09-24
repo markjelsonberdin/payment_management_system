@@ -18,7 +18,6 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/reporting-period-controls.css">
 <div class="container-fluid py-4" id="paymentAdminDashboard">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <div>
@@ -26,7 +25,6 @@ renderBreadcrumbs($breadcrumbs);
       <p class="text-muted mb-0">Online payment monitoring and status</p>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
-      <?php require __DIR__ . '/../../includes/reporting-period-controls.php'; ?>
       <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
     </div>
   </div>
@@ -66,7 +64,6 @@ renderBreadcrumbs($breadcrumbs);
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
       <div><h2 class="h5 mb-1"><i class="ti ti-list-details text-primary me-2" aria-hidden="true"></i>Recent Online Transactions</h2>
         <p class="small text-muted mb-0">Verified amounts use applied allocations; other statuses show recorded attempt amount.</p></div>
-      <small id="recentScope" class="text-muted"></small>
     </div>
     <div class="table-responsive"><table class="table table-hover align-middle mb-0">
       <thead><tr><th>Date &amp; Time</th><th>Student</th><th>Reference No.</th><th>Channel</th><th class="text-end">Amount</th><th>Status</th><th>Environment</th></tr></thead>
@@ -74,7 +71,6 @@ renderBreadcrumbs($breadcrumbs);
     </table></div>
   </div></div>
 </div>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/reporting-period-controls.js?v=1"></script>
 <script>
 window.PAYMENT_ADMIN_DASHBOARD_API = <?= json_encode(BASE_URL . '/modules/payment/api/payment-admin-dashboard-data.php') ?>;
 window.PAYMENT_ADMIN_GATEWAY_STATUS_API = <?= json_encode(BASE_URL . '/modules/payment/api/paymongo/status.php') ?>;

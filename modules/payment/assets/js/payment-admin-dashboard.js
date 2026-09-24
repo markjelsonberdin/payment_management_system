@@ -187,11 +187,10 @@
     renderStatuses(data);
     renderChannels(data);
     renderRecent(data);
-    byId('recentScope').textContent = data.scope?.period_label || '';
     const hasOptionalErrors = Object.entries(data.section_status || {}).some(([key, value]) => key !== 'kpis' && value === 'error');
     byId('dashboardNotice').className = 'alert ' + (hasOptionalErrors ? 'alert-warning' : 'alert-success');
     byId('dashboardNotice').textContent = hasOptionalErrors ? 'Some dashboard information is temporarily unavailable.' :
-      'Online payment data loaded · ' + (data.scope?.period_label || 'Selected period');
+      'Online payment data loaded';
     byId('adminLastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
   }
 
@@ -202,13 +201,10 @@
     notice.textContent = 'Loading report...';
     try {
       const url = new URL(window.PAYMENT_ADMIN_DASHBOARD_API, location.origin);
-      const period = window.PaymentReportingPeriodControls.selection(document.querySelector('[data-payment-period-controls]'));
-      Object.entries(period).forEach(([key, value]) => { if (value) url.searchParams.set(key, value); });
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       const data = await response.json();
       if (version !== requestVersion) return;
       if (!response.ok || !data.ok) throw new Error(data.message || 'Dashboard data could not be loaded. Please try again.');
-      window.PaymentReportingPeriodControls.setAvailableYears(data.available_period_years || []);
       if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       render(data);
       try {
@@ -241,7 +237,6 @@
     }
   }
 
-  document.addEventListener('payment:period-apply', load);
   byId('refreshDashboard').addEventListener('click', load);
   load();
 })();
