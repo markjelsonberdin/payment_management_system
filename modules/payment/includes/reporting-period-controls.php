@@ -1,5 +1,6 @@
 <?php
-$reportingControlPeriod = in_array(($reportingControlPeriod ?? 'today'), ['today', 'week', 'month', 'year'], true) ? $reportingControlPeriod : 'today';
+$reportingControlPeriod = ($reportingControlPeriod ?? 'today');
+$reportingControlPeriod = in_array($reportingControlPeriod, ['today', 'week', 'month', 'year'], true) ? $reportingControlPeriod : 'today';
 $reportingControlNow = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
 $reportingControlMonth = (int) ($reportingControlMonth ?? $reportingControlNow->format('n'));
 $reportingControlYear = (int) ($reportingControlYear ?? $reportingControlNow->format('Y'));
