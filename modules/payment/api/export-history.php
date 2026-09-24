@@ -25,6 +25,7 @@ $filters = [
     'channel' => (string) ($_GET['channel'] ?? ''),
     'date_range' => (string) ($_GET['date_range'] ?? ''),
     'processed_by' => (string) ($_GET['processed_by'] ?? ''),
+    'category_id' => (string) ($_GET['category_id'] ?? ''),
 ];
 
 $sort = (string) ($_GET['sort'] ?? 'date');
@@ -46,14 +47,14 @@ try {
 
 $rowsForExcel = [[
     'OR / Ref No.', 'Receipt No.', 'Student Number', 'Student Name', 'Course',
-    'Transaction Type', 'Payment Channel', 'Amount Applied', 'Processing Fee',
-    'Total', 'Status', 'Payment Date', 'Created At', 'Verified At', 'Remarks'
+    'Transaction Type', 'Payment Channel', 'Applied Allocation Amount', 'Processing Fee',
+    'Checkout Total', 'Status', 'Legacy Payment Date', 'Created At (Attempt)', 'Verified At (Official)', 'Remarks', 'Header Amount', 'Environment', 'Reporting Date'
 ]];
 foreach ($rows as $pay) {
-    $applied = (float) $pay['amount'];
+    $applied = (float) $pay['applied_amount'];
     $isOnline = exportHistoryIsOnline($pay);
     $fee = $isOnline ? (float) ($pay['processing_fee'] ?? 0) : 0;
-    $total = $isOnline ? (float) ($pay['checkout_total'] ?? $applied) : $applied;
+    $total = $isOnline ? (float) ($pay['checkout_total'] ?? $pay['amount']) : (float) $pay['amount'];
     $rowsForExcel[] = [
         $pay['reference_number'] ?? '', $pay['receipt_number'] ?? '',
         $pay['student_number'] ?? '', $pay['full_name'] ?? '', $pay['course'] ?? '',
@@ -62,6 +63,7 @@ foreach ($rows as $pay) {
         number_format($total, 2, '.', ''), $pay['payment_status'] ?? '',
         $pay['payment_date'] ?? '', $pay['created_at'] ?? '', $pay['verified_at'] ?? '',
         $pay['remarks'] ?? '',
+        number_format((float) $pay['amount'], 2, '.', ''), $pay['gateway_environment'] ?? 'Unknown', $pay['recorded_at'] ?? '',
     ];
 }
 SimpleXlsxWriter::download('accounting-payment-ledger-' . date('Ymd-His') . '.xlsx', $rowsForExcel);

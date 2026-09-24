@@ -3,6 +3,7 @@
 
   const byId = id => document.getElementById(id);
   const charts = {};
+  let requestVersion = 0;
   const money = value => value == null || !Number.isFinite(Number(value))
     ? 'Unavailable'
     : '₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,7 +30,7 @@
       showChartState(id, options.stateId, options.errorMessage);
       return;
     }
-    if (!labels.length || !values.some(value => Number(value) > 0)) {
+    if (!labels.length || (!values.some(value => Number(value) > 0) && !options.prior?.some(value => Number(value) > 0))) {
       showChartState(id, options.stateId, options.emptyMessage);
       return;
     }
@@ -41,14 +42,16 @@
     if (charts[id]) charts[id].destroy();
     canvas.classList.remove('d-none');
     byId(options.stateId).textContent = '';
-    charts[id] = new Chart(canvas, {
-      type,
-      data: { labels, datasets: [{
+    const datasets = [{
         label: options.label || 'Online allocations', data: values,
         backgroundColor: options.colors || (type === 'line' ? 'rgba(37, 99, 235, .12)' : '#2563eb'),
         borderColor: type === 'line' ? '#2563eb' : (options.colors || '#2563eb'),
         borderWidth: type === 'line' ? 2 : 0, fill: type === 'line', tension: .3, borderRadius: type === 'bar' ? 5 : 0
-      }] },
+      }];
+    if (options.prior?.some(value => Number(value) > 0)) datasets.push({ label: 'Previous Period', data: options.prior, borderColor: '#94a3b8', borderDash: [5, 4], borderWidth: 2, fill: false, tension: .3 });
+    charts[id] = new Chart(canvas, {
+      type,
+      data: { labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false, indexAxis: options.horizontal ? 'y' : 'x',
         interaction: { mode: 'index', intersect: false },
@@ -79,8 +82,10 @@
 
   function renderTrend(data) {
     const trend = data.trend || {};
+    const prior = (trend.prior || []).slice(0, (trend.labels || []).length);
     drawChart('paymentTrendChart', 'line', trend.labels || [], trend.current || [], {
       data, section: 'trend', stateId: 'trendState', label: 'Verified Live allocations',
+      prior,
       errorMessage: 'Trend data is temporarily unavailable.', emptyMessage: 'No verified Live online collections for this period.'
     });
   }
@@ -143,7 +148,6 @@
     if (!gatewayData || !isLive || gatewayData.channels?.status !== 'ok') {
       byId('gatewayMode').textContent = isLive ? 'Live environment · channels unconfirmed' : 'Live channel readiness unavailable';
       host.textContent = isLive ? 'Live channel availability could not be confirmed.' : 'Live channel readiness is not currently available.';
-      showChartState('channelChart', 'channelState', 'Live channel availability is unconfirmed.');
       return;
     }
     const liveChannels = (gatewayData.channels.items || []).filter(channel =>
@@ -174,18 +178,7 @@
       host.append(line);
     });
     if (!liveChannels.length) host.textContent = 'No online channels currently meet Live readiness checks.';
-    const channelAliases = { gcash: ['gcash'], maya: ['maya'], card: ['visa', 'mastercard'], qrph: ['qrph'] };
-    const channelRows = (data.channel_breakdown || []).filter(row => Number(row.amount) > 0 && liveChannels.some(channel =>
-      (channelAliases[channel.code] || [channel.name.toLowerCase()]).includes(String(row.label).trim().toLowerCase())
-    ));
-    if (channelRows.length) {
-      drawChart('channelChart', 'bar', channelRows.map(row => row.label), channelRows.map(row => Number(row.amount)), {
-        data, section: 'channel_breakdown', stateId: 'channelState', horizontal: true,
-        errorMessage: 'Channel totals are temporarily unavailable.', emptyMessage: 'No verified Live channel collections for this period.'
-      });
-    } else {
-      showChartState('channelChart', 'channelState', liveChannels.length ? 'No verified Live collections for currently available channels.' : 'No online channels currently meet Live readiness checks.');
-    }
+    // Current channel readiness must not filter historical financial collections.
   }
 
   function render(data) {
@@ -195,14 +188,15 @@
     renderChannels(data);
     renderRecent(data);
     byId('recentScope').textContent = data.scope?.period_label || '';
-    const hasErrors = Object.values(data.section_status || {}).includes('error');
-    byId('dashboardNotice').className = 'alert ' + (hasErrors ? 'alert-warning' : 'alert-success');
-    byId('dashboardNotice').textContent = hasErrors ? 'Some dashboard information is temporarily unavailable.' :
+    const hasOptionalErrors = Object.entries(data.section_status || {}).some(([key, value]) => key !== 'kpis' && value === 'error');
+    byId('dashboardNotice').className = 'alert ' + (hasOptionalErrors ? 'alert-warning' : 'alert-success');
+    byId('dashboardNotice').textContent = hasOptionalErrors ? 'Some dashboard information is temporarily unavailable.' :
       'Online payment data loaded · ' + (data.scope?.period_label || 'Selected period');
     byId('adminLastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
   }
 
   async function load() {
+    const version = ++requestVersion;
     const notice = byId('dashboardNotice');
     notice.className = 'alert alert-info';
     notice.textContent = 'Loading report...';
@@ -212,18 +206,23 @@
       Object.entries(period).forEach(([key, value]) => { if (value) url.searchParams.set(key, value); });
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       const data = await response.json();
+      if (version !== requestVersion) return;
       if (!response.ok || !data.ok) throw new Error(data.message || 'Dashboard data could not be loaded. Please try again.');
       window.PaymentReportingPeriodControls.setAvailableYears(data.available_period_years || []);
+      if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       render(data);
       try {
         const gatewayResponse = await fetch(window.PAYMENT_ADMIN_GATEWAY_STATUS_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         const gatewayData = await gatewayResponse.json();
+        if (version !== requestVersion) return;
         if (!gatewayResponse.ok) throw new Error('Gateway status unavailable');
         renderGateway(data, gatewayData);
       } catch {
+        if (version !== requestVersion) return;
         renderGateway(data);
       }
     } catch (error) {
+      if (version !== requestVersion) return;
       notice.className = 'alert alert-danger';
       notice.textContent = 'Unable to load report data.';
       byId('adminLastUpdated').textContent = '';

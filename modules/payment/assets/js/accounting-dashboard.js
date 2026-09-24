@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = document.getElementById('dashState');
   const content = document.getElementById('dashboardContent');
   const charts = {};
+  let requestVersion = 0;
   const money = value => value == null || !Number.isFinite(Number(value))
     ? 'Unavailable'
     : '₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (message) message.textContent = options.errorMessage || 'This information is temporarily unavailable.';
       return;
     }
-    const hasPositiveValue = values.some(value => Number(value) > 0);
+    const hasPositiveValue = values.some(value => Number(value) > 0) || options.prior?.some(value => Number(value) > 0);
     if (!labels.length || !hasPositiveValue) {
       canvas.classList.add('d-none');
       if (message) message.textContent = options.emptyMessage || 'No collections for this period.';
@@ -125,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function load(event) {
     event?.preventDefault();
+    const version = ++requestVersion;
     state.className = 'alert alert-info';
     state.textContent = 'Loading report...';
     content.classList.add('d-none');
@@ -133,8 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
         credentials: 'same-origin', headers: { Accept: 'application/json' }
       });
       const data = await response.json();
+      if (version !== requestVersion) return;
       if (!response.ok || !data.ok) throw new Error(data.error || 'Dashboard data could not be loaded. Please try again.');
       window.PaymentReportingPeriodControls?.setAvailableYears(data.filter_options?.report_years || []);
+      if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       content.classList.remove('d-none');
       document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
       renderKpis(data);
@@ -160,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       renderOnlineSummary(data);
       renderRecent(data);
-      const hasPartial = Object.values(data.section_status || {}).includes('error');
+      const hasPartial = Object.entries(data.section_status || {}).some(([key, value]) => key !== 'kpis' && value === 'error');
       state.className = 'alert ' + (hasPartial ? 'alert-warning' : (data.recent_collections || []).length ? 'alert-success' : 'alert-light');
       state.textContent = hasPartial ? 'Some report sections are currently unavailable.' :
         (data.recent_collections || []).length
@@ -169,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('integrityAlerts').innerHTML = (data.integrity_warnings || []).map(warning =>
         '<div class="alert alert-warning"><i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>' + esc(warning) + '</div>').join('');
     } catch (error) {
+      if (version !== requestVersion) return;
       state.className = 'alert alert-danger';
       state.textContent = 'Unable to load report data.';
       document.getElementById('lastUpdated').textContent = '';

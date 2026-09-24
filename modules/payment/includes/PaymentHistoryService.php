@@ -4,6 +4,7 @@
  * Handles fetching of historical payments, official receipts, and ledger allocations.
  */
 require_once __DIR__ . '/PaymentReportingScope.php';
+require_once __DIR__ . '/AccountingReportingPeriod.php';
 
 class PaymentHistoryService {
     private $pdo;
@@ -14,8 +15,8 @@ class PaymentHistoryService {
     public const DATE_RANGES = ['today', 'week', 'month', 'year'];
 
     private const SORT_COLUMNS = [
-        'date' => 'p.created_at',
-        'amount' => 'p.amount',
+        'date' => 'recorded_at',
+        'amount' => 'applied_amount',
         'status' => 'p.payment_status',
         'channel' => 'p.payment_channel',
         'reference' => 'p.reference_number',
@@ -31,22 +32,22 @@ class PaymentHistoryService {
     /**
      * Retrieves summary statistics for the Payment Dashboard/Ledger.
      */
-    public function getPaymentSummary() {
-        $official = PaymentReportingScope::officialCondition();
-        $whereParts = [];
-        $summaryParams = [];
-        if ($this->walkInCashierId !== null) {
-            $whereParts[] = "transaction_type = 'Walk-in' AND verified_by = :cashier_id";
-            $summaryParams[':cashier_id'] = $this->walkInCashierId;
-        }
-        $where = $whereParts ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+    public function getPaymentSummary(array $filters = []) {
+        $filters = $this->normalizeFilters($filters);
+        $official = PaymentReportingScope::officialCondition('p');
+        [$where, $summaryParams] = $this->buildFilterClause($filters);
+        $allocationJoin = $this->allocationJoin($filters);
         $stmt = $this->pdo->prepare("
             SELECT
-                COALESCE(SUM(CASE WHEN {$official} THEN amount ELSE 0 END), 0) AS total_collections,
-                COUNT(payment_id) AS total_transactions,
-                COALESCE(SUM(CASE WHEN payment_status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_transactions,
-                COALESCE(SUM(CASE WHEN {$official} AND payment_date = CURDATE() THEN amount ELSE 0 END), 0) AS today_collections
-            FROM payments {$where}
+                COALESCE(SUM(CASE WHEN {$official} THEN COALESCE(a.applied_amount,0) ELSE 0 END), 0) AS total_collections,
+                COUNT(p.payment_id) AS total_transactions,
+                COALESCE(SUM(CASE WHEN p.payment_status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_transactions,
+                COALESCE(SUM(CASE WHEN {$official} AND DATE(p.verified_at) = CURDATE() THEN COALESCE(a.applied_amount,0) ELSE 0 END), 0) AS today_collections
+            FROM payments p
+            JOIN students s ON s.student_id=p.student_id
+            LEFT JOIN billing b ON b.billing_id=p.billing_id
+            {$allocationJoin}
+            WHERE {$where}
         ");
         $stmt->execute($summaryParams);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
@@ -57,38 +58,6 @@ class PaymentHistoryService {
         ];
     }
 
-    /**
-     * Retrieves all historical payments, optionally filtered by a search query.
-     *
-     * @param string $search
-     * @return array
-     */
-    public function getAllPayments($search = '') {
-        // We only join with students and billing
-        // No cross-database joins to sms2_db.users to prevent schema coupling issues.
-        $query = "
-            SELECT
-                p.payment_id, p.reference_number, p.receipt_number, p.amount, p.processing_fee, p.checkout_total, p.category_id, p.checkout_session_id, p.payment_method, p.payment_status, p.payment_date, p.created_at, p.payment_channel, p.transaction_type,
-                s.student_number, s.full_name, s.course,
-                b.total_amount, b.remaining_balance, b.billing_status
-            FROM payments p
-            JOIN students s ON p.student_id = s.student_id
-            LEFT JOIN billing b ON p.billing_id = b.billing_id
-            WHERE p.payment_status != 'Pending'
-        ";
-
-        $params = [];
-        if (!empty($search)) {
-            $query .= " AND (s.student_number LIKE :search OR s.full_name LIKE :search OR p.reference_number LIKE :search)";
-            $params[':search'] = "%$search%";
-        }
-
-        $query .= " ORDER BY p.created_at DESC";
-
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 
     /**
      * Sanitize incoming filter values against supported schema enums.
@@ -121,9 +90,14 @@ class PaymentHistoryService {
         $dir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
         $limit = max(1, min(10000, $limit));
         $offset = max(0, $offset);
+        $official = PaymentReportingScope::officialCondition('p');
+        $allocationJoin = $this->allocationJoin($filters);
 
         $query = "
             SELECT
+                CASE WHEN {$official} THEN COALESCE(a.applied_amount,0) ELSE 0 END AS applied_amount,
+                CASE WHEN {$official} THEN p.verified_at ELSE p.created_at END AS recorded_at,
+                p.gateway_environment,
                 p.payment_id, p.billing_id, p.verified_by, p.verified_at, p.receipt_number, p.remarks,
                 p.reference_number, p.amount, p.processing_fee, p.checkout_total, p.category_id,
                 p.checkout_session_id, p.payment_method, p.payment_status, p.payment_date,
@@ -134,6 +108,7 @@ class PaymentHistoryService {
             FROM payments p
             JOIN students s ON p.student_id = s.student_id
             LEFT JOIN billing b ON p.billing_id = b.billing_id
+            {$allocationJoin}
             WHERE {$whereSql}
             ORDER BY {$orderBy} {$dir}, p.payment_id DESC
             LIMIT {$limit} OFFSET {$offset}
@@ -222,15 +197,17 @@ class PaymentHistoryService {
             ];
         }
 
-        $official = PaymentReportingScope::officialCondition();
-        $cashierScope = $this->walkInCashierId !== null ? " AND transaction_type = 'Walk-in' AND verified_by = ?" : '';
+        $official = PaymentReportingScope::officialCondition('p');
+        $cashierScope = $this->walkInCashierId !== null ? " AND p.transaction_type = 'Walk-in' AND p.verified_by = ?" : '';
         $payStmt = $this->pdo->prepare("
-            SELECT billing_id, COALESCE(SUM(amount), 0) AS payments_total
-            FROM payments
-            WHERE billing_id IN ({$placeholders})
+            SELECT bi.billing_id, COALESCE(SUM(pa.allocated_amount), 0) AS payments_total
+            FROM payment_allocations pa
+            JOIN payments p ON p.payment_id=pa.payment_id
+            JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id
+            WHERE bi.billing_id IN ({$placeholders})
               AND {$official}
               {$cashierScope}
-            GROUP BY billing_id
+            GROUP BY bi.billing_id
         ");
         $payParams = $billingIds;
         if ($this->walkInCashierId !== null) {
@@ -247,58 +224,7 @@ class PaymentHistoryService {
         return $ledgers;
     }
 
-    /**
-     * Retrieves a detailed breakdown of a single payment, including where the money was allocated.
-     *
-     * @param int $paymentId
-     * @return array|null Returns payment header and a list of allocations.
-     */
-    public function getPaymentDetails($paymentId) {
-        $stmtHeader = $this->pdo->prepare("
-            SELECT
-                p.payment_id, p.billing_id, p.verified_by, p.verified_at, p.receipt_number,
-                p.reference_number, p.amount, p.processing_fee, p.checkout_total, p.category_id,
-                p.checkout_session_id, p.payment_method, p.payment_status, p.created_at,
-                p.payment_date, p.remarks, p.payment_channel, p.transaction_type,
-                s.student_number, s.full_name, s.course,
-                b.billing_type, b.academic_year, b.semester, b.total_amount, b.discount_amount, b.remaining_balance
-            FROM payments p
-            JOIN students s ON p.student_id = s.student_id
-            LEFT JOIN billing b ON p.billing_id = b.billing_id
-            WHERE p.payment_id = :pid
-              " . ($this->walkInCashierId !== null ? "AND p.transaction_type = 'Walk-in' AND p.verified_by = :cashier_scope_id" : '') . "
-        ");
-        $detailParams = [':pid' => $paymentId];
-        if ($this->walkInCashierId !== null) {
-            $detailParams[':cashier_scope_id'] = $this->walkInCashierId;
-        }
-        $stmtHeader->execute($detailParams);
-        $payment = $stmtHeader->fetch(PDO::FETCH_ASSOC);
 
-        if (!$payment) {
-            return null;
-        }
-
-        $stmtAllocations = $this->pdo->prepare("
-            SELECT pa.allocated_amount, bi.fee_name
-            FROM payment_allocations pa
-            JOIN billing_items bi ON pa.billing_item_id = bi.billing_item_id
-            WHERE pa.payment_id = :pid
-            ORDER BY pa.allocated_at ASC
-        ");
-        $stmtAllocations->execute([':pid' => $paymentId]);
-        $payment['allocations'] = $stmtAllocations->fetchAll(PDO::FETCH_ASSOC);
-
-        $billingId = (int) ($payment['billing_id'] ?? 0);
-        $ledgers = $billingId ? $this->getLedgerSummariesByBillingIds([$billingId]) : [];
-        $payment['ledger'] = $ledgers[$billingId] ?? [
-            'opening_balance' => 0,
-            'payments_total' => 0,
-            'closing_balance' => (float) ($payment['remaining_balance'] ?? 0),
-        ];
-
-        return $payment;
-    }
 
     private function buildFilterClause(array $filters): array {
         $where = ['1=1'];
@@ -324,15 +250,13 @@ class PaymentHistoryService {
             $params[':channel'] = $filters['channel'];
         }
 
-        if ($filters['date_range'] === 'today') {
-            $where[] = 'p.payment_date = CURDATE()';
-        } elseif ($filters['date_range'] === 'week') {
-            $where[] = 'p.payment_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)';
-            $where[] = 'p.payment_date <= CURDATE()';
-        } elseif ($filters['date_range'] === 'month') {
-            $where[] = 'YEAR(p.payment_date) = YEAR(CURDATE()) AND MONTH(p.payment_date) = MONTH(CURDATE())';
-        } elseif ($filters['date_range'] === 'year') {
-            $where[] = 'YEAR(p.payment_date) = YEAR(CURDATE())';
+        if ($filters['date_range'] !== '') {
+            $range = AccountingReportingPeriod::fromRequest(['period' => $filters['date_range']]);
+            $official = PaymentReportingScope::officialCondition('p');
+            $eventTime = "CASE WHEN {$official} THEN p.verified_at ELSE p.created_at END";
+            $where[] = "({$eventTime}) >= :range_start AND ({$eventTime}) < :range_end";
+            $params[':range_start'] = AccountingReportingPeriod::sql($range['start_at']);
+            $params[':range_end'] = AccountingReportingPeriod::sql($range['end_exclusive']);
         }
 
         if ($filters['processed_by'] !== '') {
@@ -346,5 +270,19 @@ class PaymentHistoryService {
         }
 
         return [implode(' AND ', $where), $params];
+    }
+
+    /** One row per payment; category selection restricts applied amounts, not just membership. */
+    private function allocationJoin(array $filters): string {
+        $category = (int) ($filters['category_id'] ?? 0);
+        $categoryWhere = $category > 0 ? 'WHERE f.category_id = ' . $category : '';
+        return "LEFT JOIN (
+            SELECT pa.payment_id, SUM(pa.allocated_amount) AS applied_amount
+            FROM payment_allocations pa
+            JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id
+            JOIN fees f ON f.fee_id=bi.fee_id
+            {$categoryWhere}
+            GROUP BY pa.payment_id
+        ) a ON a.payment_id=p.payment_id";
     }
 }

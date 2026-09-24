@@ -30,8 +30,9 @@ final class AccountingReportingPageService {
    $d['kpis']['cash_payments']=$map['Cash']??0.0;$d['kpis']['online_payments']=$map['Online']??0.0;$d['kpis']['bank_transfers']=$map['Bank Transfer']??0.0;
    $d['section_status']['payment_methods']='ok';
    if(!empty($f['dashboard'])){
-    $channelSql=$this->pdo->prepare("SELECT p.payment_channel label,LOWER(REPLACE(p.payment_channel,' ','')) channel_code,COALESCE(SUM(pa.allocated_amount),0) amount FROM payment_allocations pa JOIN payments p ON p.payment_id=pa.payment_id WHERE p.transaction_type='Online' AND p.payment_status='Verified' AND p.gateway_environment='live' AND p.verified_at>=? AND p.verified_at<? GROUP BY p.payment_channel");
-    $channelSql->execute([AccountingReportingPeriod::sql($r['start_at']),AccountingReportingPeriod::sql($r['end_exclusive'])]);
+    [$channelAllocSql,$channelParams]=$this->filteredAllocationSubquery($f,$r['start_at'],$r['end_exclusive'],['p.transaction_type=?','p.payment_status=?','p.gateway_environment=?'],['Online','Verified','live']);
+    $channelSql=$this->pdo->prepare("SELECT p.payment_channel label,LOWER(REPLACE(p.payment_channel,' ','')) channel_code,COALESCE(SUM(a.allocated_amount),0) amount FROM ({$channelAllocSql}) a JOIN payments p ON p.payment_id=a.payment_id GROUP BY p.payment_channel");
+    $channelSql->execute($channelParams);
     $d['channel_breakdown']=$channelSql->fetchAll(PDO::FETCH_ASSOC);
    }
    $statusSql="SELECT CASE WHEN p.payment_status IN ('Verified','Pending','Failed','Expired','Cancelled','Rejected') THEN p.payment_status ELSE 'Unknown' END status,COUNT(DISTINCT p.payment_id) n FROM payments p JOIN billing b ON b.billing_id=p.billing_id WHERE p.transaction_type='Online' AND b.academic_year=? AND b.semester=? AND p.created_at>=? AND p.created_at<? GROUP BY status";
