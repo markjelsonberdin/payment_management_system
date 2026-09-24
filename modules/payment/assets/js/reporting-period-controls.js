@@ -15,7 +15,7 @@
     });
     root.querySelector('[data-period-selection]').classList.toggle('d-none', !['month', 'year'].includes(period));
     root.querySelector('[data-period-month]').hidden = period !== 'month';
-    root.querySelector('[data-period-year]').hidden = period !== 'year';
+    root.querySelector('[data-period-year]').hidden = !['month', 'year'].includes(period);
   }
 
   function setAvailableYears(years) {

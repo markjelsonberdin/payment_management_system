@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<div class="card border-0 shadow-sm rounded-3 h-100 bg-white">' +
                         '<div class="card-body p-3">' +
                             '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="fas fa-calculator me-1 text-primary"></i> Payment & Ledger</h6>' +
-                            modalRow('Amount Applied', money(data.amount)) +
+                            modalRow('Applied Allocation Amount', money(data.amount)) +
                             modalRow('Processing Fee', money(data.processing_fee)) +
                             modalRow('Checkout Total', money(data.checkout_total), true) +
                             modalRow('Opening Balance', money(ledger.opening_balance)) +
@@ -143,9 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="card border-0 shadow-sm rounded-3 bg-white">' +
                 '<div class="card-body p-3">' +
                     '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-shield-check me-1 text-primary"></i> Audit Information</h6>' +
-                    modalRow('Payment Date', text(data.payment_date, '—')) +
-                    modalRow('Recorded At', formatStamp(data.created_at)) +
-                    modalRow('Verified At', data.verified_at ? formatStamp(data.verified_at) : 'Pending Verification') +
+                    modalRow('Legacy Payment Date', text(data.payment_date, '—')) +
+                    modalRow('Created At (Attempt)', formatStamp(data.created_at)) +
+                    modalRow('Verified At (Official)', data.verified_at ? formatStamp(data.verified_at) : 'Pending Verification') +
                     modalRow('Processed By', processedBy) +
                     modalRow('Remarks', data.remarks || 'None') +
                 '</div>' +

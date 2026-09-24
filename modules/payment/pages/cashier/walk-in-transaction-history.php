@@ -39,7 +39,7 @@ try {
 
     $sql = "SELECT * FROM (
         SELECT p.verified_at AS recorded_at, p.payment_id AS record_id, 'Academic Payment' AS transaction_type,
-            COALESCE(p.receipt_number,p.reference_number) AS receipt, p.reference_number,
+            COALESCE(p.receipt_number,p.reference_number) AS receipt, p.reference_number AS reference,
             s.student_number, s.full_name, COALESCE(aa.allocated_total,0) AS total, p.payment_status AS status,
             aa.details, p.amount AS header_amount,
             (p.amount-COALESCE(aa.allocated_total,0)) AS amount_difference,
@@ -49,7 +49,7 @@ try {
         LEFT JOIN billing b ON b.billing_id=p.billing_id
         LEFT JOIN (
             SELECT pa.payment_id, SUM(pa.allocated_amount) AS allocated_total,
-                GROUP_CONCAT(DISTINCT fc.category_name ORDER BY fc.category_name SEPARATOR ', ') AS details
+                CONVERT(GROUP_CONCAT(DISTINCT fc.category_name ORDER BY fc.category_name SEPARATOR ', ') USING utf8mb4) COLLATE utf8mb4_general_ci AS details
             FROM payment_allocations pa
             LEFT JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id
             LEFT JOIN fees f ON f.fee_id=bi.fee_id
@@ -58,9 +58,9 @@ try {
         ) aa ON aa.payment_id=p.payment_id
         WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official}
         UNION ALL
-        SELECT cs.sold_at, cs.cash_sale_id, 'School Sale', cs.receipt_number, cs.receipt_number,
+        SELECT cs.sold_at, cs.cash_sale_id, 'School Sale', cs.receipt_number, NULL AS reference,
             s.student_number, s.full_name, cs.total_amount, cs.sale_status,
-            GROUP_CONCAT(csi.item_name_snapshot ORDER BY csi.cash_sale_line_id SEPARATOR ', '), cs.total_amount, 0, 0,
+            CONVERT(GROUP_CONCAT(csi.item_name_snapshot ORDER BY csi.cash_sale_line_id SEPARATOR ', ') USING utf8mb4) COLLATE utf8mb4_general_ci, cs.total_amount, 0, 0,
             cs.academic_year_snapshot, NULL, 'School Sale'
         FROM cash_sales cs JOIN students s ON s.student_id=cs.student_id
         JOIN cash_sale_items csi ON csi.cash_sale_id=cs.cash_sale_id

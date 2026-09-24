@@ -26,10 +26,10 @@ function paymentHistoryIsOnline(array $pay): bool
 
 function paymentHistoryAmounts(array $pay): array
 {
-    $applied = (float) $pay['amount'];
+    $applied = (float) $pay['applied_amount'];
     $isOnline = paymentHistoryIsOnline($pay);
     $fee = $isOnline ? (float) ($pay['processing_fee'] ?? 0) : 0;
-    $total = $isOnline ? (float) ($pay['checkout_total'] ?? $applied) : $applied;
+    $total = $isOnline ? (float) ($pay['checkout_total'] ?? $pay['amount']) : (float) $pay['amount'];
     return [$applied, $fee, $total];
 }
 
@@ -81,6 +81,8 @@ $filters = [
     'status' => (string) ($_GET['status'] ?? ''),
     'channel' => (string) ($_GET['channel'] ?? ''),
     'date_range' => (string) ($_GET['date_range'] ?? ''),
+    'processed_by' => (string) ($_GET['processed_by'] ?? ''),
+    'category_id' => (string) ($_GET['category_id'] ?? ''),
 ];
 
 $paymentList = [];
@@ -98,7 +100,7 @@ try {
     $historyService = new PaymentHistoryService($pdo, $cashierHistoryMode ? (int) getCurrentUserId() : null);
     $filters = $historyService->normalizeFilters($filters);
 
-    $summary = $historyService->getPaymentSummary();
+    $summary = $historyService->getPaymentSummary($filters);
     $totalCollections = (float) ($summary['total_collections'] ?? 0);
     $totalTransactions = (int) ($summary['total_transactions'] ?? 0);
     $pendingTransactions = (int) ($summary['pending_transactions'] ?? 0);
@@ -125,6 +127,8 @@ $queryBase = array_filter([
     'status' => $filters['status'] ?? '',
     'channel' => $filters['channel'] ?? '',
     'date_range' => $filters['date_range'] ?? '',
+    'processed_by' => $filters['processed_by'] ?? '',
+    'category_id' => $filters['category_id'] ?? '',
     'sort' => $sort,
     'dir' => $dir,
 ], static function ($value) {
@@ -272,12 +276,12 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                 'reference' => ['OR / Ref No.', ''],
                                 'student'   => ['Student Details', ''],
                                 'channel'   => ['Payment Channel', ''],
-                                'amount'    => ['Amount Applied', 'text-end'],
+                                'amount'    => ['Applied Allocation Amount', 'text-end'],
                             ];
                             $headersAfterFee = [
-                                'total'  => ['Total', 'text-end'],
+                                'total'  => ['Checkout Total', 'text-end'],
                                 'status' => ['Status', 'text-center'],
-                                'date'   => ['Date & Time', ''],
+                                'date'   => ['Reporting Date', ''],
                             ];
                             ?>
                             <?php foreach ($headersBeforeFee as $key => [$label, $extraClass]): ?>
@@ -339,6 +343,8 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                     'payment_status' => $pay['payment_status'] ?? '',
                                     'status_class' => $statusClass,
                                     'amount' => $amtApplied,
+                                    'header_amount' => (float) $pay['amount'],
+                                    'gateway_environment' => $pay['gateway_environment'] ?? 'Unknown',
                                     'processing_fee' => $procFee,
                                     'checkout_total' => $chkTotal,
                                     'payment_date' => $pay['payment_date'] ?? '',
@@ -369,8 +375,8 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <?= $statusBadge ?>
                                     </td>
                                     <td>
-                                        <div class="text-dark"><?= !empty($pay['payment_date']) ? date('M d, Y', strtotime($pay['payment_date'])) : '—' ?></div>
-                                        <small class="text-muted"><?= !empty($pay['created_at']) ? date('h:i A', strtotime($pay['created_at'])) : '' ?></small>
+                                        <div class="text-dark"><?= !empty($pay['recorded_at']) ? date('M d, Y', strtotime($pay['recorded_at'])) : '—' ?></div>
+                                        <small class="text-muted"><?= !empty($pay['recorded_at']) ? date('h:i A', strtotime($pay['recorded_at'])) : '' ?></small>
                                     </td>
                                     <td class="text-end pe-4">
                                         <?php if ($cashierHistoryMode && ($pay['transaction_type'] ?? '') === 'Walk-in' && strtolower((string) ($pay['payment_channel'] ?? '')) === 'cash' && ($pay['payment_status'] ?? '') === 'Verified'): ?>
