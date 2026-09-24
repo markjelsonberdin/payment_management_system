@@ -9,7 +9,7 @@ require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/PaymentAdminReportingService.php';
 try {
     $service = new PaymentAdminReportingService($pdo);
-    $result = $service->load(['period' => $_GET['period'] ?? 'today']);
+    $result = $service->load($_GET);
     echo json_encode($result, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
 } catch (InvalidArgumentException $e) {
     http_response_code(400);

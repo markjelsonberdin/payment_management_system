@@ -73,7 +73,7 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { $error = 'Cashier history is unavailable. Verify the cashier school-sales migration.'; }
 
-$pageTitle = 'My Walk-in Transactions';
+$pageTitle = 'Transactions';
 $activeModule = 'payment';
 $activePage = 'cashier/walk-in-transaction-history';
 $breadcrumbs = [['label'=>'Payment Management','url'=>BASE_URL.'/modules/payment/index.php'],['label'=>$pageTitle,'url'=>null]];
@@ -83,7 +83,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 <?php renderBreadcrumbs($breadcrumbs); ?>
 <div class="container-fluid py-4">
- <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h2 class="fw-bolder mb-1">My Walk-in Transactions</h2><p class="text-muted mb-0">Your completed academic cash payments and school sales only.</p></div><a class="btn btn-outline-primary" href="<?= htmlspecialchars($exportUrl) ?>"><i class="ti ti-file-spreadsheet me-1"></i>Export Excel</a></div>
+ <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h2 class="fw-bolder mb-1">Transactions</h2><p class="text-muted mb-0">Your completed academic cash payments and school sales only.</p></div><a class="btn btn-outline-primary" href="<?= htmlspecialchars($exportUrl) ?>"><i class="ti ti-file-spreadsheet me-1"></i>Export Excel</a></div>
  <?php if($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
  <form class="card border-0 shadow-sm mb-4" method="get"><div class="card-body"><div class="row g-2 align-items-end">
   <div class="col-lg-4"><label class="form-label small fw-bold">Search</label><input class="form-control" name="search" value="<?=htmlspecialchars($filters['search'])?>" placeholder="Student, OR, category, or item"></div>

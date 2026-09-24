@@ -63,12 +63,10 @@
   function renderKpis(data) {
     const kpis = data.kpis || {};
     const unavailable = sectionState(data, 'kpis') === 'error';
-    const statusText = unavailable ? 'Status unavailable' : 'Failed ' + count(kpis.failed_count) + ' · Expired ' + count(kpis.expired_count);
     const cards = [
-      ['ti-list-numbers', 'Online Payments', count(kpis.online_count), 'All online attempts · every environment', 'primary'],
-      ['ti-circle-check', 'Verified Payments', count(kpis.verified_count), 'Live online attempts only', 'success'],
-      ['ti-hourglass', 'Pending Payments', count(kpis.pending_count), 'Actual pending attempts', 'warning'],
-      ['ti-alert-circle', 'Failed / Expired', unavailable ? 'Unavailable' : 'Failed ' + count(kpis.failed_count) + ' · Expired ' + count(kpis.expired_count), statusText, 'danger'],
+      ['ti-list-numbers', 'Online Payments', unavailable ? 'Unavailable' : count(kpis.online_count), 'All online attempts · every environment', 'primary'],
+      ['ti-circle-check', 'Verified Payments', unavailable ? 'Unavailable' : count(kpis.verified_count), 'Live online attempts only', 'success'],
+      ['ti-alert-circle', 'Expired Payments', unavailable ? 'Unavailable' : count(kpis.expired_count), 'Expired online attempts · every environment', 'danger'],
       ['ti-currency-peso', 'Online Amount Collected', unavailable ? 'Unavailable' : money(kpis.online_amount), 'Verified Live allocation totals', 'primary']
     ];
     byId('adminKpis').innerHTML = cards.map(([icon, label, value, note, color]) =>
@@ -137,25 +135,57 @@
       return;
     }
     const config = data.configuration || {};
-    byId('gatewayMode').textContent = (config.gateway_mode || 'Unknown').toUpperCase() + ' environment';
-    if (gatewayData) {
-      byId('gatewayReadiness').textContent = 'Gateway ' + (gatewayData.gateway?.status || 'status unavailable') +
-        ' · Webhook ' + (gatewayData.webhook?.status || 'unknown') + ' · API ' +
-        (gatewayData.api?.connected ? 'connected' : gatewayData.api?.configured ? 'not connected' : 'not configured');
-    } else {
-      byId('gatewayReadiness').textContent = 'Protected gateway readiness is temporarily unavailable.';
+    const isLive = config.gateway_mode === 'live' && gatewayData?.environment === 'live';
+    byId('gatewayMode').textContent = isLive ? 'Live environment' : 'Live channel readiness unavailable';
+    byId('gatewayReadiness').textContent = gatewayData
+      ? 'Gateway ' + (gatewayData.gateway?.status || 'status unavailable') + ' · Webhook ' + (gatewayData.webhook?.status || 'unknown')
+      : 'Protected gateway readiness is temporarily unavailable.';
+    if (!gatewayData || !isLive || gatewayData.channels?.status !== 'ok') {
+      byId('gatewayMode').textContent = isLive ? 'Live environment · channels unconfirmed' : 'Live channel readiness unavailable';
+      host.textContent = isLive ? 'Live channel availability could not be confirmed.' : 'Live channel readiness is not currently available.';
+      showChartState('channelChart', 'channelState', 'Live channel availability is unconfirmed.');
+      return;
     }
-    (config.channels || []).forEach(channel => {
+    const liveChannels = (gatewayData.channels.items || []).filter(channel =>
+      channel.available_to_students === true && channel.configured === true &&
+      channel.provider_active === true && channel.policy_allowed === true
+    );
+    liveChannels.forEach(channel => {
       const line = document.createElement('div');
       line.className = 'd-flex justify-content-between align-items-center border rounded p-2 gap-2';
       const label = document.createElement('span');
-      label.textContent = channel.name;
+      label.className = 'd-flex align-items-center gap-2';
+      if (channel.code === 'qrph') {
+        const logo = document.createElement('img');
+        logo.src = window.PAYMENT_QRPH_LOGO;
+        logo.alt = 'QRPh';
+        logo.width = 54;
+        logo.height = 24;
+        logo.className = 'object-fit-contain';
+        label.append(logo);
+      }
+      const channelName = document.createElement('span');
+      channelName.textContent = channel.name;
+      label.append(channelName);
       const value = document.createElement('span');
-      value.className = 'badge ' + (channel.available_by_config ? 'text-bg-success' : 'text-bg-secondary');
-      value.textContent = !channel.policy_allowed ? 'Unavailable under current policy' : channel.configured ? 'Configured' : 'Disabled';
+      value.className = 'badge text-bg-success';
+      value.textContent = 'Available for Live';
       line.append(label, value);
       host.append(line);
     });
+    if (!liveChannels.length) host.textContent = 'No online channels currently meet Live readiness checks.';
+    const channelAliases = { gcash: ['gcash'], maya: ['maya'], card: ['visa', 'mastercard'], qrph: ['qrph'] };
+    const channelRows = (data.channel_breakdown || []).filter(row => Number(row.amount) > 0 && liveChannels.some(channel =>
+      (channelAliases[channel.code] || [channel.name.toLowerCase()]).includes(String(row.label).trim().toLowerCase())
+    ));
+    if (channelRows.length) {
+      drawChart('channelChart', 'bar', channelRows.map(row => row.label), channelRows.map(row => Number(row.amount)), {
+        data, section: 'channel_breakdown', stateId: 'channelState', horizontal: true,
+        errorMessage: 'Channel totals are temporarily unavailable.', emptyMessage: 'No verified Live channel collections for this period.'
+      });
+    } else {
+      showChartState('channelChart', 'channelState', liveChannels.length ? 'No verified Live collections for currently available channels.' : 'No online channels currently meet Live readiness checks.');
+    }
   }
 
   function render(data) {
@@ -164,25 +194,26 @@
     renderStatuses(data);
     renderChannels(data);
     renderRecent(data);
-    byId('recentScope').textContent = (data.scope?.timezone || '') + ' · ' + (data.scope?.start_at || '') +
-      ' ≤ timestamp < ' + (data.scope?.end_exclusive || '');
+    byId('recentScope').textContent = data.scope?.period_label || '';
     const hasErrors = Object.values(data.section_status || {}).includes('error');
     byId('dashboardNotice').className = 'alert ' + (hasErrors ? 'alert-warning' : 'alert-success');
     byId('dashboardNotice').textContent = hasErrors ? 'Some dashboard information is temporarily unavailable.' :
-      'Online payment data loaded · ' + data.scope.timezone + ' · ' + data.scope.start_at + ' ≤ timestamp < ' + data.scope.end_exclusive;
+      'Online payment data loaded · ' + (data.scope?.period_label || 'Selected period');
     byId('adminLastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
   }
 
   async function load() {
     const notice = byId('dashboardNotice');
     notice.className = 'alert alert-info';
-    notice.textContent = 'Loading dashboard data...';
+    notice.textContent = 'Loading report...';
     try {
       const url = new URL(window.PAYMENT_ADMIN_DASHBOARD_API, location.origin);
-      url.searchParams.set('period', byId('dashboardPeriod').value);
+      const period = window.PaymentReportingPeriodControls.selection(document.querySelector('[data-payment-period-controls]'));
+      Object.entries(period).forEach(([key, value]) => { if (value) url.searchParams.set(key, value); });
       const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.message || 'Dashboard data could not be loaded. Please try again.');
+      window.PaymentReportingPeriodControls.setAvailableYears(data.available_period_years || []);
       render(data);
       try {
         const gatewayResponse = await fetch(window.PAYMENT_ADMIN_GATEWAY_STATUS_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -194,7 +225,7 @@
       }
     } catch (error) {
       notice.className = 'alert alert-danger';
-      notice.textContent = error.message || 'Dashboard data could not be loaded. Please try again.';
+      notice.textContent = 'Unable to load report data.';
       byId('adminLastUpdated').textContent = '';
       byId('adminKpis').innerHTML = '<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-danger">Dashboard data unavailable.</div></div></div>';
       ['paymentTrendChart', 'onlineStatusChart', 'channelChart'].forEach(id => {
@@ -211,7 +242,7 @@
     }
   }
 
-  byId('dashboardPeriod').addEventListener('change', load);
+  document.addEventListener('payment:period-apply', load);
   byId('refreshDashboard').addEventListener('click', load);
   load();
 })();

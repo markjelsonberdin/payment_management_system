@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
   const sectionState = (data, key) => data.section_status?.[key] || 'error';
+  const businessDateTime = value => {
+    if (!value) return '—';
+    const parsed = new Date(String(value).replace(' ', 'T') + '+08:00');
+    return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+  };
 
   function drawChart(id, type, labels, values, options = {}) {
     const canvas = document.getElementById(id);
@@ -111,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const rows = data.recent_collections || [];
     body.innerHTML = rows.length ? rows.slice(0, 20).map(row =>
-      '<tr><td class="text-nowrap">' + esc(row.verified_at) + '</td><td>' + esc(row.full_name || row.student_number) +
+      '<tr><td class="text-nowrap">' + esc(businessDateTime(row.verified_at)) + '</td><td>' + esc(row.full_name || row.student_number) +
       '<small class="d-block text-muted">' + esc(row.student_number || '') + '</small></td><td>' +
       esc(row.receipt_number || row.reference_number || '—') + '</td><td>' + esc(row.payment_method || row.payment_channel) +
       '</td><td class="text-end fw-semibold">' + money(row.total_applied) + '</td><td><span class="badge text-bg-success">Verified</span></td></tr>'
@@ -121,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function load(event) {
     event?.preventDefault();
     state.className = 'alert alert-info';
-    state.textContent = 'Loading dashboard data...';
+    state.textContent = 'Loading report...';
     content.classList.add('d-none');
     try {
       const response = await fetch(window.ACCOUNTING_DASHBOARD_API + '?' + new URLSearchParams(new FormData(form)), {
@@ -129,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'Dashboard data could not be loaded. Please try again.');
+      window.PaymentReportingPeriodControls?.setAvailableYears(data.filter_options?.report_years || []);
       content.classList.remove('d-none');
       document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
       renderKpis(data);
@@ -155,15 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
       renderOnlineSummary(data);
       renderRecent(data);
       const hasPartial = Object.values(data.section_status || {}).includes('error');
-      state.className = 'alert ' + (hasPartial ? 'alert-warning' : 'alert-success');
-      state.textContent = hasPartial ? 'Some dashboard information is temporarily unavailable.' :
-        (data.scope?.academic_year || '') + ' · ' + (data.scope?.semester || '') + ' · ' + data.timezone + ' · ' +
-        data.scope?.start_at + ' ≤ timestamp < ' + data.scope?.end_exclusive;
+      state.className = 'alert ' + (hasPartial ? 'alert-warning' : (data.recent_collections || []).length ? 'alert-success' : 'alert-light');
+      state.textContent = hasPartial ? 'Some report sections are currently unavailable.' :
+        (data.recent_collections || []).length
+          ? (data.scope?.academic_year || '') + ' · ' + (data.scope?.semester || '') + ' · ' + (data.scope?.period_label || 'Report loaded')
+          : 'No transactions found for this period.';
       document.getElementById('integrityAlerts').innerHTML = (data.integrity_warnings || []).map(warning =>
         '<div class="alert alert-warning"><i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>' + esc(warning) + '</div>').join('');
     } catch (error) {
       state.className = 'alert alert-danger';
-      state.textContent = error.message || 'Dashboard data could not be loaded. Please try again.';
+      state.textContent = 'Unable to load report data.';
       document.getElementById('lastUpdated').textContent = '';
       content.classList.add('d-none');
     }
