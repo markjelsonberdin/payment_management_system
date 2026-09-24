@@ -1,9 +1,165 @@
 <?php
-require_once __DIR__.'/../../../../config/config.php';require_once ROOT_PATH.'/includes/authentication.php';require_once __DIR__.'/../../database/db_connect.php';require_once __DIR__.'/../../includes/AccountingReportingPageService.php';requireAuth();requirePaymentPermission('payment.analytics');
-$pageTitle='Collection Reporting & Analytics';$activeModule='payment';$activePage='accounting/collection-reporting-analytics';$breadcrumbs=[['label'=>'Payment Management','url'=>BASE_URL.'/modules/payment/index.php'],['label'=>'Collection Reporting & Analytics','url'=>null]];try{$d=(new AccountingReportingPageService($pdo))->load($_GET);}catch(Throwable $e){$d=null;$error=$e->getMessage();}$terms=$d['filter_options']['terms']??[];$channels=$d['filter_options']['channels']??[];$categories=$d['filter_options']['categories']??[];require_once ROOT_PATH.'/includes/breadcrumbs.php';require_once ROOT_PATH.'/includes/layout-start.php';
+declare(strict_types=1);
+require_once __DIR__ . '/../../../../config/config.php';
+require_once ROOT_PATH . '/includes/authentication.php';
+require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/AccountingReportingPageService.php';
+requireAuth();
+requirePaymentPermission('payment.analytics');
+
+$pageTitle = 'Collection & Analytics';
+$activeModule = 'payment';
+$activePage = 'accounting/collection-reporting-analytics';
+$breadcrumbs = [
+    ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
+    ['label' => 'Collection & Analytics', 'url' => null],
+];
+$report = null;
+$reportError = null;
+try {
+    $report = (new AccountingReportingPageService($pdo))->load($_GET);
+} catch (InvalidArgumentException $e) {
+    $reportError = $e->getMessage();
+} catch (Throwable $e) {
+    error_log('Accounting collection report page: ' . $e->getMessage());
+    $reportError = 'Unable to load report data.';
+}
+$scope = $report['scope'] ?? [];
+$filters = $report['filter_options'] ?? ['terms' => [], 'channels' => [], 'methods' => [], 'categories' => [], 'report_years' => []];
+$reportingControlPeriod = $scope['period'] ?? ($_GET['period'] ?? 'today');
+$reportingControlMonth = $scope['period_month'] ?? ($_GET['period_month'] ?? (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('n'));
+$reportingControlYear = $scope['period_year'] ?? ($_GET['period_year'] ?? (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y'));
+$reportingControlYears = $filters['report_years'];
+require_once ROOT_PATH . '/includes/breadcrumbs.php';
+require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
-<style>@media print{.no-print,#sidebar,.sidebar,nav,header,footer{display:none!important}.container-fluid{padding:0!important}.card{border:0!important;box-shadow:none!important}.table-responsive{overflow:visible!important}.report-title{display:block!important}}.report-title{display:none}</style><main class="container-fluid py-4"><div class="d-flex justify-content-between align-items-center mb-3 no-print"><div><h1 class="h3">Collection Reporting</h1><p class="text-muted">Detailed official academic collections and applied allocations.</p></div><?php if($d):?><div><button class="btn btn-outline-primary" onclick="window.print()">Print</button><a class="btn btn-primary" href="<?=BASE_URL?>/modules/payment/api/export-accounting-collections.php?<?=htmlspecialchars(http_build_query($_GET))?>">Export XLSX</a></div><?php endif?></div>
-<form class="card card-body mb-4 no-print"><div class="row g-3 align-items-end"><div class="col-md-2"><label class="form-label">Academic Year</label><select name="academic_year" class="form-select"><?php foreach($terms as $t):?><option value="<?=htmlspecialchars($t['academic_year'])?>" <?=($_GET['academic_year']??'')===$t['academic_year']?'selected':''?>><?=htmlspecialchars($t['academic_year'])?></option><?php endforeach?></select></div><div class="col-md-2"><label class="form-label">Semester</label><select name="semester" class="form-select"><option>1st</option><option>2nd</option><option>Summer</option></select></div><div class="col-md-2"><label class="form-label">Period</label><select name="period" id="period" class="form-select"><option value="today">Today</option><option value="week">Week</option><option value="month">Month</option><option value="year">Year</option><option value="custom">Custom</option></select></div><div class="col-md-2 custom-date"><label class="form-label">Start date</label><input type="date" name="start_date" class="form-control" value="<?=htmlspecialchars($_GET['start_date']??'')?>"></div><div class="col-md-2 custom-date"><label class="form-label">End date</label><input type="date" name="end_date" class="form-control" value="<?=htmlspecialchars($_GET['end_date']??'')?>"></div><div class="col-md-2"><label class="form-label">Channel</label><select name="payment_channel" class="form-select"><option value="">All channels</option><?php foreach($channels as $ch):?><option value="<?=htmlspecialchars($ch)?>" <?=($_GET['payment_channel']??'')===$ch?'selected':''?>><?=htmlspecialchars($ch)?></option><?php endforeach?></select></div><div class="col-md-2"><label class="form-label">Fee category</label><select name="fee_category" class="form-select"><option value="">All categories</option><?php foreach($categories as $c):?><option value="<?=$c['category_id']?>" <?=($_GET['fee_category']??'')==$c['category_id']?'selected':''?>><?=htmlspecialchars($c['category_name'])?></option><?php endforeach?></select></div><div class="col-md-2"><button class="btn btn-primary w-100">Apply filters</button></div></div></form>
-<?php if(isset($error)):?><div class="alert alert-danger">Reporting error: <?=htmlspecialchars($error)?></div><?php elseif($d):?><section id="printReport"><div class="report-title"><h1>Bestlink College of the Philippines</h1><h2>Payment Management System ? Collection Report</h2></div><p><strong>AY/Semester:</strong> <?=htmlspecialchars($d['scope']['academic_year'].' / '.$d['scope']['semester'])?> ? <strong>Range:</strong> <?=htmlspecialchars($d['scope']['start_at'])?> to &lt; <?=htmlspecialchars($d['scope']['end_exclusive'])?> ? <strong>Timezone:</strong> <?=htmlspecialchars($d['timezone'])?><br><strong>Channel:</strong> <?=htmlspecialchars($d['scope']['payment_channel']??'All')?> ? <strong>Fee category:</strong> <?=htmlspecialchars($d['scope']['fee_category_name']??'All')?> ? <strong>Generated:</strong> <?=htmlspecialchars($d['generated_at'])?></p><?php if(!$d['ok']):?><div class="alert alert-warning">One or more reporting sections failed. Affected values are unavailable.</div><?php endif?><div class="row g-3 mb-4"><?php foreach([['Net Assessed Amount',$d['kpis']['net_assessed_amount']],['Official Academic Collections',$d['kpis']['official_academic_collections']],['Outstanding Balance',$d['kpis']['outstanding_balance']],['Collection Efficiency',$d['kpis']['collection_efficiency']===null?'N/A':number_format($d['kpis']['collection_efficiency'],2).'%']] as [$label,$value]):?><div class="col-md-3"><div class="card"><div class="card-body"><div><?=htmlspecialchars($label)?></div><strong><?=is_numeric($value)?'PHP '.number_format((float)$value,2):htmlspecialchars((string)$value)?></strong></div></div></div><?php endforeach?></div><p class="small text-muted"><?=htmlspecialchars($d['kpis']['snapshot_note'])?> ? <?=htmlspecialchars($d['kpis']['efficiency_note'])?></p>
-<h2 class="h5">Official Collection Trend</h2><?php if($d['trend']['comparison_label']):?><p><?=htmlspecialchars($d['trend']['comparison_label'])?></p><?php endif?><table class="table table-sm"><thead><tr><th>Bucket</th><th>Current</th><?php if($d['trend']['comparison_label']):?><th>Prior</th><?php endif?></tr></thead><tbody><?php foreach($d['trend']['labels'] as $i=>$label):?><tr><td><?=htmlspecialchars($label)?></td><td>PHP <?=number_format((float)$d['trend']['current'][$i],2)?></td><?php if($d['trend']['comparison_label']):?><td>PHP <?=number_format((float)($d['trend']['prior'][$i]??0),2)?></td><?php endif?></tr><?php endforeach?></tbody></table>
-<div class="row"><div class="col-md-6"><h2 class="h5">Collections by Fee Category</h2><table class="table table-sm"><tbody><?php foreach($d['fee_categories'] as $x):?><tr><td><?=htmlspecialchars($x['label'])?></td><td class="text-end">PHP <?=number_format((float)$x['total'],2)?></td></tr><?php endforeach?></tbody></table></div><div class="col-md-6"><h2 class="h5">Collections by Payment Channel</h2><table class="table table-sm"><tbody><?php foreach($d['payment_channels'] as $x):?><tr><td><?=htmlspecialchars($x['label'])?></td><td class="text-end">PHP <?=number_format((float)$x['total'],2)?></td></tr><?php endforeach?></tbody></table></div></div><h2 class="h5">Detailed Official Collections</h2><table class="table table-sm"><thead><tr><th>Verified at</th><th>OR / Reference</th><th>Student</th><th>Type</th><th>Channel</th><th class="text-end">Applied Amount</th></tr></thead><tbody><?php foreach($d['recent_collections'] as $x):?><tr><td><?=htmlspecialchars($x['verified_at'])?></td><td><?=htmlspecialchars($x['receipt_number']?:$x['reference_number'])?></td><td><?=htmlspecialchars($x['full_name'].' ? '.$x['student_number'])?></td><td><?=htmlspecialchars($x['transaction_type'])?></td><td><?=htmlspecialchars($x['payment_channel'])?></td><td class="text-end">PHP <?=number_format((float)$x['total_applied'],2)?></td></tr><?php endforeach;if(!$d['recent_collections']):?><tr><td colspan="6" class="text-muted text-center">No official collections in this range.</td></tr><?php endif?></tbody></table><details class="no-print"><summary>Reporting section states</summary><pre><?=htmlspecialchars(json_encode($d['section_status'],JSON_PRETTY_PRINT))?></pre></details><?php foreach($d['integrity_warnings'] as $warning):?><div class="alert alert-warning"><?=htmlspecialchars($warning)?></div><?php endforeach?></section><?php endif?></main><script>const periodSelect=document.getElementById('period');function toggleCustom(){document.querySelectorAll('.custom-date').forEach(e=>e.classList.toggle('d-none',periodSelect.value!=='custom'));document.querySelectorAll('.custom-date input').forEach(e=>e.required=periodSelect.value==='custom');}periodSelect.value=<?=json_encode($d['scope']['period']??($_GET['period']??'today'))?>;document.querySelector('[name=semester]').value=<?=json_encode($d['scope']['semester']??($_GET['semester']??'1st'))?>;periodSelect.addEventListener('change',toggleCustom);toggleCustom();</script>
+<?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/reporting-period-controls.css">
+<main class="container-fluid py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1"><i class="ti ti-chart-pie text-primary me-2" aria-hidden="true"></i>Collection &amp; Analytics</h1>
+      <p class="text-muted mb-0">Detailed official collections and allocation-backed reporting.</p>
+    </div>
+    <?php if ($report !== null): ?>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-primary" type="button" onclick="window.print()"><i class="ti ti-printer me-1" aria-hidden="true"></i>Print</button>
+        <a class="btn btn-primary" href="<?= BASE_URL ?>/modules/payment/api/export-accounting-collections.php?<?= htmlspecialchars(http_build_query($_GET), ENT_QUOTES, 'UTF-8') ?>"><i class="ti ti-file-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <?php if ($reportError !== null): ?>
+    <div class="alert alert-danger" role="alert"><?= htmlspecialchars($reportError, ENT_QUOTES, 'UTF-8') ?></div>
+  <?php else: ?>
+    <?php if (in_array('error', $report['section_status'] ?? [], true)): ?>
+      <div class="alert alert-warning" role="status">Some report sections are currently unavailable.</div>
+    <?php endif; ?>
+
+    <form id="collectionReportFilters" class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end mb-3">
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="reportAcademicYear">Academic Year</label>
+            <select class="form-select" id="reportAcademicYear" name="academic_year">
+              <?php foreach ($filters['terms'] as $term): ?>
+                <option value="<?= htmlspecialchars((string) $term['academic_year'], ENT_QUOTES, 'UTF-8') ?>" <?= ($scope['academic_year'] ?? '') === $term['academic_year'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $term['academic_year'], ENT_QUOTES, 'UTF-8') ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <label class="form-label" for="reportSemester">Semester</label>
+            <select class="form-select" id="reportSemester" name="semester">
+              <?php foreach (['1st', '2nd', 'Summer'] as $semester): ?>
+                <option value="<?= $semester ?>" <?= ($scope['semester'] ?? '1st') === $semester ? 'selected' : '' ?>><?= $semester ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="reportMethod">Payment Method</label>
+            <select class="form-select" id="reportMethod" name="payment_method">
+              <option value="">All methods</option>
+              <?php foreach ($filters['methods'] as $method): ?>
+                <option value="<?= htmlspecialchars((string) $method, ENT_QUOTES, 'UTF-8') ?>" <?= ($scope['payment_method'] ?? '') === $method ? 'selected' : '' ?>><?= htmlspecialchars((string) $method, ENT_QUOTES, 'UTF-8') ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <label class="form-label" for="reportChannel">Payment Channel</label>
+            <select class="form-select" id="reportChannel" name="payment_channel">
+              <option value="">All channels</option>
+              <?php foreach ($filters['channels'] as $channel): ?>
+                <option value="<?= htmlspecialchars((string) $channel, ENT_QUOTES, 'UTF-8') ?>" <?= ($scope['payment_channel'] ?? '') === $channel ? 'selected' : '' ?>><?= htmlspecialchars((string) $channel, ENT_QUOTES, 'UTF-8') ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <label class="form-label" for="reportCategory">Fee Category</label>
+            <select class="form-select" id="reportCategory" name="fee_category">
+              <option value="">All categories</option>
+              <?php foreach ($filters['categories'] as $category): ?>
+                <option value="<?= (int) $category['category_id'] ?>" <?= (int) ($scope['fee_category'] ?? 0) === (int) $category['category_id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $category['category_name'], ENT_QUOTES, 'UTF-8') ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-8">
+            <label class="form-label">Reporting Period</label>
+            <?php require __DIR__ . '/../../includes/reporting-period-controls.php'; ?>
+          </div>
+          <div class="col-md-8 col-xl-3">
+            <label class="form-label" for="reportSearch">Student / Reference</label>
+            <input class="form-control" id="reportSearch" name="search" maxlength="100" value="<?= htmlspecialchars((string) ($scope['search'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="Name, student no., OR or reference">
+          </div>
+          <div class="col-md-4 col-xl-1">
+            <a class="btn btn-outline-secondary w-100" href="<?= BASE_URL ?>/modules/payment/pages/accounting/collection-reporting-analytics.php" title="Clear all filters"><i class="ti ti-x" aria-hidden="true"></i><span class="visually-hidden">Clear filters</span></a>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <?php if (($report['section_status']['recent_collections'] ?? '') === 'no_data'): ?>
+      <div class="alert alert-light" role="status">No transactions found for this period.</div>
+    <?php endif; ?>
+
+    <?php $kpis = $report['kpis'] ?? []; $methodTotals = []; foreach (($report['payment_methods'] ?? []) as $methodRow) $methodTotals[$methodRow['label']] = $methodRow['total']; $methodMetricsAvailable = ($report['section_status']['payment_methods'] ?? '') !== 'error'; ?>
+    <div class="row g-3 mb-4">
+      <?php foreach ([
+          ['Total Collected', $kpis['official_academic_collections'] ?? null, 'Verified official allocations'],
+          ['Verified Payment Count', $kpis['verified_payment_count'] ?? null, 'One count per payment'],
+          ['Average Payment Amount', $kpis['average_payment_amount'] ?? null, 'Applied allocation per payment'],
+          ['Cash Collection', $methodTotals['Cash'] ?? ($methodMetricsAvailable ? 0 : null), 'Verified walk-in cash'],
+          ['Live Online Collection', $methodTotals['Online'] ?? ($methodMetricsAvailable ? 0 : null), 'Verified Live allocations'],
+          ['Bank Transfer Collection', $methodTotals['Bank Transfer'] ?? ($methodMetricsAvailable ? 0 : null), 'Verified bank allocations'],
+      ] as [$label, $value, $note]): ?>
+        <div class="col-sm-6 col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-semibold"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div><div class="h4 fw-bold my-2"><?php if ($value === null): ?>Unavailable<?php elseif (str_ends_with($label, 'Count')): ?><?= number_format((int) $value) ?><?php else: ?>PHP <?= number_format((float) $value, 2) ?><?php endif; ?></div><small class="text-muted"><?= htmlspecialchars($note, ENT_QUOTES, 'UTF-8') ?></small></div></div></div>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-xl-7"><section class="card border-0 shadow-sm h-100"><div class="card-body"><h2 class="h5">Collection Trend</h2><p class="small text-muted mb-3"><?= htmlspecialchars((string) ($report['trend']['comparison_label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Period</th><th class="text-end">Selected</th><th class="text-end">Comparison</th></tr></thead><tbody>
+        <?php foreach (($report['trend']['labels'] ?? []) as $index => $label): ?><tr><td><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8') ?></td><td class="text-end">PHP <?= number_format((float) ($report['trend']['current'][$index] ?? 0), 2) ?></td><td class="text-end">PHP <?= number_format((float) ($report['trend']['prior'][$index] ?? 0), 2) ?></td></tr><?php endforeach; ?>
+        <?php if (empty($report['trend']['labels'])): ?><tr><td colspan="3" class="text-center text-muted py-3">Trend information is unavailable for this period.</td></tr><?php endif; ?>
+      </tbody></table></div></div></section></div>
+      <div class="col-xl-5"><section class="card border-0 shadow-sm h-100"><div class="card-body"><h2 class="h5">Collection by Payment Method</h2><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Method</th><th class="text-end">Applied Amount</th></tr></thead><tbody><?php foreach (($report['payment_methods'] ?? []) as $row): ?><tr><td><?= htmlspecialchars((string) $row['label'], ENT_QUOTES, 'UTF-8') ?></td><td class="text-end">PHP <?= number_format((float) $row['total'], 2) ?></td></tr><?php endforeach; ?><?php if (empty($report['payment_methods'])): ?><tr><td colspan="2" class="text-center text-muted py-3">No method breakdown for this period.</td></tr><?php endif; ?></tbody></table></div></div></section></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6"><section class="card border-0 shadow-sm h-100"><div class="card-body"><h2 class="h5">Collection by Fee Category</h2><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Category</th><th class="text-end">Applied Amount</th></tr></thead><tbody><?php foreach (($report['fee_categories'] ?? []) as $row): ?><tr><td><?= htmlspecialchars((string) $row['label'], ENT_QUOTES, 'UTF-8') ?></td><td class="text-end">PHP <?= number_format((float) $row['total'], 2) ?></td></tr><?php endforeach; ?><?php if (empty($report['fee_categories'])): ?><tr><td colspan="2" class="text-center text-muted py-3">No category breakdown for this period.</td></tr><?php endif; ?></tbody></table></div></div></section></div>
+      <div class="col-lg-6"><section class="card border-0 shadow-sm h-100"><div class="card-body"><h2 class="h5">Receivables &amp; Term Snapshot</h2><div class="d-flex justify-content-between py-2 border-bottom"><span>Net assessed amount</span><strong>PHP <?= number_format((float) ($kpis['net_assessed_amount'] ?? 0), 2) ?></strong></div><div class="d-flex justify-content-between py-2 border-bottom"><span>Remaining balance</span><strong>PHP <?= number_format((float) ($kpis['outstanding_balance'] ?? 0), 2) ?></strong></div><div class="d-flex justify-content-between py-2"><span>Term-to-date collection efficiency</span><strong><?= ($kpis['collection_efficiency'] ?? null) === null ? 'N/A' : number_format((float) $kpis['collection_efficiency'], 2) . '%' ?></strong></div><small class="text-muted d-block mt-2"><?= htmlspecialchars((string) ($kpis['snapshot_note'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></div></section></div>
+    </div>
+
+    <section class="card border-0 shadow-sm"><div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3"><div><h2 class="h5 mb-1">Detailed Official Collections</h2><p class="small text-muted mb-0"><?= htmlspecialchars((string) ($scope['academic_year'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($scope['semester'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($scope['period_label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p></div><span class="badge text-bg-light">Allocation-based</span></div>
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Date &amp; Time</th><th>Student</th><th>OR / Reference</th><th>Payment Method</th><th>Channel</th><th>AY / Semester</th><th>Fee Category Allocation</th><th class="text-end">Applied Amount</th><th>Status</th><th>Verifier ID</th></tr></thead><tbody>
+      <?php foreach (($report['recent_collections'] ?? []) as $row): $verifiedAt = new DateTimeImmutable((string) $row['verified_at'], new DateTimeZone('Asia/Manila')); ?>
+        <tr><td class="text-nowrap"><?= htmlspecialchars($verifiedAt->format('M j, Y g:i A'), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($row['full_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?><small class="d-block text-muted"><?= htmlspecialchars((string) ($row['student_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></td><td><?= htmlspecialchars((string) ($row['receipt_number'] ?: $row['reference_number']), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($row['payment_method'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($row['payment_channel'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars((string) ($row['academic_year'] ?? ''), ENT_QUOTES, 'UTF-8') ?><small class="d-block text-muted"><?= htmlspecialchars((string) ($row['semester'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></td><td><?= htmlspecialchars((string) ($row['allocation_breakdown'] ?? 'Unmapped category'), ENT_QUOTES, 'UTF-8') ?></td><td class="text-end fw-semibold">PHP <?= number_format((float) $row['total_applied'], 2) ?></td><td><span class="badge text-bg-success"><?= htmlspecialchars((string) $row['payment_status'], ENT_QUOTES, 'UTF-8') ?></span></td><td><?= $row['verified_by'] === null ? '—' : (int) $row['verified_by'] ?></td></tr>
+      <?php endforeach; ?>
+      <?php if (empty($report['recent_collections'])): ?><tr><td colspan="10" class="text-center text-muted py-4">No transactions found for this period.</td></tr><?php endif; ?>
+      </tbody></table></div>
+    </div></section>
+  <?php endif; ?>
+</main>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/reporting-period-controls.js?v=1"></script>
+<?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

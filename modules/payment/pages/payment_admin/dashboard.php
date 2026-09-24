@@ -6,29 +6,31 @@ requirePaymentPermission('payment.online_payment_config');
 $pageTitle = 'Payment Admin Dashboard';
 $activeModule = 'payment';
 $activePage = 'payment_admin/dashboard';
+$reportingControlPeriod = in_array(($_GET['period'] ?? 'today'), ['today', 'week', 'month', 'year'], true) ? $_GET['period'] : 'today';
+$reportingControlMonth = isset($_GET['period_month']) && ctype_digit((string) $_GET['period_month']) ? (int) $_GET['period_month'] : (int) (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('n');
+$reportingControlYear = isset($_GET['period_year']) && preg_match('/^\d{4}$/', (string) $_GET['period_year']) ? (int) $_GET['period_year'] : (int) (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y');
+$reportingControlYears = [];
 $breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
-    ['label' => 'Payment Admin Dashboard', 'url' => null],
+    ['label' => 'Dashboard', 'url' => null],
 ];
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/reporting-period-controls.css">
 <div class="container-fluid py-4" id="paymentAdminDashboard">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <div>
-      <h1 class="h3 mb-1"><i class="ti ti-device-mobile-check text-primary me-2" aria-hidden="true"></i>Payment Admin Dashboard</h1>
+      <h1 class="h3 mb-1"><i class="ti ti-device-mobile-check text-primary me-2" aria-hidden="true"></i>Dashboard</h1>
       <p class="text-muted mb-0">Online payment monitoring and status</p>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
-      <label for="dashboardPeriod" class="small text-muted">Period</label>
-      <select id="dashboardPeriod" class="form-select" aria-label="Online payment reporting period" style="width:auto">
-        <option value="today">Today</option><option value="week">Week</option><option value="month">Month</option><option value="year">Year</option>
-      </select>
+      <?php require __DIR__ . '/../../includes/reporting-period-controls.php'; ?>
       <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
     </div>
   </div>
-  <div id="dashboardNotice" class="alert alert-info" role="status" aria-live="polite">Loading dashboard data...</div>
+  <div id="dashboardNotice" class="alert alert-info" role="status" aria-live="polite">Loading report...</div>
   <small id="adminLastUpdated" class="text-muted d-block mb-3"></small>
   <div class="row g-3 mb-4" id="adminKpis" aria-live="polite"><div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-muted">Loading online payment data...</div></div></div></div>
   <div class="row g-3 mb-4">
@@ -72,9 +74,11 @@ renderBreadcrumbs($breadcrumbs);
     </table></div>
   </div></div>
 </div>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/reporting-period-controls.js?v=1"></script>
 <script>
 window.PAYMENT_ADMIN_DASHBOARD_API = <?= json_encode(BASE_URL . '/modules/payment/api/payment-admin-dashboard-data.php') ?>;
 window.PAYMENT_ADMIN_GATEWAY_STATUS_API = <?= json_encode(BASE_URL . '/modules/payment/api/paymongo/status.php') ?>;
+window.PAYMENT_QRPH_LOGO = <?= json_encode(BASE_URL . '/modules/payment/assets/images/qrph%20logo.jpg') ?>;
 </script>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=3"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=4"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
