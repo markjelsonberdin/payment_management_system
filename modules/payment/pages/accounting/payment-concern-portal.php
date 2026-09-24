@@ -91,6 +91,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
 <div class="container-fluid py-4">
     <!-- Header -->
@@ -122,7 +123,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <?php endif; ?>
 
     <!-- Table of Concerns -->
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden payment-operational-table">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 text-nowrap" id="concernsTable">
@@ -143,20 +144,20 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <tr>
                                     <td class="ps-4 fw-bold text-primary">#<?= $row['concern_id'] ?></td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($row['full_name']) ?>
-                                        <small class="text-muted"><?= htmlspecialchars($row['student_number']) ?></small>
+                                        <div class="payment-table-primary"><?= htmlspecialchars($row['full_name']) ?></div>
+                                        <small class="payment-table-secondary"><?= htmlspecialchars($row['student_number']) ?></small>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= $row['payment_amount'] !== null ? 'PHP ' . number_format((float)$row['payment_amount'], 2) : 'Not linked' ?></div>
-                                        <small class="text-muted"><?= htmlspecialchars((string)($row['payment_channel'] ?? 'N/A')) ?></small>
+                                        <div class="payment-table-money text-start"><?= $row['payment_amount'] !== null ? '₱ ' . number_format((float)$row['payment_amount'], 2) : 'Not linked' ?></div>
+                                        <small class="payment-table-secondary"><?= htmlspecialchars((string)($row['payment_channel'] ?? 'N/A')) ?></small>
                                     </td>
                                     <td>
-                                        <div class="text-dark small"><strong>Bank:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'N/A') ?></div>
-                                        <div class="text-dark small"><strong>Ref:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'N/A') ?></div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">Confidence: <?= $row['confidence_score'] ? $row['confidence_score'] . '%' : 'N/A' ?></div>
+                                        <div class="payment-table-primary small"><strong>Bank:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'N/A') ?></div>
+                                        <div class="payment-table-secondary"><strong>OCR Ref:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'N/A') ?></div>
+                                        <div class="payment-table-secondary">Confidence: <?= $row['confidence_score'] ? $row['confidence_score'] . '%' : 'N/A' ?></div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-info text-dark px-2 py-1 mb-1"><?= htmlspecialchars($row['ocr_status']) ?></span>
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 mb-1"><?= htmlspecialchars($row['ocr_status']) ?></span>
                                         <?php if (isset($row['rule_status'])): ?>
                                             <div class="small fw-bold <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'text-success' : 'text-danger' ?>">
                                                 <i class="fas <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
@@ -178,7 +179,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <button type="button" class="btn btn-sm btn-light text-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
+                                        <button type="button" class="btn btn-sm btn-light text-primary shadow-sm" title="Review payment concern" aria-label="Review payment concern #<?= (int)$row['concern_id'] ?>" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
                                             <i class="ti ti-report-money me-1"></i> Review & Verify
                                         </button>
                                     </td>
@@ -186,7 +187,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" class="py-5 text-center text-muted">
+                                <td colspan="7" class="payment-table-empty">
                                     <i class="ti ti-circle-check fs-3 mb-2 text-success opacity-50 d-block"></i>
                                     No pending payment concerns to review.
                                 </td>

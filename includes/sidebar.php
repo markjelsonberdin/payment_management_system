@@ -361,7 +361,8 @@ $researchDirectorNavGroups = [
                     <span class="nav-link sidebar-group-heading">Dashboard</span>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link sidebar-sub <?= $activeModule === 'dashboard' ? 'active' : '' ?>"
+                    <?php $isPaymentDashboardPage = $activeModule === 'payment' && in_array((string) $activePage, ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true); ?>
+                    <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || $isPaymentDashboardPage) ? 'active' : '' ?>"
                        href="<?= BASE_URL ?>/dashboard/index.php"
                        data-title="Overview"
                        title="Overview">
@@ -412,6 +413,7 @@ $researchDirectorNavGroups = [
                             // Filter slugs by permission
                             $allowedSlugs = [];
                             foreach ($groupSlugs as $slug) {
+                                if ($navModuleKey === 'payment' && in_array($slug, ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
                                 if (!isset($pageTitles[$slug])) { continue; }
                                 if ($roleKey === 'crad_officer' && $slug === 'research-defense-scheduling') { continue; }
                                 if (isset($pagePerms[$slug]) && !userCanAccessModule($pagePerms[$slug])) { continue; }
@@ -442,6 +444,7 @@ $researchDirectorNavGroups = [
                     <?php else: ?>
                         <?php foreach ($module['pages'] as $page): ?>
                             <?php
+                            if ($navModuleKey === 'payment' && in_array($page['slug'], ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
                             if (isset($page['permission']) && !userCanAccessModule($page['permission'])) { continue; }
                             $isPageActive = ($isModuleActive && $activePage === $page['slug']);
                             $pageHref = BASE_URL . '/modules/' . $moduleFolder . '/pages/' . $page['slug'] . '.php';

@@ -1,10 +1,11 @@
 .payment-period-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}
-.payment-period-tabs{flex-wrap:nowrap}
-.payment-period-tabs .btn{min-width:4.25rem;border-radius:.45rem!important;font-weight:600}
+.payment-period-tabs{flex-wrap:nowrap;border:1px solid var(--bs-primary,#0d6efd);border-radius:.5rem;overflow:hidden}
+.payment-period-tabs .btn{min-width:4.25rem;border:0;border-radius:0!important;font-weight:600}
+.payment-period-tabs .btn.active{color:#fff;background:var(--bs-primary,#0d6efd)}
 .payment-period-tabs .btn:focus-visible,.payment-period-selection .form-select:focus-visible,.payment-period-apply:focus-visible{outline:3px solid rgba(37,99,235,.35);outline-offset:2px;box-shadow:none}
 .payment-period-selection{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem}
-.payment-period-viewing{font-size:.875rem;color:var(--bs-secondary-color,#6c757d);white-space:nowrap}
+.payment-period-context{font-size:.8rem;color:var(--bs-secondary-color,#6c757d);white-space:nowrap;margin-left:auto}
 .payment-period-selection .form-select{width:auto;min-width:8.5rem}
 .payment-period-selection [data-period-year]{min-width:6rem}
 .payment-period-selection [hidden]{display:none!important}
-@media(max-width:575.98px){.payment-period-controls{align-items:stretch}.payment-period-tabs{width:100%}.payment-period-tabs .btn{flex:1;min-width:0;padding-inline:.45rem}.payment-period-selection{width:100%}.payment-period-selection .form-select{flex:1;min-width:0}.payment-period-apply{width:100%}}
+@media(max-width:575.98px){.payment-period-controls{align-items:stretch}.payment-period-tabs{width:100%}.payment-period-tabs .btn{flex:1;min-width:0;padding-inline:.45rem}.payment-period-selection{width:100%}.payment-period-selection .form-select{flex:1;min-width:0}.payment-period-apply{width:100%}.payment-period-context{width:100%;margin-left:0;text-align:center}}

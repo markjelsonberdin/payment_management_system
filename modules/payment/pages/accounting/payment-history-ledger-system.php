@@ -154,6 +154,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
 ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
 <div class="container-fluid py-4 ph-ledger">
     <div class="row mb-4 align-items-center">
@@ -211,7 +212,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
     </div>
 
-    <form method="get" action="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="card border-0 shadow-sm rounded-4 mb-4" id="historyFilterForm">
+    <form method="get" action="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="card border-0 shadow-sm rounded-4 mb-4 payment-table-toolbar" id="historyFilterForm">
         <div class="card-body p-3">
             <div class="row g-2 align-items-end">
                 <div class="col-lg-3">
@@ -259,7 +260,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
     </form>
 
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden position-relative">
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden position-relative payment-operational-table">
         <div class="ph-ledger-loading d-none" id="historyLoadingState" aria-hidden="true">
             <div class="text-center">
                 <div class="spinner-border text-primary mb-2" role="status"></div>
@@ -362,15 +363,15 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                 <tr>
                                     <td class="ps-4 fw-bold text-primary">#<?= htmlspecialchars($pay['reference_number'] ?? 'N/A') ?></td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($pay['full_name']) ?></div>
-                                        <small class="text-muted"><?= htmlspecialchars($pay['student_number']) ?> (<?= htmlspecialchars($pay['course'] ?? '') ?>)</small>
+                                        <div class="payment-table-primary"><?= htmlspecialchars($pay['full_name']) ?></div>
+                                        <small class="payment-table-secondary"><?= htmlspecialchars($pay['student_number']) ?> (<?= htmlspecialchars($pay['course'] ?? '') ?>)</small>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-dark border px-2 py-1"><?= htmlspecialchars($pay['payment_channel'] ?? $pay['payment_method']) ?></span>
                                     </td>
-                                    <td class="fw-bold text-dark text-end">₱ <?= number_format($amtApplied, 2) ?></td>
-                                    <td class="text-muted text-end">₱ <?= number_format($procFee, 2) ?></td>
-                                    <td class="fw-bold text-primary text-end">₱ <?= number_format($chkTotal, 2) ?></td>
+                                    <td class="payment-table-money text-dark">₱ <?= number_format($amtApplied, 2) ?></td>
+                                    <td class="payment-table-money text-muted">₱ <?= number_format($procFee, 2) ?></td>
+                                    <td class="payment-table-money text-primary">₱ <?= number_format($chkTotal, 2) ?></td>
                                     <td class="text-center">
                                         <?= $statusBadge ?>
                                     </td>
@@ -378,7 +379,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <div class="text-dark"><?= !empty($pay['recorded_at']) ? date('M d, Y', strtotime($pay['recorded_at'])) : '—' ?></div>
                                         <small class="text-muted"><?= !empty($pay['recorded_at']) ? date('h:i A', strtotime($pay['recorded_at'])) : '' ?></small>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="text-end pe-4"><div class="payment-table-actions">
                                         <?php if ($cashierHistoryMode && ($pay['transaction_type'] ?? '') === 'Walk-in' && strtolower((string) ($pay['payment_channel'] ?? '')) === 'cash' && ($pay['payment_status'] ?? '') === 'Verified'): ?>
                                             <a class="btn btn-sm btn-light text-success border shadow-sm text-nowrap" target="_blank" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?payment_id=' . (int) $pay['payment_id']) ?>"><i class="ti ti-printer me-1"></i>Receipt</a>
                                         <?php endif; ?>
@@ -386,7 +387,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                             class="btn btn-sm btn-light text-primary border shadow-sm js-view-ledger text-nowrap"
                                             data-ledger="<?= htmlspecialchars(json_encode($modalPayload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES) ?>">
                                             <i class="ti ti-eye me-1"></i> View Ledger
-                                        </button>
+                                        </button></div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
