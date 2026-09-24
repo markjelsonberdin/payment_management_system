@@ -52,6 +52,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
 <div class="container-fluid py-4">
     <!-- Header -->
@@ -76,7 +77,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="row g-4">
         <!-- Upload Card -->
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0 rounded-4">
+            <div class="card shadow-sm border-0 rounded-4 payment-table-toolbar">
                 <div class="card-header bg-white border-0 pt-4 pb-0">
                     <h6 class="fw-bold mb-0"><i class="fas fa-cloud-upload-alt text-primary me-2"></i>Upload Statement</h6>
                 </div>
@@ -103,7 +104,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
         <!-- History Card -->
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100 payment-operational-table">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0"><i class="fas fa-history text-secondary me-2"></i>Upload History</h6>
                 </div>
@@ -123,11 +124,11 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <?php if (count($statements) > 0): ?>
                                     <?php foreach ($statements as $stmt): ?>
                                         <tr>
-                                            <td class="ps-4 fw-bold text-dark">
+                                            <td class="ps-4 payment-table-primary">
                                                 <i class="fas fa-file-csv text-success me-2"></i><?= htmlspecialchars($stmt['filename']) ?>
                                             </td>
-                                            <td class="text-muted small"><?= htmlspecialchars($stmt['uploaded_by_name'] ?? 'System') ?></td>
-                                            <td class="text-muted small"><?= date('M d, Y h:i A', strtotime($stmt['uploaded_at'])) ?></td>
+                                            <td class="payment-table-secondary"><?= htmlspecialchars($stmt['uploaded_by_name'] ?? 'System') ?></td>
+                                            <td><span class="payment-table-primary"><?= date('M d, Y', strtotime($stmt['uploaded_at'])) ?></span><small class="payment-table-secondary"><?= date('h:i A', strtotime($stmt['uploaded_at'])) ?></small></td>
                                             <td class="text-center fw-bold text-primary"><?= number_format($stmt['row_count']) ?></td>
                                             <td class="text-center">
                                                 <?php if($stmt['status'] === 'Processed'): ?>
@@ -154,23 +155,23 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4 mt-4">
+    <div class="card shadow-sm border-0 rounded-4 mt-4 payment-operational-table">
         <div class="card-header bg-white py-3"><h6 class="fw-bold mb-0">Imported AUB Transactions <small class="text-muted fw-normal">(latest 100; review evidence only)</small></h6></div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light"><tr><th class="ps-4">Row</th><th>Statement</th><th>Reference</th><th>Amount</th><th>Transaction Date</th><th>Status</th><th>Linked Concern / Payment</th></tr></thead>
                 <tbody>
                     <?php if (!$recentRows): ?>
-                        <tr><td colspan="7" class="text-center text-muted py-4">No imported AUB transaction rows yet.</td></tr>
+                        <tr><td colspan="7" class="payment-table-empty">No bank reconciliation records found.</td></tr>
                     <?php else: foreach ($recentRows as $bankRow): ?>
                         <tr>
-                            <td class="ps-4">#<?= (int)$bankRow['id'] ?></td>
-                            <td><?= htmlspecialchars($bankRow['filename']) ?></td>
-                            <td><?= htmlspecialchars($bankRow['reference_number'] ?? '') ?></td>
-                            <td>PHP <?= number_format((float)$bankRow['amount'], 2) ?></td>
-                            <td><?= htmlspecialchars($bankRow['transaction_date']) ?></td>
-                            <td><?= htmlspecialchars($bankRow['status']) ?></td>
-                            <td><?= $bankRow['matched_concern_id'] ? 'Concern #' . (int)$bankRow['matched_concern_id'] . ' / Payment #' . (int)$bankRow['matched_payment_id'] : '—' ?></td>
+                            <td class="ps-4 payment-table-primary">#<?= (int)$bankRow['id'] ?></td>
+                            <td><span class="payment-table-primary"><?= htmlspecialchars($bankRow['filename']) ?></span></td>
+                            <td class="payment-table-primary"><?= htmlspecialchars($bankRow['reference_number'] ?? '') ?></td>
+                            <td class="payment-table-money">₱ <?= number_format((float)$bankRow['amount'], 2) ?></td>
+                            <td><span class="payment-table-primary"><?= htmlspecialchars($bankRow['transaction_date']) ?></span></td>
+                            <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($bankRow['status']) ?></span></td>
+                            <td><?= $bankRow['matched_concern_id'] ? '<span class="payment-table-primary">Concern #' . (int)$bankRow['matched_concern_id'] . '</span><small class="payment-table-secondary">Payment #' . (int)$bankRow['matched_payment_id'] . '</small>' : '<span class="badge bg-light text-muted border">Unmatched</span>' ?></td>
                         </tr>
                     <?php endforeach; endif; ?>
                 </tbody>

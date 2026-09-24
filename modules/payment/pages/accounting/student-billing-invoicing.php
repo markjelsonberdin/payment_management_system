@@ -253,6 +253,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
 <div class="container-fluid py-4">
     <!-- Page Header & Actions -->
@@ -286,9 +287,9 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <?php if (!$feeWorkflowAvailable): ?>
                 <div class="alert alert-warning mb-0">Disabled until the approved Payment workflow migration is installed.</div>
             <?php else: ?>
-                <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Fee Category</th><th>Term</th><th>Cohort</th><th>Status</th><th>Assigned</th><th>Failed</th><th></th></tr></thead><tbody>
+                <div class="table-responsive payment-operational-table"><table class="table table-sm align-middle"><thead><tr><th>Fee Category</th><th>Term</th><th>Cohort</th><th>Status</th><th>Assigned</th><th>Failed</th><th>Action</th></tr></thead><tbody>
                     <?php foreach ($feeCampaigns as $campaign): ?>
-                        <tr><td><?= htmlspecialchars($campaign['category_name_snapshot'] ?: $campaign['fee_name_snapshot']) ?> (₱<?= number_format((float) $campaign['amount_snapshot'], 2) ?>)</td><td><?= htmlspecialchars($campaign['academic_year'] . ' / ' . $campaign['semester']) ?></td><td><?= htmlspecialchars(($campaign['course'] ?: 'All courses') . ' / ' . ($campaign['year_level'] ?: 'All levels')) ?></td><td><?= htmlspecialchars($campaign['status']) ?></td><td><?= (int) $campaign['added_count'] ?></td><td><?= (int) $campaign['failed_count'] ?></td><td><a class="btn btn-sm btn-outline-primary" href="?campaign_id=<?= (int) $campaign['campaign_id'] ?>">Review</a></td></tr>
+                        <tr><td><span class="payment-table-primary"><?= htmlspecialchars($campaign['category_name_snapshot'] ?: $campaign['fee_name_snapshot']) ?></span><small class="payment-table-secondary">₱<?= number_format((float) $campaign['amount_snapshot'], 2) ?></small></td><td class="payment-table-secondary"><?= htmlspecialchars($campaign['academic_year'] . ' / ' . $campaign['semester']) ?></td><td class="payment-table-secondary"><?= htmlspecialchars(($campaign['course'] ?: 'All courses') . ' / ' . ($campaign['year_level'] ?: 'All levels')) ?></td><td><span class="badge bg-light text-dark border"><?= htmlspecialchars($campaign['status']) ?></span></td><td class="payment-table-money"><?= (int) $campaign['added_count'] ?></td><td class="payment-table-money"><?= (int) $campaign['failed_count'] ?></td><td><a class="btn btn-sm btn-outline-primary" href="?campaign_id=<?= (int) $campaign['campaign_id'] ?>" title="Review billing run">Review</a></td></tr>
                     <?php endforeach; ?>
                 </tbody></table></div>
                 <?php if ($selectedCampaign): ?>
@@ -419,7 +420,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 
     <!-- Billing Records Table -->
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden payment-operational-table">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 text-nowrap" id="billingTable">
@@ -440,15 +441,15 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <tr>
                                     <td class="ps-4 fw-bold text-primary">#<?= str_pad($bill['billing_id'], 5, '0', STR_PAD_LEFT) ?></td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($bill['full_name']) ?></div>
-                                        <small class="text-muted"><?= htmlspecialchars($bill['student_number']) ?></small>
+                                        <div class="payment-table-primary"><?= htmlspecialchars($bill['full_name']) ?></div>
+                                        <small class="payment-table-secondary"><?= htmlspecialchars($bill['student_number']) ?></small>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark"><?= htmlspecialchars($bill['semester']) ?> Semester</div>
-                                        <small class="text-muted">A.Y. <?= htmlspecialchars($bill['academic_year']) ?> &bull; <span class="text-primary fw-bold"><?= htmlspecialchars($bill['billing_type']) ?></span></small>
+                                        <div class="payment-table-primary"><?= htmlspecialchars($bill['semester']) ?> Semester</div>
+                                        <small class="payment-table-secondary">A.Y. <?= htmlspecialchars($bill['academic_year']) ?> &bull; <span class="text-primary fw-semibold"><?= htmlspecialchars($bill['billing_type']) ?></span></small>
                                     </td>
-                                    <td class="fw-bold text-dark">₱ <?= number_format($bill['total_amount'], 2) ?></td>
-                                    <td class="fw-bold text-danger">₱ <?= number_format($bill['remaining_balance'], 2) ?></td>
+                                    <td class="payment-table-money text-dark">₱ <?= number_format($bill['total_amount'], 2) ?></td>
+                                    <td class="payment-table-money text-danger">₱ <?= number_format($bill['remaining_balance'], 2) ?></td>
                                     <td class="text-center">
                                         <?php 
                                         $statusClass = match($bill['billing_status']) {
@@ -461,10 +462,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <?= htmlspecialchars($bill['billing_status']) ?>
                                         </span>
                                     </td>
-                                    <td class="text-end pe-4">
-                                        <a href="view-soa.php?id=<?= $bill['billing_id'] ?>" class="btn btn-sm btn-light text-primary shadow-sm" title="View SOA">
+                                    <td class="text-end pe-4"><div class="payment-table-actions">
+                                        <a href="view-soa.php?id=<?= $bill['billing_id'] ?>" class="btn btn-sm btn-light text-primary shadow-sm" title="View SOA" aria-label="View statement of account">
                                             <i class="ti ti-eye me-1"></i> View
-                                        </a>
+                                        </a></div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -22,7 +22,6 @@ rsort($reportingControlYears, SORT_NUMERIC);
     <?php endforeach; ?>
   </div>
   <div class="payment-period-selection<?= in_array($reportingControlPeriod, ['month', 'year'], true) ? '' : ' d-none' ?>" data-period-selection>
-    <span class="payment-period-viewing">Viewing</span>
     <label class="visually-hidden" for="paymentPeriodMonth">Month</label>
     <select id="paymentPeriodMonth" name="period_month" class="form-select form-select-sm" data-period-month<?= $reportingControlPeriod === 'month' ? '' : ' hidden' ?>>
       <?php for ($month = 1; $month <= 12; $month++): $monthLabel = (new DateTimeImmutable(sprintf('2000-%02d-01', $month)))->format('F'); ?>
@@ -37,6 +36,9 @@ rsort($reportingControlYears, SORT_NUMERIC);
     </select>
   </div>
   <button type="button" class="btn btn-primary btn-sm payment-period-apply" data-period-apply>
-    <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply
+    <i class="ti ti-filter me-1" aria-hidden="true"></i><span data-period-apply-label>Apply Period</span>
   </button>
+  <span class="payment-period-context" data-period-context role="status" aria-live="polite">
+    Viewing: <?= $reportingControlPeriod === 'month' ? htmlspecialchars((new DateTimeImmutable(sprintf('2000-%02d-01', $reportingControlMonth)))->format('F') . ' ' . $reportingControlYear, ENT_QUOTES, 'UTF-8') : ($reportingControlPeriod === 'year' ? htmlspecialchars((string) $reportingControlYear, ENT_QUOTES, 'UTF-8') : htmlspecialchars(ucfirst($reportingControlPeriod), ENT_QUOTES, 'UTF-8')) ?>
+  </span>
 </div>

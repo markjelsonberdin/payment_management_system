@@ -279,7 +279,6 @@ $MODULES = [
         'icon'  => 'fa-credit-card',
         'groups' => [
             'ACCOUNTING PORTAL' => [
-                'accounting/dashboard',
                 'accounting/fee-setup-configuration',
                 'accounting/student-billing-invoicing',
                 'accounting/discount-scholarship-application',
@@ -289,13 +288,11 @@ $MODULES = [
                 'accounting/bank-reconciliation',
             ],
             'CASHIER PORTAL' => [
-                'cashier/dashboard',
                 'cashier/payment-collection-portal',
                 'cashier/school-sales',
                 'cashier/walk-in-transaction-history',
             ],
             'PAYMENT ADMIN PORTAL' => [
-                'payment_admin/dashboard',
                 'payment_admin/online-payment-integration',
                 'payment_admin/school-sales-catalog',
             ],
