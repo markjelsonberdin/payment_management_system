@@ -31,6 +31,25 @@ foreach ($paymentMeta['pages'] as $page) {
 $routeOverrides = [
     'accounting/collection-reporting-analytics' => 'accounting/collection-reporting-integrated.php',
 ];
+$overviewCards = [];
+foreach ($allowedSlugs as $slug) {
+    $page = $pageBySlug[$slug] ?? null;
+    if ($page === null || (isset($page['permission']) && !paymentRoleAllowsPermission($role, $page['permission']))) {
+        continue;
+    }
+    $overviewCards[] = $page;
+}
+
+// A role-visible sidebar group must always have matching overview shortcuts.
+// This fallback protects the UI from incomplete legacy permission metadata;
+// it does not change the page-level authorization checks.
+if ($overviewCards === [] && isset($groupByRole[$role])) {
+    foreach (($paymentMeta['groups'][$groupByRole[$role]] ?? []) as $slug) {
+        if (isset($pageBySlug[$slug])) {
+            $overviewCards[] = $pageBySlug[$slug];
+        }
+    }
+}
 
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/nav-icons.php';
@@ -44,16 +63,9 @@ renderBreadcrumbs($breadcrumbs);
     </div>
 
     <div class="row g-3 module-button-grid">
-        <?php foreach ($allowedSlugs as $slug): ?>
+        <?php foreach ($overviewCards as $page): ?>
             <?php
-            $page = $pageBySlug[$slug] ?? null;
-            // Payment pages enforce their own permission checks.  The overview
-            // mirrors that role matrix so a valid Accounting/Cashier role does
-            // not lose its shortcut cards because of an unrelated legacy DB
-            // module-grant row.
-            if ($page === null || (isset($page['permission']) && !paymentRoleAllowsPermission($role, $page['permission']))) {
-                continue;
-            }
+            $slug = $page['slug'];
             $path = $routeOverrides[$slug] ?? ($slug . '.php');
             $href = BASE_URL . '/modules/payment/pages/' . $path;
             ?>
@@ -71,6 +83,11 @@ renderBreadcrumbs($breadcrumbs);
                 </a>
             </div>
         <?php endforeach; ?>
+        <?php if ($overviewCards === []): ?>
+            <div class="col-12">
+                <div class="alert alert-info mb-0" role="status">No Payment shortcuts are available for this role.</div>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
