@@ -47,7 +47,11 @@ renderBreadcrumbs($breadcrumbs);
         <?php foreach ($allowedSlugs as $slug): ?>
             <?php
             $page = $pageBySlug[$slug] ?? null;
-            if ($page === null || (isset($page['permission']) && !userCanAccessModule($page['permission']))) {
+            // Payment pages enforce their own permission checks.  The overview
+            // mirrors that role matrix so a valid Accounting/Cashier role does
+            // not lose its shortcut cards because of an unrelated legacy DB
+            // module-grant row.
+            if ($page === null || (isset($page['permission']) && !paymentRoleAllowsPermission($role, $page['permission']))) {
                 continue;
             }
             $path = $routeOverrides[$slug] ?? ($slug . '.php');
