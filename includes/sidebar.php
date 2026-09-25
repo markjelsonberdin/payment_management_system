@@ -387,7 +387,7 @@ $researchDirectorNavGroups = [
                         </span>
                     </li>
                     <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'payment_admin', 'finance', 'cashier'], true); ?>
-                    <?php if (!$hasCanonicalPaymentDashboard): ?>
+                    <?php if (!$hasCanonicalPaymentDashboard || $navModuleKey === 'payment'): ?>
                         <li class="nav-item">
                             <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && $activePage === '') ? 'active' : '' ?>"
                                href="<?= htmlspecialchars($overviewUrl) ?>">
