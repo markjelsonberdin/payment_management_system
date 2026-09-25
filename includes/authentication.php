@@ -299,8 +299,12 @@ function userCanAccessModule(string $moduleKey): bool
     if ($moduleKey === '' || $moduleKey === 'dashboard') {
         return true;
     }
-    if (str_starts_with($moduleKey, 'payment.') && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey)) {
-        return false;
+    if (str_starts_with($moduleKey, 'payment.')) {
+        // Payment role capabilities are the source of truth for Payment
+        // operations.  Legacy granular module-grant rows may be incomplete
+        // (for example, omitting Accounting's fee-setup permission), but
+        // must not hide or block a role-owned payment page.
+        return paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey);
     }
     // The global payment dashboard is intentionally shared by Payment Admin,
     // Accounting Officer, and Cashier even when legacy DB grants omit it.
