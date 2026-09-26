@@ -1,0 +1,26 @@
+.fee-setup .fee-search-box { max-width: 260px; }
+.fee-setup .fee-accordion-item .accordion-button { box-shadow: none; }
+.fee-setup .fee-accordion-item .accordion-button:not(.collapsed) { color: inherit; }
+.fee-setup .fee-group-meta { font-size: .75rem; letter-spacing: 0; }
+.fee-setup .fee-items-table thead { font-size: .70rem; }
+.fee-setup .fee-items-table .fee-name { font-size: .9rem; }
+.fee-setup .fee-code { font-family: var(--bs-font-monospace); font-size: .72rem; }
+.fee-setup .fee-actions { white-space: nowrap; }
+.fee-setup .fee-state-badge { min-width: 4.5rem; }
+.fee-setup .fee-type-empty { padding: 1.5rem; text-align: center; color: var(--bs-secondary-color); }
+.fee-setup .fee-group-label { font-size: .68rem; letter-spacing: .05em; text-transform: uppercase; }
+
+#versionScopes .fee-scope-row,
+#legacyScopes .fee-scope-row { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: .75rem; margin-bottom: .6rem; background: var(--bs-body-bg); }
+#versionsList .fee-version-item { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: 1rem; margin-bottom: .75rem; background: var(--bs-body-bg); }
+#versionsList .fee-version-item:last-child { margin-bottom: 0; }
+#versionsList .fee-version-item[data-status="Active"] { border-left: 4px solid var(--bs-success); }
+#versionsList .fee-version-item[data-status="Draft"] { border-left: 4px solid var(--bs-warning); }
+#versionsList .fee-version-item[data-status="Archived"] { opacity: .78; }
+#legacyModal thead { font-size: .72rem; }
+#classificationPreview .fee-review-panel { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: 1rem; background: var(--bs-body-bg); }
+
+@media (max-width: 767.98px) {
+    .fee-setup .fee-search-box { max-width: none; width: 100% !important; }
+    .fee-setup .fee-items-table { min-width: 760px; }
+}
