@@ -1,654 +1,117 @@
 <?php
-/**
- * SMS 2 - Payment Management Module (Admin Setup)
- * PURPOSE: Manage Master List of Fees using Category-based Hierarchy.
- */
+declare(strict_types=1);
 require_once __DIR__ . '/../../../../config/config.php';
-require_once __DIR__ . '/../../../../includes/authentication.php';
-require_once __DIR__ . '/../../../../includes/audit.php';
-require_once __DIR__ . '/../../database/db_connect.php';
-require_once __DIR__ . '/../../includes/FeeBillingWorkflow.php';
-
-
+require_once ROOT_PATH . '/includes/authentication.php';
+require_once ROOT_PATH . '/includes/breadcrumbs.php';
 requireAuth();
 requirePaymentPermission('payment.fee_setup');
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-global $pdo;
-$feeWorkflow = new FeeBillingWorkflow($pdo);
-$feeWorkflowAvailable = $feeWorkflow->available();
-
-function feeBillingAssertEditable(PDO $pdo, int $feeId, bool $workflowAvailable): void
-{
-    if (!$workflowAvailable) {
-        return;
-    }
-    $stmt = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.status = 'Running' AND (c.fee_id = ? OR ci.fee_id = ?) LIMIT 1");
-    $stmt->execute([$feeId, $feeId]);
-    if ($stmt->fetchColumn()) {
-        throw new RuntimeException('This fee has a bulk billing run in progress. Wait for it to finish before archiving or editing the fee.');
-    }
-}
-
-function feeCanBePermanentlyDeleted(PDO $pdo, int $feeId, bool $workflowAvailable): bool
-{
-    $billing = $pdo->prepare('SELECT 1 FROM billing_items WHERE fee_id = ? LIMIT 1');
-    $billing->execute([$feeId]);
-    if ($billing->fetchColumn()) {
-        return false;
-    }
-    if (!$workflowAvailable) {
-        return true;
-    }
-    $campaign = $pdo->prepare('SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.fee_id = ? OR ci.fee_id = ? LIMIT 1');
-    $campaign->execute([$feeId, $feeId]);
-    return !$campaign->fetchColumn();
-}
-
-// ==========================================
-// CSRF VALIDATION
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
-}
-// ==========================================
-// 1. ADD NEW FEE
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_fee'])) {
-    $fee_name = trim($_POST['fee_name']);
-    $category_id = (int) $_POST['category_id'];
-    $default_amount = (float) $_POST['default_amount'];
-    $is_required = (int) $_POST['is_required'];
-
-    try {
-        // Insert gamit ang bagong schema (walang priority_order, category_id ang gamit)
-        $sql = "INSERT INTO fees (fee_name, category_id, default_amount, is_required, status) 
-                VALUES (:name, :category, :amount, :required, 'Active')";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':name'     => $fee_name,
-            ':category' => $category_id,
-            ':amount'   => $default_amount,
-            ':required' => $is_required
-        ]);
-        logActivity('fee_created', 'Fee #' . (int) $pdo->lastInsertId() . ' created: ' . $fee_name, 'payment');
-
-        header("Location: fee-setup-configuration.php?success=1");
-        exit();
-    } catch (PDOException $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-// ==========================================
-// 2. EDIT EXISTING FEE
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_fee'])) {
-    $fee_id = (int) $_POST['edit_fee_id'];
-    $fee_name = trim($_POST['fee_name']);
-    $category_id = (int) $_POST['category_id'];
-    $default_amount = (float) $_POST['default_amount'];
-    $is_required = (int) $_POST['is_required'];
-
-    try {
-        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
-        $stmt = $pdo->prepare("UPDATE fees SET fee_name = :name, category_id = :category, default_amount = :amount, is_required = :required WHERE fee_id = :id");
-        $stmt->execute([
-            ':name'     => $fee_name,
-            ':category' => $category_id,
-            ':amount'   => $default_amount,
-            ':required' => $is_required,
-            ':id'       => $fee_id
-        ]);
-        logActivity('fee_modified', 'Fee #' . $fee_id . ' modified: ' . $fee_name, 'payment');
-        header("Location: fee-setup-configuration.php?success=edited");
-        exit();
-    } catch (Throwable $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-// ==========================================
-// 3. ARCHIVE ACTIONS
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_fee'])) {
-    $fee_id = (int) $_POST['fee_id'];
-    try {
-        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
-        $pdo->prepare("UPDATE fees SET status = 'Inactive' WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
-        header("Location: fee-setup-configuration.php?success=archived");
-        exit();
-    } catch (Throwable $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_category'])) {
-    $category_id = (int) $_POST['category_id'];
-    try {
-        if ($feeWorkflowAvailable) {
-            $check = $pdo->prepare("SELECT 1 FROM fee_billing_campaigns c WHERE c.category_id = ? AND c.status = 'Running' LIMIT 1");
-            $check->execute([$category_id]);
-            if ($check->fetchColumn()) {
-                throw new RuntimeException('This category contains a fee with a bulk billing run in progress. Wait for it to finish before archiving.');
-            }
-        }
-        $stmt = $pdo->prepare("UPDATE fees SET status = 'Inactive' WHERE category_id = :category_id AND status = 'Active'");
-        $stmt->execute([':category_id' => $category_id]);
-        header("Location: fee-setup-configuration.php?success=archived_category&count=" . $stmt->rowCount());
-        exit();
-    } catch (Throwable $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-// ==========================================
-// 4. RESTORE & PERMANENT DELETE
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_fee'])) {
-    $fee_id = (int) $_POST['fee_id'];
-    try {
-        $pdo->prepare("UPDATE fees SET status = 'Active' WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
-        header("Location: fee-setup-configuration.php?success=restored");
-        exit();
-    } catch (Exception $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_fee'])) {
-    $fee_id = (int) $_POST['fee_id'];
-    try {
-        feeBillingAssertEditable($pdo, $fee_id, $feeWorkflowAvailable);
-        if (!feeCanBePermanentlyDeleted($pdo, $fee_id, $feeWorkflowAvailable)) {
-            throw new RuntimeException('This fee has billing history or a bulk billing record and cannot be permanently deleted. It remains safely archived.');
-        }
-        $pdo->prepare("DELETE FROM fees WHERE fee_id = :fee_id")->execute([':fee_id' => $fee_id]);
-        header("Location: fee-setup-configuration.php?success=deleted");
-        exit();
-    } catch (Throwable $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_all_archived'])) {
-    try {
-        $sql = "DELETE FROM fees f WHERE f.status = 'Inactive' AND NOT EXISTS (SELECT 1 FROM billing_items bi WHERE bi.fee_id = f.fee_id)";
-        if ($feeWorkflowAvailable) {
-            $sql .= " AND NOT EXISTS (SELECT 1 FROM fee_billing_campaigns c LEFT JOIN fee_billing_campaign_items ci ON ci.campaign_id = c.campaign_id WHERE c.fee_id = f.fee_id OR ci.fee_id = f.fee_id)";
-        }
-        $stmtDeleteAll = $pdo->prepare($sql);
-        $stmtDeleteAll->execute();
-        header("Location: fee-setup-configuration.php?success=deleted_all&count=" . $stmtDeleteAll->rowCount());
-        exit();
-    } catch (PDOException $e) {
-        header("Location: fee-setup-configuration.php?error=" . urlencode($e->getMessage()));
-        exit();
-    }
-}
-
-// ==========================================
-// FETCH MASTER DATA (READ)
-// ==========================================
-$groupedFees = [];
-$archivedFeesList = [];
-$categories = [];
-$rawFeesList = [];
-$availableCourses = [];
-$availableLevels = [];
-
-try {
-    // Kunin ang active categories para sa dropdown form
-    $stmtCats = $pdo->query("SELECT * FROM fee_categories WHERE status = 'Active' ORDER BY priority_order ASC");
-    $categories = $stmtCats->fetchAll(PDO::FETCH_ASSOC);
-
-    // Fetch active fees (Naka-join sa categories para makuha ang pangalan at priority order)
-    // Mapapansin mo na naka-sort by priority order muna, bago by fee_name alphabetically
-    $stmt = $pdo->query("
-        SELECT f.*, c.category_name, c.priority_order 
-        FROM fees f 
-        JOIN fee_categories c ON f.category_id = c.category_id 
-        WHERE f.status = 'Active' 
-        ORDER BY c.priority_order ASC, f.fee_name ASC
-    ");
-    $rawFeesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $availableCourses = $pdo->query("SELECT DISTINCT course FROM students WHERE course IS NOT NULL AND course <> '' AND course <> 'Unknown' ORDER BY course")->fetchAll(PDO::FETCH_COLUMN);
-    $availableLevels = $pdo->query("SELECT DISTINCT year_level FROM students WHERE year_level IS NOT NULL AND year_level <> '' ORDER BY year_level")->fetchAll(PDO::FETCH_COLUMN);
-
-    // Group fees by category_name
-    foreach ($rawFeesList as $fee) {
-        $catName = $fee['category_name'];
-        if (!isset($groupedFees[$catName])) {
-            $groupedFees[$catName] = [
-                'category_id' => $fee['category_id'],
-                'total_amount' => 0,
-                'items' => []
-            ];
-        }
-        $groupedFees[$catName]['items'][] = $fee;
-        $groupedFees[$catName]['total_amount'] += $fee['default_amount'];
-    }
-
-    // Fetch archived fees
-    $stmtArchived = $pdo->query("
-        SELECT f.*, c.category_name 
-        FROM fees f 
-        LEFT JOIN fee_categories c ON f.category_id = c.category_id 
-        WHERE f.status = 'Inactive' 
-        ORDER BY f.fee_name ASC
-    ");
-    $archivedFeesList = $stmtArchived->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (PDOException $e) {
-    die("Error fetching database: " . $e->getMessage());
-}
-
-$pageTitle    = 'Fee Setup & Configuration';
+$pageTitle = 'Fee Setup & Configuration';
 $activeModule = 'payment';
-$activePage   = 'accounting/fee-setup-configuration';
-$breadcrumbs  = [
+$activePage = 'accounting/fee-setup-configuration';
+$breadcrumbs = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Fee Setup & Configuration', 'url' => null],
 ];
-
-require_once __DIR__ . '/../../../../includes/breadcrumbs.php';
-require_once __DIR__ . '/../../../../includes/layout-start.php';
+require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/fee-setup.css?v=2">
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid py-4">
-    
+<div class="container-fluid py-4 fee-setup" id="feeSetupApp"
+     data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/accounting/fee-setup.php', ENT_QUOTES, 'UTF-8') ?>">
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
             <h2 class="mb-1 fw-bolder"><i class="fas fa-money-check-alt text-primary me-2"></i>Fee Configuration</h2>
-            <p class="text-muted mb-0 fs-6">Manage the master list of fees. Fees are categorized and sorted automatically.</p>
+            <p class="text-muted mb-0 fs-6">Manage the fee catalog, effective versions, and applicability.</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
-            <div class="d-flex justify-content-md-end gap-2">
-                <div class="input-group w-auto shadow-sm">
+            <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                <div class="input-group w-auto shadow-sm fee-search-box">
                     <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
-                    <input type="text" class="form-control border-start-0 ps-0 custom-accordion-search" placeholder="Search fee name...">
+                    <input class="form-control border-start-0 ps-0" id="feeSearch" placeholder="Search fee name...">
                 </div>
-                <button class="btn btn-light border shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#archivedFeesModal">
-                    <i class="fas fa-box-archive me-1"></i> View Archived
-                    <?php if (count($archivedFeesList) > 0): ?>
-                        <span class="badge bg-secondary rounded-pill ms-1"><?= count($archivedFeesList) ?></span>
-                    <?php endif; ?>
+                <button class="btn btn-light border shadow-sm fw-bold px-4" id="legacyFeesButton" type="button">
+                    <i class="fas fa-box-archive me-1"></i> Legacy Classification
+                    <span class="badge bg-secondary rounded-pill ms-1" id="legacyCount">0</span>
                 </button>
-                <button class="btn btn-primary shadow-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#addFeeModal">
+                <button class="btn btn-primary shadow-sm fw-bold px-4" id="addFeeButton" type="button">
                     <i class="ti ti-plus me-1"></i> Add Fee
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Success/Error Alerts -->
-    <?php if (isset($_GET['success'])): ?>
-        <?php
-        $successMsg = match($_GET['success']) {
-            'archived' => 'Fee has been archived and removed from the active list.',
-            'archived_category' => 'Fees in this category have been archived.',
-            'edited' => 'Fee configuration has been updated successfully.',
-            'restored' => 'Fee has been restored and is now active again.',
-            'deleted'  => 'Fee has been permanently deleted.',
-            'deleted_all' => 'Archived fees have been permanently deleted.',
-            default    => 'Fee configuration has been saved to the database.',
-        };
-        ?>
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> <?= htmlspecialchars($successMsg) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
+    <div class="alert d-none alert-dismissible fade show border-0 shadow-sm rounded-3" id="feeAlert" role="alert" aria-live="polite">
+        <span id="feeAlertText"></span><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 
-    <!-- Accordion Card -->
-    <div class="accordion mb-4" id="feesAccordion">
-        <?php if (count($groupedFees) > 0): ?>
-            <?php $accIndex = 0; foreach ($groupedFees as $catName => $group): $accIndex++; ?>
-                <div class="accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden fee-accordion-item position-relative">
-                    <h2 class="accordion-header" id="heading<?= $accIndex ?>">
-                        <button class="accordion-button <?= $accIndex === 1 ? '' : 'collapsed' ?> bg-white fw-bold d-flex align-items-center p-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $accIndex ?>" aria-expanded="<?= $accIndex === 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $accIndex ?>" style="box-shadow: none;">
-                            <div class="d-flex w-100 align-items-center pe-5">
-                                <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
-                                    <i class="ti ti-stack-2 text-primary me-2 opacity-75"></i><span class="category-name"><?= htmlspecialchars($catName) ?></span>
-                                    <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
-                                        PHP <?= number_format($group['total_amount'], 2) ?> Total &bull; <?= count($group['items']) ?> Items
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-                    </h2>
-                    
-                    <!-- Archive Category Button Moved to Actions Column Header -->
-                    <div id="collapse<?= $accIndex ?>" class="accordion-collapse collapse <?= $accIndex === 1 ? 'show' : '' ?>" aria-labelledby="heading<?= $accIndex ?>" data-bs-parent="#feesAccordion">
-                        <div class="accordion-body p-0 bg-light border-top">
-                            <table class="table table-borderless table-hover align-middle mb-0 m-0 fee-items-table">
-                                <thead class="text-muted border-bottom" style="font-size: 0.70rem;">
-                                    <tr>
-                                        <th class="py-3 ps-4 w-50">FEE NAME</th>
-                                        <th class="py-3 text-center">REQUIRED</th>
-                                        <th class="py-3 text-center">STATUS</th>
-                                        <th class="py-3 text-end">AMOUNT</th>
-                                        <th class="py-3 text-center pe-4" style="width: 110px;">
-                                            <div class="d-flex flex-column align-items-center justify-content-center gap-1">
-                                                <span class="mb-1">ACTIONS</span>
-                                                <button type="button" class="btn btn-sm btn-light text-danger shadow-sm border btn-archive-category-trigger px-3" data-bs-toggle="modal" data-bs-target="#archiveCategoryModal" data-category-id="<?= $group['category_id'] ?>" data-category-name="<?= htmlspecialchars($catName) ?>" data-item-count="<?= count($group['items']) ?>" title="Archive all fees in this category">
-                                                    <i class="fas fa-box-archive me-1"></i> All
-                                                </button>
-                                            </div>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($group['items'] as $fee): ?>
-                                        <tr class="border-bottom fee-item-row">
-                                            <td class="py-3 ps-4">
-                                                <div class="fw-semibold text-dark fee-name-text" style="font-size: 0.9rem;"><?= htmlspecialchars($fee['fee_name']) ?></div>
-                                            </td>
-                                            <td class="py-3 text-center">
-                                                <?php if ($fee['is_required']): ?>
-                                                    <i class="ti ti-circle-check text-success fs-5" data-bs-toggle="tooltip" title="Required"></i>
-                                                <?php else: ?>
-                                                    <i class="fas fa-minus-circle text-muted fs-5" data-bs-toggle="tooltip" title="Optional"></i>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="py-3 text-center">
-                                                <span class="badge rounded-pill bg-success px-3 py-2">Active</span>
-                                            </td>
-                                            <td class="py-3 text-end text-success fw-bold">PHP <?= number_format($fee['default_amount'], 2) ?></td>
-                                            <td class="py-3 text-center pe-4">
-                                                <!-- EDIT BUTTON -->
-                                                <button type="button" class="btn btn-sm btn-light text-primary shadow-sm me-1 btn-edit-trigger" 
-                                                    data-bs-toggle="modal" data-bs-target="#editFeeModal" 
-                                                    data-id="<?= $fee['fee_id'] ?>" 
-                                                    data-name="<?= htmlspecialchars($fee['fee_name']) ?>" 
-                                                    data-category="<?= $fee['category_id'] ?>" 
-                                                    data-amount="<?= $fee['default_amount'] ?>" 
-                                                    data-required="<?= $fee['is_required'] ?>" title="Edit Configuration">
-                                                    <i class="ti ti-edit"></i>
-                                                </button>
-                                                <!-- ARCHIVE BUTTON -->
-                                                <button type="button" class="btn btn-sm btn-light text-danger shadow-sm btn-archive-trigger" 
-                                                    data-bs-toggle="modal" data-bs-target="#deleteFeeModal" 
-                                                    data-fee-id="<?= $fee['fee_id'] ?>" data-fee-name="<?= htmlspecialchars($fee['fee_name']) ?>" title="Archive">
-                                                    <i class="fas fa-box-archive"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="alert alert-light text-center text-muted mb-0 border shadow-sm rounded-4">
-                <i class="ti ti-folder-open fs-4 d-block mb-2 text-secondary"></i>
-                No fee configurations found. Click "Add Fee" to create one.
-            </div>
-        <?php endif; ?>
+    <div class="accordion mb-4" id="feesAccordion"></div>
+    <div class="text-center text-muted py-5 d-none" id="feesEmpty">
+        <i class="ti ti-receipt-off fs-1 d-block mb-2"></i>No managed fees found.
+    </div>
+    <div class="text-center text-muted py-5" id="feesLoading">
+        <span class="spinner-border spinner-border-sm me-2"></span>Loading fee configuration...
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- MODALS -->
-<!-- ========================================== -->
-
-<!-- 1. ADD FEE MODAL (No Priority Order Input) -->
-<div class="modal fade" id="addFeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white border-0 pb-3">
-                <h5 class="modal-title fw-bold"><i class="ti ti-plus-circle me-2"></i>Add New Fee</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="" method="POST">
-                <?= csrfField(); ?>
-                <div class="modal-body bg-light p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Category Type <span class="text-danger">*</span></label>
-                        <select class="form-select shadow-sm" name="category_id" required>
-                            <option value="" disabled selected>Select Category</option>
-                            <?php foreach($categories as $cat): ?>
-                                <option value="<?= $cat['category_id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Fee Description/Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control shadow-sm" name="fee_name" placeholder="e.g. Energy Fee, Library Fee" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Amount (₱) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control shadow-sm" name="default_amount" placeholder="0.00" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Is Required?</label>
-                            <select class="form-select shadow-sm" name="is_required">
-                                <option value="1" selected>Yes (Mandatory)</option>
-                                <option value="0">No (Optional)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light shadow-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" name="submit_fee" class="btn btn-primary shadow-sm px-4">Save Fee</button>
-                </div>
-            </form>
+<!-- Add/Edit Identity: follows the original centered modal convention. -->
+<div class="modal fade" id="identityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><form class="modal-content border-0 shadow" id="identityForm">
+        <div class="modal-header bg-primary text-white border-0 pb-3" id="identityHeader">
+            <h5 class="modal-title fw-bold"><i class="ti ti-plus-circle me-2"></i><span id="identityTitle">Add New Fee</span></h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-    </div>
+        <div class="modal-body bg-light p-4"><input type="hidden" id="identityId">
+            <div class="mb-3"><label class="form-label fw-semibold">Fee Code</label><input class="form-control text-uppercase" id="identityCode" maxlength="60" required><div class="form-text">Unique and immutable after creation.</div></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Fee Name</label><input class="form-control" id="identityName" maxlength="100" required></div>
+            <div class="row g-3"><div class="col-sm-6"><label class="form-label fw-semibold">Fee Group</label><select class="form-select" id="identityGroup" required></select></div><div class="col-sm-6"><label class="form-label fw-semibold">Fee Type</label><select class="form-select" id="identityType" required></select><div class="form-text d-none" id="typeLockedHelp">Locked because versions exist.</div></div></div>
+            <div class="mt-3" id="identityDescriptionWrap"><label class="form-label fw-semibold">Description</label><textarea class="form-control" id="identityDescription" rows="3"></textarea></div>
+        </div>
+        <div class="modal-footer border-0"><button class="btn btn-light shadow-sm" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary shadow-sm px-4" id="identitySave">Save Fee</button></div>
+    </form></div>
 </div>
 
-<!-- 2. EDIT FEE MODAL (No Priority Order Input) -->
-<div class="modal fade" id="editFeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-white border-bottom pb-3">
-                <h5 class="modal-title fw-bold text-primary"><i class="ti ti-edit me-2"></i>Edit Fee Configuration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="" method="POST">
-                <?= csrfField(); ?>
-                <input type="hidden" name="edit_fee_id" id="editFeeId">
-                <div class="modal-body bg-light p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Category Type</label>
-                        <select class="form-select shadow-sm" name="category_id" id="editFeeCategory" required>
-                            <?php foreach($categories as $cat): ?>
-                                <option value="<?= $cat['category_id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Fee Description/Name</label>
-                        <input type="text" class="form-control shadow-sm" name="fee_name" id="editFeeName" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Amount (₱)</label>
-                            <input type="number" step="0.01" class="form-control shadow-sm" name="default_amount" id="editFeeAmount" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold text-dark">Mandatory?</label>
-                            <select class="form-select shadow-sm" name="is_required" id="editFeeRequired">
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light shadow-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" name="edit_fee" class="btn btn-primary shadow-sm px-4">Update Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
+<!-- Version history is the minimum extension required by the approved lifecycle. -->
+<div class="modal fade" id="versionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content border-0 shadow">
+        <div class="modal-header bg-white border-bottom pb-3"><div><h5 class="modal-title fw-bold text-primary"><i class="ti ti-versions me-2"></i><span id="versionsTitle">Fee Versions</span></h5><small class="text-muted" id="versionsCode"></small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light p-4"><div class="text-end mb-3" id="newVersionActions"><button class="btn btn-light border shadow-sm" id="newBlankVersion" type="button">New Blank</button> <button class="btn btn-primary shadow-sm" id="copyLatestVersion" type="button">Copy Latest</button></div><div id="versionsList"></div></div>
+        <div class="modal-footer border-0"><button class="btn btn-light shadow-sm" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
 </div>
 
-<!-- 3. ARCHIVE FEE MODAL -->
-<div class="modal fade" id="deleteFeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <form action="" method="POST">
-                <?= csrfField(); ?>
-                <input type="hidden" name="fee_id" id="archiveFeeId">
-                <div class="modal-body text-center p-4">
-                    <i class="fas fa-box-archive text-warning mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold">Archive Fee?</h5>
-                    <p class="text-muted small">
-                        Are you sure you want to archive <strong id="archiveFeeName"></strong>? It will no longer appear when generating new student billing.
-                    </p>
-                    <div class="d-flex justify-content-center gap-2 mt-4">
-                        <button type="button" class="btn btn-light border shadow-sm w-50" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" name="archive_fee" class="btn btn-warning text-dark fw-bold shadow-sm w-50">Archive</button>
-                    </div>
-                </div>
-            </form>
+<div class="modal fade" id="versionEditorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content border-0 shadow" id="versionForm">
+        <div class="modal-header bg-white border-bottom pb-3"><div><h5 class="modal-title fw-bold text-primary"><i class="ti ti-edit me-2"></i><span id="versionTitle">Create Draft Version</span></h5><small class="text-muted" id="versionFeeLabel"></small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light p-4"><input type="hidden" id="versionFeeId"><input type="hidden" id="versionId">
+            <div class="row g-3"><div class="col-sm-4"><label class="form-label fw-semibold">Academic Year</label><input class="form-control" id="versionYear" required placeholder="2027-2028"></div><div class="col-sm-4"><label class="form-label fw-semibold">Semester</label><select class="form-select" id="versionTerm"><option value="1st">1st Semester</option><option value="2nd">2nd Semester</option><option value="Summer">Summer</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Amount</label><div class="input-group"><span class="input-group-text">₱</span><input class="form-control text-end" id="versionAmount" type="number" min="0" step=".01" required></div></div><div class="col-sm-4"><label class="form-label fw-semibold">Behavior</label><select class="form-select" id="versionBehavior"><option>Standard</option><option>One-Time</option><option>Optional</option><option>Manual</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Required?</label><select class="form-select" id="versionRequired"><option value="1">Yes</option><option value="0">No</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Description</label><input class="form-control" id="versionDescription"></div></div>
+            <hr><div class="d-flex justify-content-between align-items-start"><div><h6 class="fw-bold mb-1">Applicability</h6><small class="text-muted">Select All explicitly; blank values never mean all.</small></div><button class="btn btn-sm btn-light border shadow-sm" id="addScope" type="button"><i class="ti ti-plus me-1"></i>Add</button></div><div id="versionScopes" class="mt-3"></div>
         </div>
-    </div>
+        <div class="modal-footer border-0"><button class="btn btn-light shadow-sm" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary shadow-sm px-4" id="versionSave">Save Draft</button></div>
+    </form></div>
 </div>
 
-<!-- 3.5 ARCHIVE ENTIRE CATEGORY MODAL -->
-<div class="modal fade" id="archiveCategoryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <form action="" method="POST">
-                <?= csrfField(); ?>
-                <input type="hidden" name="category_id" id="archiveCategoryId">
-                <div class="modal-body text-center p-4">
-                    <i class="ti ti-alert-triangle text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="fw-bold">Archive Category?</h5>
-                    <p class="text-muted small">
-                        Archive all <strong id="archiveCategoryCount"></strong> fees under <strong id="archiveCategoryName"></strong>?
-                    </p>
-                    <div class="d-flex justify-content-center gap-2 mt-4">
-                        <button type="button" class="btn btn-light border shadow-sm w-50" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" name="archive_category" class="btn btn-danger shadow-sm w-50">Archive All</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+<div class="modal fade" id="legacyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content border-0 shadow">
+        <div class="modal-header bg-white border-bottom pb-3"><div><h5 class="modal-title fw-bold text-secondary"><i class="fas fa-box-archive me-2"></i>Legacy Fee Classification</h5><small class="text-muted">Existing fees awaiting classification into the managed catalog.</small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light p-4"><div class="input-group shadow-sm mb-3"><span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span><input class="form-control border-start-0 ps-0" id="legacySearch" placeholder="Search legacy fee..."></div><div class="table-responsive"><table class="table table-sm table-hover align-middle bg-white mb-0"><thead class="text-uppercase text-secondary"><tr><th>Fee</th><th>Category</th><th class="text-end">Amount</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody id="legacyRows"></tbody></table></div><div class="text-center text-muted py-4 d-none" id="legacyEmpty">No legacy fees awaiting classification.</div></div>
+        <div class="modal-footer border-0 bg-white"><button class="btn btn-light shadow-sm" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
 </div>
 
-<!-- 4. ARCHIVED FEES MODAL -->
-<div class="modal fade" id="archivedFeesModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-white border-bottom pb-3">
-                <h5 class="modal-title fw-bold text-secondary"><i class="fas fa-box-archive me-2"></i>Archived Fees</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body bg-light" style="max-height: 400px; overflow-y: auto;">
-                <?php if (count($archivedFeesList) > 0): ?>
-                    <table class="table table-sm table-hover align-middle bg-white mb-0">
-                        <thead class="text-uppercase text-secondary" style="font-size: 0.72rem;">
-                            <tr>
-                                <th>Fee Name</th>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th class="text-end">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($archivedFeesList as $fee): ?>
-                                <tr>
-                                    <td class="fw-bold text-dark"><?= htmlspecialchars($fee['fee_name']) ?></td>
-                                    <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($fee['category_name'] ?? 'Unknown') ?></span></td>
-                                    <td class="text-success fw-bold">₱ <?= number_format($fee['default_amount'], 2) ?></td>
-                                    <td class="text-end text-nowrap">
-                                        <form action="" method="POST" class="d-inline">
-                                            <?= csrfField(); ?>
-                                            <input type="hidden" name="fee_id" value="<?= $fee['fee_id'] ?>">
-                                            <button type="submit" name="restore_fee" class="btn btn-sm btn-light text-success shadow-sm me-1"><i class="fas fa-rotate-left me-1"></i> Restore</button>
-                                        </form>
-                                        <form action="" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this fee?');">
-                                            <?= csrfField(); ?>
-                                            <input type="hidden" name="fee_id" value="<?= $fee['fee_id'] ?>">
-                                            <button type="submit" name="delete_fee" class="btn btn-sm btn-light text-danger shadow-sm"><i class="ti ti-trash-alt"></i></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <div class="text-center py-4 text-muted">No archived fees yet.</div>
-                <?php endif; ?>
-            </div>
-            <div class="modal-footer border-0 bg-white d-flex justify-content-between">
-                <?php if (count($archivedFeesList) > 0): ?>
-                    <form action="" method="POST" class="m-0" onsubmit="return confirm('Delete ALL archived fees?');">
-                        <?= csrfField(); ?>
-                        <button type="submit" name="delete_all_archived" class="btn btn-outline-danger shadow-sm"><i class="ti ti-trash-alt me-1"></i> Delete All Permanently</button>
-                    </form>
-                <?php else: ?>
-                    <div></div>
-                <?php endif; ?>
-                <button type="button" class="btn btn-light shadow-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="modal fade" id="classificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content border-0 shadow" id="classificationForm">
+        <div class="modal-header bg-white border-bottom pb-3"><div><h5 class="modal-title fw-bold text-primary"><i class="ti ti-adjustments me-2"></i>Classify Existing Fee</h5><small class="text-muted">Legacy values are reference only and are not automatically approved.</small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light p-4"><input type="hidden" id="legacyFeeId"><div class="card border-0 shadow-sm mb-3"><div class="card-body"><h6 class="fw-bold">Existing Legacy Information</h6><div class="row g-2" id="legacyReference"></div></div></div>
+            <div id="classificationEditor"><div class="row g-3"><div class="col-sm-4"><label class="form-label fw-semibold">Fee Code</label><input class="form-control text-uppercase" id="legacyCode" required></div><div class="col-sm-4"><label class="form-label fw-semibold">Fee Group</label><select class="form-select" id="legacyGroup"></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Fee Type</label><select class="form-select" id="legacyType"></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Academic Year</label><input class="form-control" id="legacyYear" required placeholder="2027-2028"></div><div class="col-sm-4"><label class="form-label fw-semibold">Semester</label><select class="form-select" id="legacyTerm"><option value="1st">1st Semester</option><option value="2nd">2nd Semester</option><option value="Summer">Summer</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Version Amount</label><input class="form-control text-end" id="legacyAmount" type="number" min="0" step=".01" required></div><div class="col-sm-4"><label class="form-label fw-semibold">Behavior</label><select class="form-select" id="legacyBehavior" required><option value="">Select deliberately</option><option>Standard</option><option>One-Time</option><option>Optional</option><option>Manual</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Required?</label><select class="form-select" id="legacyRequired" required><option value="">Select deliberately</option><option value="1">Yes</option><option value="0">No</option></select></div><div class="col-sm-4"><label class="form-label fw-semibold">Description</label><input class="form-control" id="legacyDescription"></div></div><hr><div class="d-flex justify-content-between"><h6 class="fw-bold">Applicability</h6><button class="btn btn-sm btn-light border shadow-sm" id="addLegacyScope" type="button"><i class="ti ti-plus me-1"></i>Add</button></div><div id="legacyScopes" class="mt-3"></div></div>
+            <div class="d-none" id="classificationPreview"><h6 class="fw-bold">Classification Review</h6><div id="classificationPreviewContent"></div></div>
         </div>
-    </div>
+        <div class="modal-footer border-0"><button class="btn btn-light shadow-sm" data-bs-dismiss="modal">Cancel</button><button class="btn btn-light border shadow-sm d-none" id="previewBack" type="button">Back</button><button class="btn btn-primary shadow-sm" id="previewClassification">Preview Classification</button><button class="btn btn-success shadow-sm d-none" id="commitClassification" type="button">Confirm Classification</button></div>
+    </form></div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.querySelector('.custom-accordion-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            const term = e.target.value.toLowerCase();
-            const accordions = document.querySelectorAll('.fee-accordion-item');
-            
-            accordions.forEach(acc => {
-                let hasVisibleItem = false;
-                const rows = acc.querySelectorAll('.fee-item-row');
-                
-                rows.forEach(row => {
-                    const feeName = row.querySelector('.fee-name-text').textContent.toLowerCase();
-                    if (feeName.includes(term)) {
-                        row.style.display = '';
-                        hasVisibleItem = true;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-                
-                const catName = acc.querySelector('.category-name').textContent.toLowerCase();
-                if (catName.includes(term)) {
-                    rows.forEach(row => row.style.display = '');
-                    acc.style.display = '';
-                } else if (hasVisibleItem) {
-                    acc.style.display = '';
-                } else {
-                    acc.style.display = 'none';
-                }
-            });
-        });
-    }
-});
-</script>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/fee-master-setup.js?v=2"></script>
-<?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-body text-center p-4"><div class="fs-1 mb-2" id="confirmIcon"><i class="ti ti-alert-triangle text-warning"></i></div><h5 class="fw-bold" id="confirmTitle">Confirm action?</h5><div class="text-muted" id="confirmText"></div><div class="d-flex gap-2 mt-4"><button class="btn btn-light border shadow-sm w-50" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning text-dark fw-bold shadow-sm w-50" id="confirmAction">Confirm</button></div></div></div></div></div>
+
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/fee-setup.js?v=2"></script>
+<?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
