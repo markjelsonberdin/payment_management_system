@@ -112,20 +112,18 @@
             </div>`;
         }).join('');
         byId('feesEmpty').classList.toggle('d-none', typeRows.length > 0);
-        byId('feesLoading').classList.add('d-none');
     }
 
     function renderFeeRows(fees) {
         return fees.map(summary => {
-            const fee = state.details.get(Number(summary.fee_id));
-            const active = activeVersion(fee), version = displayVersion(fee);
-            const status = summary.identity_status === 'Archived' ? 'Archived' : (active ? 'Active' : version?.effective_status === 'Draft' ? 'Draft / No Active Version' : 'No Active Version');
+            const hasActive = summary.active_version_no !== null;
+            const status = summary.identity_status === 'Archived' ? 'Archived' : (hasActive ? 'Active' : summary.latest_draft_version_no !== null ? 'Draft / No Active Version' : 'No Active Version');
             const badge = status === 'Active' ? 'success' : status.startsWith('Draft') ? 'warning' : 'secondary';
             return `<tr class="border-bottom fee-item-row">
                 <td class="py-3 ps-4"><div class="fw-semibold text-dark fee-name">${escapeHtml(summary.fee_name)}</div><div class="fee-code text-muted">${escapeHtml(summary.fee_code)}</div></td>
-                <td class="py-3 text-center">${version ? `v${version.version_no}<div class="small text-muted">${escapeHtml(version.academic_year)} / ${escapeHtml(version.semester)}</div>` : '—'}${!active ? '<div class="small text-warning">No Active Version</div>' : ''}</td>
+                <td class="py-3 text-center">${hasActive ? `v${summary.active_version_no}<div class="small text-muted">${escapeHtml(summary.active_academic_year)} / ${escapeHtml(summary.active_semester)}</div>` : summary.latest_draft_version_no !== null ? `v${summary.latest_draft_version_no}<div class="small text-warning">Draft / No Active Version</div>` : '—<div class="small text-warning">No Active Version</div>'}</td>
                 <td class="py-3 text-center"><span class="badge text-bg-${badge} fee-state-badge">${escapeHtml(status)}</span></td>
-                <td class="py-3 text-end fw-bold ${active ? 'text-success' : 'text-muted'}">${active ? peso(active.amount) : '—'}</td>
+                <td class="py-3 text-end fw-bold ${hasActive ? 'text-success' : 'text-muted'}">${hasActive ? peso(summary.active_amount) : '—'}</td>
                 <td class="py-3 text-center pe-4 fee-actions"><button class="btn btn-sm btn-light text-primary shadow-sm me-1" data-action="editIdentity" data-id="${summary.fee_id}" ${summary.identity_status === 'Archived' ? 'disabled' : ''} title="Edit identity"><i class="ti ti-edit"></i></button><button class="btn btn-sm btn-light text-primary shadow-sm me-1" data-action="versions" data-id="${summary.fee_id}" title="Manage versions"><i class="ti ti-versions"></i></button><button class="btn btn-sm btn-light text-danger shadow-sm" data-action="archiveIdentity" data-id="${summary.fee_id}" ${summary.identity_status === 'Archived' ? 'disabled' : ''} title="Archive fee"><i class="fas fa-box-archive"></i></button></td>
             </tr>`;
         }).join('');
@@ -141,15 +139,23 @@
 
     async function reload() {
         try {
-            const [taxonomy, catalog, legacy] = await Promise.all([api('taxonomy'), api('catalog'), api('legacy_fees')]);
-            state.taxonomy = taxonomy; state.catalog = catalog; state.legacy = legacy;
-            const details = await Promise.all(catalog.map(fee => api('fee', { ids: { fee_id: fee.fee_id } })));
-            state.details = new Map(details.map(fee => [Number(fee.fee_id), fee]));
-            renderAccordion(); renderLegacy();
+            const [taxonomy, catalog] = await Promise.all([api('taxonomy'), api('catalog')]);
+            state.taxonomy = taxonomy; state.catalog = catalog; state.details.clear();
+            renderAccordion();
         } catch (error) {
-            byId('feesLoading').classList.add('d-none');
             alertUser(error.message, 'danger');
         }
+    }
+
+    async function loadManagedFee(feeId) {
+        const id = Number(feeId);
+        if (!state.details.has(id)) state.details.set(id, await api('fee', { ids: { fee_id: id } }));
+        return state.details.get(id);
+    }
+
+    async function loadLegacyFees() {
+        state.legacy = await api('legacy_fees');
+        renderLegacy();
     }
 
     function openIdentity(fee = null) {
@@ -225,10 +231,10 @@
         hideModal('versionsModal'); showModal('versionEditorModal');
     }
 
-    function confirmAction(title, text, action, successStyle = false) {
+    function confirmAction(title, text, action, successStyle = false, refreshFeeId = null) {
         byId('confirmTitle').textContent = title; byId('confirmText').innerHTML = text;
         byId('confirmAction').className = `btn btn-${successStyle ? 'success' : 'warning'} ${successStyle ? '' : 'text-dark'} fw-bold shadow-sm w-50`;
-        state.confirm = action; showModal('confirmModal');
+        state.confirm = { action, refreshFeeId }; showModal('confirmModal');
     }
 
     function openClassification(fee) {
@@ -248,26 +254,33 @@
         byId('previewBack').classList.toggle('d-none', !show); byId('previewClassification').classList.toggle('d-none', show); byId('commitClassification').classList.toggle('d-none', !show);
     }
 
-    document.addEventListener('click', event => {
+    document.addEventListener('click', async event => {
         const button = event.target.closest('[data-action],[data-version-action]'); if (!button) return;
         if (button.dataset.action) {
-            const id = Number(button.dataset.id), fee = state.details.get(id);
-            if (button.dataset.action === 'editIdentity') openIdentity(fee);
-            if (button.dataset.action === 'versions') openVersions(fee);
+            const id = Number(button.dataset.id);
+            try {
+                if (button.dataset.action === 'editIdentity') openIdentity(await loadManagedFee(id));
+                if (button.dataset.action === 'versions') openVersions(await loadManagedFee(id));
+            } catch (error) { alertUser(error.message, 'danger'); }
             if (button.dataset.action === 'archiveIdentity') confirmAction('Archive Fee?', `<p>This fee can no longer receive new versions.</p><p class="mb-0">Existing versions and history will remain.</p>`, () => api('archive_identity', { method: 'POST', ids: { fee_id: id } }));
             if (button.dataset.action === 'classify') openClassification(state.legacy.find(item => Number(item.fee_id) === id));
         } else {
             const version = state.fee.versions.find(item => Number(item.fee_version_id) === Number(button.dataset.id));
             if (button.dataset.versionAction === 'edit') openVersionEditor(state.fee, version);
-            if (button.dataset.versionAction === 'activate') confirmAction('Activate Fee Version?', `<p><strong>${escapeHtml(state.fee.fee_name)} · Version ${version.version_no}</strong></p><p>${escapeHtml(version.academic_year)} / ${escapeHtml(version.semester)} · ${peso(version.amount)}</p><p class="mb-0">Once activated, its financial configuration can no longer be edited.</p>`, () => api('activate_version', { method: 'POST', ids: { fee_version_id: version.fee_version_id } }), true);
-            if (button.dataset.versionAction === 'archive') confirmAction('Archive Version?', '<p class="mb-0">This version will become permanently read-only.</p>', () => api('archive_version', { method: 'POST', ids: { fee_version_id: version.fee_version_id } }));
+            if (button.dataset.versionAction === 'activate') confirmAction('Activate Fee Version?', `<p><strong>${escapeHtml(state.fee.fee_name)} · Version ${version.version_no}</strong></p><p>${escapeHtml(version.academic_year)} / ${escapeHtml(version.semester)} · ${peso(version.amount)}</p><p class="mb-0">Once activated, its financial configuration can no longer be edited.</p>`, () => api('activate_version', { method: 'POST', ids: { fee_version_id: version.fee_version_id } }), true, state.fee.fee_id);
+            if (button.dataset.versionAction === 'archive') confirmAction('Archive Version?', '<p class="mb-0">This version will become permanently read-only.</p>', () => api('archive_version', { method: 'POST', ids: { fee_version_id: version.fee_version_id } }), false, state.fee.fee_id);
         }
     });
 
     byId('feeSearch').oninput = renderAccordion;
     byId('legacySearch').oninput = renderLegacy;
     byId('addFeeButton').onclick = () => openIdentity();
-    byId('legacyFeesButton').onclick = () => showModal('legacyModal');
+    byId('legacyFeesButton').onclick = async () => {
+        const button = byId('legacyFeesButton');
+        try { setBusy(button, true, 'Loading...'); await loadLegacyFees(); showModal('legacyModal'); }
+        catch (error) { alertUser(error.message, 'danger'); }
+        finally { setBusy(button, false); }
+    };
     byId('addScope').onclick = () => addScope(byId('versionScopes'));
     byId('addLegacyScope').onclick = () => addScope(byId('legacyScopes'));
     function setFieldError(field, message) {
@@ -374,13 +387,13 @@
     byId('copyLatestVersion').onclick = () => openVersionEditor(state.fee, null, state.fee.versions[0] || null);
     byId('versionForm').onsubmit = async event => {
         event.preventDefault(); const button = byId('versionSave'), feeId = Number(byId('versionFeeId').value), versionId = Number(byId('versionId').value), data = versionPayload('version');
-        try { setBusy(button, true); if (versionId) { await api('update_draft_version', { method: 'POST', ids: { fee_version_id: versionId }, data }); await api('replace_draft_applicability', { method: 'POST', ids: { fee_version_id: versionId }, data: { applicability: readScopes(byId('versionScopes')) } }); } else { data.applicability = readScopes(byId('versionScopes')); await api('create_draft_version', { method: 'POST', ids: { fee_id: feeId }, data }); } hideModal('versionEditorModal'); await reload(); alertUser('Draft version saved.'); openVersions(state.details.get(feeId)); }
+        try { setBusy(button, true); if (versionId) { await api('update_draft_version', { method: 'POST', ids: { fee_version_id: versionId }, data }); await api('replace_draft_applicability', { method: 'POST', ids: { fee_version_id: versionId }, data: { applicability: readScopes(byId('versionScopes')) } }); } else { data.applicability = readScopes(byId('versionScopes')); await api('create_draft_version', { method: 'POST', ids: { fee_id: feeId }, data }); } hideModal('versionEditorModal'); await reload(); alertUser('Draft version saved.'); openVersions(await loadManagedFee(feeId)); }
         catch (error) { alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
 
     byId('confirmAction').onclick = async () => {
         const button = byId('confirmAction');
-        try { setBusy(button, true); await state.confirm(); hideModal('confirmModal'); hideModal('versionsModal'); await reload(); alertUser('Action completed.'); }
+        try { setBusy(button, true); const { action, refreshFeeId } = state.confirm; await action(); hideModal('confirmModal'); await reload(); if (refreshFeeId) openVersions(await loadManagedFee(refreshFeeId)); else hideModal('versionsModal'); alertUser('Action completed.'); }
         catch (error) { hideModal('confirmModal'); alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
 

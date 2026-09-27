@@ -75,7 +75,12 @@ final class FeeSetupService
                     ft.type_code, ft.type_name, fg.group_code, fg.group_name,
                     COUNT(fv.fee_version_id) AS version_count,
                     SUM(CASE WHEN fv.effective_status = 'Draft' THEN 1 ELSE 0 END) AS draft_count,
-                    SUM(CASE WHEN fv.effective_status = 'Active' THEN 1 ELSE 0 END) AS active_count
+                    SUM(CASE WHEN fv.effective_status = 'Active' THEN 1 ELSE 0 END) AS active_count,
+                    MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.version_no END) AS active_version_no,
+                    MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.academic_year END) AS active_academic_year,
+                    MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.semester END) AS active_semester,
+                    MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.amount END) AS active_amount,
+                    MAX(CASE WHEN fv.effective_status = 'Draft' THEN fv.version_no END) AS latest_draft_version_no
              FROM fees f
              JOIN fee_types ft ON ft.fee_type_id = f.fee_type_id
              JOIN fee_groups fg ON fg.fee_group_id = ft.fee_group_id
@@ -798,6 +803,9 @@ final class FeeSetupService
         $row['version_count'] = (int) $row['version_count'];
         $row['draft_count'] = (int) $row['draft_count'];
         $row['active_count'] = (int) $row['active_count'];
+        $row['active_version_no'] = $row['active_version_no'] !== null ? (int) $row['active_version_no'] : null;
+        $row['active_amount'] = $row['active_amount'] !== null ? (float) $row['active_amount'] : null;
+        $row['latest_draft_version_no'] = $row['latest_draft_version_no'] !== null ? (int) $row['latest_draft_version_no'] : null;
         return $row;
     }
 
