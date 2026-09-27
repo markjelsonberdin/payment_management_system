@@ -32,8 +32,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                     <input class="form-control border-start-0 ps-0" id="feeSearch" placeholder="Search fee name or code...">
                 </div>
                 <button class="btn btn-light border shadow-sm fw-bold px-4" id="legacyFeesButton" type="button">
-                    <i class="fas fa-box-archive me-1"></i> Legacy Classification
-                    <span class="badge bg-secondary rounded-pill ms-1" id="legacyCount">0</span>
+                    <i class="ti ti-tags me-1"></i> Legacy Classification
                 </button>
                 <button class="btn btn-primary shadow-sm fw-bold px-4" id="addFeeButton" type="button">
                     <i class="ti ti-plus me-1"></i> Add Fee
@@ -49,9 +48,6 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="accordion mb-4" id="feesAccordion"></div>
     <div class="text-center text-muted py-5 d-none" id="feesEmpty">
         <i class="ti ti-receipt-off fs-1 d-block mb-2"></i>No managed fees found.
-    </div>
-    <div class="text-center text-muted py-5" id="feesLoading">
-        <span class="spinner-border spinner-border-sm me-2"></span>Loading fee configuration...
     </div>
 </div>
 
