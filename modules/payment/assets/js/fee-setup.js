@@ -68,11 +68,12 @@
     function groupByCode(code) { return state.taxonomy.find(group => group.group_code === code); }
     function typesFor(groupCode) { return groupByCode(groupCode)?.types || []; }
 
-    function populateTaxonomy(groupSelect, typeSelect, selectedGroup = 'ACADEMIC', selectedType = 0) {
-        groupSelect.innerHTML = state.taxonomy.map(group => `<option value="${escapeHtml(group.group_code)}">${escapeHtml(group.group_name)}</option>`).join('');
+    function populateTaxonomy(groupSelect, typeSelect, selectedGroup = '', selectedType = 0) {
+        groupSelect.innerHTML = '<option value="">Select fee group</option>' + state.taxonomy.map(group => `<option value="${escapeHtml(group.group_code)}">${escapeHtml(group.group_name)}</option>`).join('');
         groupSelect.value = selectedGroup;
         const refresh = () => {
-            typeSelect.innerHTML = typesFor(groupSelect.value).map(type => `<option value="${type.fee_type_id}">${escapeHtml(type.type_name)}</option>`).join('');
+            const types = typesFor(groupSelect.value);
+            typeSelect.innerHTML = '<option value="">Select fee type</option>' + types.map(type => `<option value="${type.fee_type_id}">${escapeHtml(type.type_name)}</option>`).join('');
             if (selectedType) typeSelect.value = String(selectedType);
         };
         groupSelect.onchange = () => { selectedType = 0; refresh(); };
@@ -159,7 +160,7 @@
         byId('identityCode').disabled = Boolean(fee);
         byId('identityName').value = fee?.fee_name || '';
         byId('identityDescriptionWrap').classList.toggle('d-none', Boolean(fee));
-        populateTaxonomy(byId('identityGroup'), byId('identityType'), fee?.group_code || 'ACADEMIC', fee?.fee_type_id || 0);
+        populateTaxonomy(byId('identityGroup'), byId('identityType'), fee?.group_code || '', fee?.fee_type_id || 0);
         const locked = Boolean(fee?.versions.length);
         byId('identityGroup').disabled = locked; byId('identityType').disabled = locked;
         byId('typeLockedHelp').classList.toggle('d-none', !locked);
@@ -269,10 +270,100 @@
     byId('legacyFeesButton').onclick = () => showModal('legacyModal');
     byId('addScope').onclick = () => addScope(byId('versionScopes'));
     byId('addLegacyScope').onclick = () => addScope(byId('legacyScopes'));
-    byId('identityCode').oninput = byId('legacyCode').oninput = event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); };
+    function setFieldError(field, message) {
+        const error = byId(`${field.id}Error`);
+        field.classList.toggle('is-invalid', Boolean(message));
+        field.setCustomValidity(message || '');
+        if (error) error.textContent = message || '';
+        return !message;
+    }
+
+    function requiredField(field, label) {
+        return field.value.trim() ? setFieldError(field, '') : setFieldError(field, `${label} is required.`);
+    }
+
+    function validateFeeCode(field) {
+        const value = field.value.trim();
+        if (!value) return setFieldError(field, 'Fee Code is required.');
+        return /^[A-Z0-9][A-Z0-9_-]{2,59}$/.test(value)
+            ? setFieldError(field, '')
+            : setFieldError(field, 'Use 3–60 uppercase letters, numbers, hyphens, or underscores.');
+    }
+
+    function validateAcademicYear(field) {
+        const match = field.value.trim().match(/^(\d{4})-(\d{4})$/);
+        if (!match) return setFieldError(field, 'Use YYYY-YYYY, for example 2027-2028.');
+        return Number(match[2]) === Number(match[1]) + 1
+            ? setFieldError(field, '')
+            : setFieldError(field, 'The ending year must be exactly one year after the starting year.');
+    }
+
+    function validateAmount(field) {
+        const value = field.value.trim();
+        if (!value) return setFieldError(field, 'Version Amount is required.');
+        if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return setFieldError(field, 'Enter a valid amount with up to two decimal places.');
+        const amount = Number(value);
+        return amount >= 0 && amount <= 99999999.99
+            ? setFieldError(field, '')
+            : setFieldError(field, 'Amount must be between 0.00 and 99,999,999.99.');
+    }
+
+    function validateIdentityForm() {
+        const code = byId('identityCode'), name = byId('identityName'), group = byId('identityGroup'), type = byId('identityType');
+        const isEdit = Boolean(byId('identityId').value);
+        const results = [requiredField(name, 'Fee Name'), requiredField(group, 'Fee Group'), requiredField(type, 'Fee Type')];
+        if (!isEdit) results.push(validateFeeCode(code));
+        return results.every(Boolean);
+    }
+
+    function validateLegacyScopes() {
+        const scopes = readScopes(byId('legacyScopes'));
+        const error = byId('legacyScopesError');
+        const valid = scopes.length > 0 && scopes.every(scope => (scope.applies_to_all_courses || scope.course) && (scope.applies_to_all_year_levels || scope.year_level));
+        error.classList.toggle('d-none', valid);
+        error.textContent = valid ? '' : 'Add at least one complete applicability scope.';
+        return valid;
+    }
+
+    function validateClassificationForm() {
+        const results = [
+            validateFeeCode(byId('legacyCode')),
+            requiredField(byId('legacyGroup'), 'Fee Group'),
+            requiredField(byId('legacyType'), 'Fee Type'),
+            validateAcademicYear(byId('legacyYear')),
+            requiredField(byId('legacyTerm'), 'Semester'),
+            validateAmount(byId('legacyAmount')),
+            requiredField(byId('legacyBehavior'), 'Behavior'),
+            requiredField(byId('legacyRequired'), 'Required selection'),
+            validateLegacyScopes()
+        ];
+        return results.every(Boolean);
+    }
+
+    [byId('identityCode'), byId('legacyCode')].forEach(field => {
+        field.oninput = event => {
+            event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+            validateFeeCode(event.target);
+        };
+        field.onblur = () => validateFeeCode(field);
+    });
+    [byId('identityName'), byId('identityGroup'), byId('identityType')].forEach(field => {
+        const validate = () => requiredField(field, field.labels[0]?.textContent.replace('*', '').trim() || 'This field');
+        field.addEventListener('change', validate);
+        field.addEventListener('blur', validate);
+    });
+    byId('legacyYear').onblur = () => validateAcademicYear(byId('legacyYear'));
+    byId('legacyYear').oninput = () => validateAcademicYear(byId('legacyYear'));
+    byId('legacyAmount').onblur = () => validateAmount(byId('legacyAmount'));
+    byId('legacyAmount').oninput = () => validateAmount(byId('legacyAmount'));
+    [byId('legacyGroup'), byId('legacyType'), byId('legacyTerm'), byId('legacyBehavior'), byId('legacyRequired')].forEach(field => {
+        const validate = () => requiredField(field, field.labels[0]?.textContent.replace('*', '').trim() || 'This field');
+        field.addEventListener('change', validate);
+        field.addEventListener('blur', validate);
+    });
 
     byId('identityForm').onsubmit = async event => {
-        event.preventDefault(); const button = byId('identitySave'), feeId = Number(byId('identityId').value);
+        event.preventDefault(); if (!validateIdentityForm()) return; const button = byId('identitySave'), feeId = Number(byId('identityId').value);
         const data = { fee_name: byId('identityName').value.trim(), fee_type_id: Number(byId('identityType').value) };
         if (!feeId) Object.assign(data, { fee_code: byId('identityCode').value, identity_status: 'Active', description: byId('identityDescription').value.trim() || null });
         try { setBusy(button, true); const fee = await api(feeId ? 'update_identity' : 'create_identity', { method: 'POST', ids: feeId ? { fee_id: feeId } : {}, data }); hideModal('identityModal'); await reload(); alertUser(feeId ? 'Fee configuration updated.' : 'Fee identity created. Add its initial Draft version.'); if (!feeId) openVersionEditor(fee); }
@@ -294,7 +385,7 @@
     };
 
     byId('classificationForm').onsubmit = async event => {
-        event.preventDefault(); const button = byId('previewClassification');
+        event.preventDefault(); if (!validateClassificationForm()) return; const button = byId('previewClassification');
         try { setBusy(button, true); const preview = await api('preview_legacy_classification', { method: 'POST', ids: { fee_id: Number(byId('legacyFeeId').value) }, data: classificationPayload() }); const proposal = preview.proposed, version = proposal.version; byId('classificationPreviewContent').innerHTML = `<div class="row g-3"><div class="col-sm-5 fee-review-panel"><h6>Old Model</h6><strong>${escapeHtml(state.legacyFee.fee_name)}</strong><div>${escapeHtml(state.legacyFee.category_name || 'Uncategorized')}</div><div>${peso(state.legacyFee.default_amount)} · ${escapeHtml(state.legacyFee.status)}</div></div><div class="col-sm-2 text-center align-self-center fs-2 text-primary">→</div><div class="col-sm-5 fee-review-panel"><h6>New Model</h6><strong>${escapeHtml(proposal.fee_code)}</strong><div>${escapeHtml(byId('legacyType').selectedOptions[0].text)}</div><div>Draft · ${escapeHtml(version.academic_year)} / ${escapeHtml(version.semester)}</div><div>${peso(version.amount)} · ${escapeHtml(version.behavior)}</div><small>${proposal.applicability.map(scopeLabel).map(escapeHtml).join(' • ')}</small></div></div>`; showClassificationPreview(true); }
         catch (error) { alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
