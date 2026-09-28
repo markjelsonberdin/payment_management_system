@@ -433,8 +433,16 @@ function scanConcernOCR(concernId, btnElement) {
     })
     .then(data => {
         if (data.success) {
-            // Re-render the complete, server-escaped matching workspace after OCR.
-            window.location.reload();
+            const badge = document.getElementById('ocr_status_badge_' + concernId);
+            if (badge) {
+                badge.textContent = 'Completed';
+                badge.className = 'badge bg-success';
+            }
+            btnElement.innerHTML = '<i class="ti ti-circle-check me-2"></i> OCR Scan Complete';
+            const hint = document.createElement('div');
+            hint.className = 'small text-success mt-2';
+            hint.textContent = 'OCR completed. Reopen this concern later to view refreshed extracted details.';
+            btnElement.parentElement.append(hint);
         } else {
             alert("OCR Failed: " + (data.message || data.error || "Unknown error"));
             btnElement.innerHTML = originalText;

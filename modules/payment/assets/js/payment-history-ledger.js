@@ -41,15 +41,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function setNavigating() {
+        if (!loading) return;
+        loading.textContent = 'Updating transaction list…';
+        loading.classList.remove('d-none');
+    }
+
     if (form && loading) {
         form.addEventListener('submit', function () {
-            loading.classList.remove('d-none');
+            setNavigating();
         });
     }
 
     document.querySelectorAll('.pagination a.page-link, thead a.text-secondary').forEach(function (link) {
         link.addEventListener('click', function () {
-            if (loading) loading.classList.remove('d-none');
+            setNavigating();
         });
     });
 

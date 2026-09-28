@@ -197,18 +197,21 @@
   async function load() {
     const version = ++requestVersion;
     const notice = byId('dashboardNotice');
-    notice.className = 'alert alert-info';
-    notice.textContent = 'Loading report...';
+    notice.className = 'small text-muted mb-3';
+    notice.textContent = 'Preparing online payment report…';
     try {
       const url = new URL(window.PAYMENT_ADMIN_DASHBOARD_API, location.origin);
-      const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const reportRequest = fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const gatewayRequest = fetch(window.PAYMENT_ADMIN_GATEWAY_STATUS_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null);
+      const response = await reportRequest;
       const data = await response.json();
       if (version !== requestVersion) return;
       if (!response.ok || !data.ok) throw new Error(data.message || 'Dashboard data could not be loaded. Please try again.');
       if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       render(data);
       try {
-        const gatewayResponse = await fetch(window.PAYMENT_ADMIN_GATEWAY_STATUS_API, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        const gatewayResponse = await gatewayRequest;
+        if (!gatewayResponse) throw new Error('Gateway status unavailable');
         const gatewayData = await gatewayResponse.json();
         if (version !== requestVersion) return;
         if (!gatewayResponse.ok) throw new Error('Gateway status unavailable');

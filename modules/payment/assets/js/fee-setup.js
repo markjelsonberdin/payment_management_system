@@ -11,7 +11,7 @@
     const peso = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value || 0));
     const showModal = id => bootstrap.Modal.getOrCreateInstance(byId(id)).show();
     const hideModal = id => bootstrap.Modal.getOrCreateInstance(byId(id)).hide();
-    const state = { api: app.dataset.api, csrf: '', taxonomy: [], catalog: [], legacy: [], details: new Map(), fee: null, legacyFee: null, confirm: null };
+    const state = { api: app.dataset.api, csrf: '', taxonomy: [], catalog: [], legacy: [], legacyLoaded: false, legacyLoading: null, details: new Map(), fee: null, legacyFee: null, confirm: null };
     const friendlyErrors = {
         FEE_CODE_EXISTS: 'This fee code is already in use and remains permanently reserved.',
         FEE_CODE_IMMUTABLE: 'Fee code cannot be changed after creation.',
@@ -134,7 +134,18 @@
         const rows = state.legacy.filter(fee => `${fee.fee_name} ${fee.category_name || ''}`.toLowerCase().includes(search));
         byId('legacyRows').innerHTML = rows.map(fee => `<tr><td class="fw-semibold">${escapeHtml(fee.fee_name)}<div class="small text-muted">Fee #${fee.fee_id}</div></td><td>${escapeHtml(fee.category_name || 'Uncategorized')}</td><td class="text-end fw-semibold">${peso(fee.default_amount)}</td><td><span class="badge bg-light text-dark border">${escapeHtml(fee.status)}</span></td><td class="text-end"><button class="btn btn-sm btn-primary shadow-sm" data-action="classify" data-id="${fee.fee_id}">Classify</button></td></tr>`).join('');
         byId('legacyEmpty').classList.toggle('d-none', rows.length > 0);
-        byId('legacyCount').textContent = state.legacy.length;
+        const legacyCount = byId('legacyCount');
+        if (legacyCount) legacyCount.textContent = state.legacy.length;
+    }
+
+    async function refreshCatalog() {
+        try {
+            state.catalog = await api('catalog');
+            state.details.clear();
+            renderAccordion();
+        } catch (error) {
+            alertUser(error.message, 'danger');
+        }
     }
 
     async function reload() {
@@ -153,9 +164,17 @@
         return state.details.get(id);
     }
 
-    async function loadLegacyFees() {
-        state.legacy = await api('legacy_fees');
-        renderLegacy();
+    async function loadLegacyFees(force = false) {
+        if (state.legacyLoaded && !force) return state.legacy;
+        if (!state.legacyLoading) {
+            state.legacyLoading = api('legacy_fees').then(legacy => {
+                state.legacy = legacy;
+                state.legacyLoaded = true;
+                renderLegacy();
+                return legacy;
+            }).finally(() => { state.legacyLoading = null; });
+        }
+        return state.legacyLoading;
     }
 
     function openIdentity(fee = null) {
@@ -164,12 +183,25 @@
         byId('identityTitle').textContent = fee ? 'Edit Fee Configuration' : 'Add New Fee';
         byId('identityCode').value = fee?.fee_code || '';
         byId('identityCode').disabled = Boolean(fee);
+        byId('identityName').disabled = false;
+        byId('identitySave').disabled = false;
         byId('identityName').value = fee?.fee_name || '';
         byId('identityDescriptionWrap').classList.toggle('d-none', Boolean(fee));
         populateTaxonomy(byId('identityGroup'), byId('identityType'), fee?.group_code || '', fee?.fee_type_id || 0);
         const locked = Boolean(fee?.versions.length);
         byId('identityGroup').disabled = locked; byId('identityType').disabled = locked;
         byId('typeLockedHelp').classList.toggle('d-none', !locked);
+        showModal('identityModal');
+    }
+
+    function openIdentityLoading(summary) {
+        byId('identityForm').reset();
+        byId('identityId').value = summary.fee_id;
+        byId('identityTitle').textContent = 'Edit Fee Configuration';
+        byId('identityCode').value = summary.fee_code;
+        byId('identityName').value = 'Loading fee details…';
+        byId('identityDescriptionWrap').classList.add('d-none');
+        [byId('identityCode'), byId('identityName'), byId('identityGroup'), byId('identityType'), byId('identitySave')].forEach(field => { field.disabled = true; });
         showModal('identityModal');
     }
 
@@ -218,6 +250,14 @@
         showModal('versionsModal');
     }
 
+    function openVersionsLoading(summary) {
+        byId('versionsTitle').textContent = summary.fee_name;
+        byId('versionsCode').textContent = `${summary.fee_code} · Loading version details…`;
+        byId('newVersionActions').classList.add('d-none');
+        byId('versionsList').innerHTML = '<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Fetching fee versions…</div>';
+        showModal('versionsModal');
+    }
+
     function openVersionEditor(fee, version = null, copy = null) {
         byId('versionForm').reset();
         const source = version || copy;
@@ -259,8 +299,17 @@
         if (button.dataset.action) {
             const id = Number(button.dataset.id);
             try {
-                if (button.dataset.action === 'editIdentity') openIdentity(await loadManagedFee(id));
-                if (button.dataset.action === 'versions') openVersions(await loadManagedFee(id));
+                const summary = state.catalog.find(item => Number(item.fee_id) === id);
+                if (button.dataset.action === 'editIdentity') {
+                    openIdentityLoading(summary);
+                    const fee = await loadManagedFee(id);
+                    if (byId('identityModal').classList.contains('show')) openIdentity(fee);
+                }
+                if (button.dataset.action === 'versions') {
+                    openVersionsLoading(summary);
+                    const fee = await loadManagedFee(id);
+                    if (byId('versionsModal').classList.contains('show')) openVersions(fee);
+                }
             } catch (error) { alertUser(error.message, 'danger'); }
             if (button.dataset.action === 'archiveIdentity') confirmAction('Archive Fee?', `<p>This fee can no longer receive new versions.</p><p class="mb-0">Existing versions and history will remain.</p>`, () => api('archive_identity', { method: 'POST', ids: { fee_id: id } }));
             if (button.dataset.action === 'classify') openClassification(state.legacy.find(item => Number(item.fee_id) === id));
@@ -275,11 +324,18 @@
     byId('feeSearch').oninput = renderAccordion;
     byId('legacySearch').oninput = renderLegacy;
     byId('addFeeButton').onclick = () => openIdentity();
-    byId('legacyFeesButton').onclick = async () => {
-        const button = byId('legacyFeesButton');
-        try { setBusy(button, true, 'Loading...'); await loadLegacyFees(); showModal('legacyModal'); }
-        catch (error) { alertUser(error.message, 'danger'); }
-        finally { setBusy(button, false); }
+    byId('legacyFeesButton').onclick = () => {
+        if (state.legacyLoaded) {
+            renderLegacy();
+        } else {
+            byId('legacyRows').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Fetching legacy fees…</td></tr>';
+            byId('legacyEmpty').classList.add('d-none');
+        }
+        showModal('legacyModal');
+        loadLegacyFees().catch(error => {
+            byId('legacyRows').innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Unable to load legacy fees.</td></tr>';
+            alertUser(error.message, 'danger');
+        });
     };
     byId('addScope').onclick = () => addScope(byId('versionScopes'));
     byId('addLegacyScope').onclick = () => addScope(byId('legacyScopes'));
@@ -379,7 +435,7 @@
         event.preventDefault(); if (!validateIdentityForm()) return; const button = byId('identitySave'), feeId = Number(byId('identityId').value);
         const data = { fee_name: byId('identityName').value.trim(), fee_type_id: Number(byId('identityType').value) };
         if (!feeId) Object.assign(data, { fee_code: byId('identityCode').value, identity_status: 'Active', description: byId('identityDescription').value.trim() || null });
-        try { setBusy(button, true); const fee = await api(feeId ? 'update_identity' : 'create_identity', { method: 'POST', ids: feeId ? { fee_id: feeId } : {}, data }); hideModal('identityModal'); await reload(); alertUser(feeId ? 'Fee configuration updated.' : 'Fee identity created. Add its initial Draft version.'); if (!feeId) openVersionEditor(fee); }
+        try { setBusy(button, true); const fee = await api(feeId ? 'update_identity' : 'create_identity', { method: 'POST', ids: feeId ? { fee_id: feeId } : {}, data }); hideModal('identityModal'); await refreshCatalog(); alertUser(feeId ? 'Fee configuration updated.' : 'Fee identity created. Add its initial Draft version.'); if (!feeId) openVersionEditor(fee); }
         catch (error) { alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
 
@@ -387,13 +443,13 @@
     byId('copyLatestVersion').onclick = () => openVersionEditor(state.fee, null, state.fee.versions[0] || null);
     byId('versionForm').onsubmit = async event => {
         event.preventDefault(); const button = byId('versionSave'), feeId = Number(byId('versionFeeId').value), versionId = Number(byId('versionId').value), data = versionPayload('version');
-        try { setBusy(button, true); if (versionId) { await api('update_draft_version', { method: 'POST', ids: { fee_version_id: versionId }, data }); await api('replace_draft_applicability', { method: 'POST', ids: { fee_version_id: versionId }, data: { applicability: readScopes(byId('versionScopes')) } }); } else { data.applicability = readScopes(byId('versionScopes')); await api('create_draft_version', { method: 'POST', ids: { fee_id: feeId }, data }); } hideModal('versionEditorModal'); await reload(); alertUser('Draft version saved.'); openVersions(await loadManagedFee(feeId)); }
+        try { setBusy(button, true); if (versionId) { await api('update_draft_version', { method: 'POST', ids: { fee_version_id: versionId }, data }); await api('replace_draft_applicability', { method: 'POST', ids: { fee_version_id: versionId }, data: { applicability: readScopes(byId('versionScopes')) } }); } else { data.applicability = readScopes(byId('versionScopes')); await api('create_draft_version', { method: 'POST', ids: { fee_id: feeId }, data }); } hideModal('versionEditorModal'); await refreshCatalog(); alertUser('Draft version saved.'); openVersions(await loadManagedFee(feeId)); }
         catch (error) { alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
 
     byId('confirmAction').onclick = async () => {
         const button = byId('confirmAction');
-        try { setBusy(button, true); const { action, refreshFeeId } = state.confirm; await action(); hideModal('confirmModal'); await reload(); if (refreshFeeId) openVersions(await loadManagedFee(refreshFeeId)); else hideModal('versionsModal'); alertUser('Action completed.'); }
+        try { setBusy(button, true); const { action, refreshFeeId } = state.confirm; await action(); hideModal('confirmModal'); await refreshCatalog(); if (refreshFeeId) openVersions(await loadManagedFee(refreshFeeId)); else hideModal('versionsModal'); alertUser('Action completed.'); }
         catch (error) { hideModal('confirmModal'); alertUser(error.message, 'danger'); } finally { setBusy(button, false); }
     };
 
@@ -405,8 +461,8 @@
     byId('previewBack').onclick = () => showClassificationPreview(false);
     byId('commitClassification').onclick = async () => {
         const button = byId('commitClassification');
-        try { setBusy(button, true); await api('commit_legacy_classification', { method: 'POST', ids: { fee_id: Number(byId('legacyFeeId').value) }, data: classificationPayload() }); hideModal('classificationModal'); await reload(); alertUser('Legacy fee classified and its initial Draft version created.'); }
-        catch (error) { alertUser(error.message, 'danger'); if (error.code === 'LEGACY_FEE_ALREADY_CLASSIFIED') { hideModal('classificationModal'); await reload(); } } finally { setBusy(button, false); }
+        try { setBusy(button, true); await api('commit_legacy_classification', { method: 'POST', ids: { fee_id: Number(byId('legacyFeeId').value) }, data: classificationPayload() }); state.legacyLoaded = false; state.legacy = []; hideModal('classificationModal'); await refreshCatalog(); alertUser('Legacy fee classified and its initial Draft version created.'); }
+        catch (error) { alertUser(error.message, 'danger'); if (error.code === 'LEGACY_FEE_ALREADY_CLASSIFIED') { state.legacyLoaded = false; hideModal('classificationModal'); await refreshCatalog(); } } finally { setBusy(button, false); }
     };
 
     reload();

@@ -260,8 +260,9 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
     </form>
 
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden position-relative payment-operational-table">
-        <div class="ph-ledger-loading d-none" id="historyLoadingState" aria-hidden="true">
+    <div id="historyLoadingState" class="small text-muted mb-2 d-none" role="status" aria-live="polite"></div>
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden payment-operational-table">
+        <div class="d-none" aria-hidden="true">
             <div class="text-center">
                 <div class="spinner-border text-primary mb-2" role="status"></div>
                 <div class="fw-bold text-secondary">Loading transactions…</div>

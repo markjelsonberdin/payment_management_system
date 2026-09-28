@@ -28,9 +28,9 @@ renderBreadcrumbs($breadcrumbs);
       <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
     </div>
   </div>
-  <div id="dashboardNotice" class="alert alert-info" role="status" aria-live="polite">Loading report...</div>
+  <div id="dashboardNotice" class="small text-muted mb-3" role="status" aria-live="polite">Preparing online payment report…</div>
   <small id="adminLastUpdated" class="text-muted d-block mb-3"></small>
-  <div class="row g-3 mb-4" id="adminKpis" aria-live="polite"><div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-muted">Loading online payment data...</div></div></div></div>
+  <div class="row g-3 mb-4" id="adminKpis" aria-live="polite"><div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-muted">Online payment data will appear here.</div></div></div></div>
   <div class="row g-3 mb-4">
     <div class="col-xl-8"><div class="card border-0 shadow-sm h-100"><div class="card-body">
       <h2 class="h5"><i class="ti ti-chart-line text-primary me-2" aria-hidden="true"></i>Online Payment Trend</h2>
@@ -54,8 +54,8 @@ renderBreadcrumbs($breadcrumbs);
     </div></div></div>
     <div class="col-xl-5"><div class="card border-0 shadow-sm h-100"><div class="card-body">
       <h2 class="h5"><i class="ti ti-adjustments-check text-primary me-2" aria-hidden="true"></i>Gateway Readiness</h2>
-      <div id="gatewayMode" class="fw-semibold">Loading...</div>
-      <div id="gatewayReadiness" class="small text-muted" role="status">Checking protected readiness status...</div>
+      <div id="gatewayMode" class="fw-semibold">Gateway readiness will appear here.</div>
+      <div id="gatewayReadiness" class="small text-muted" role="status"></div>
       <div id="receivingChannels" class="vstack gap-2 mt-3"></div>
       <a class="btn btn-sm btn-outline-primary mt-3" href="<?= BASE_URL ?>/modules/payment/pages/payment_admin/online-payment-integration.php"><i class="ti ti-settings me-1" aria-hidden="true"></i>Online Payment Settings</a>
     </div></div></div>
@@ -67,7 +67,7 @@ renderBreadcrumbs($breadcrumbs);
     </div>
     <div class="table-responsive"><table class="table table-hover align-middle mb-0">
       <thead><tr><th>Date &amp; Time</th><th>Student</th><th>Reference No.</th><th>Channel</th><th class="text-end">Amount</th><th>Status</th><th>Environment</th></tr></thead>
-      <tbody id="recentActivityRows"><tr><td colspan="7" class="text-center text-muted py-4">Loading online transactions...</td></tr></tbody>
+      <tbody id="recentActivityRows"><tr><td colspan="7" class="text-center text-muted py-4">Online transactions will appear here.</td></tr></tbody>
     </table></div>
   </div></div>
 </div>
