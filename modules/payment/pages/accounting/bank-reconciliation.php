@@ -197,8 +197,15 @@ document.getElementById('uploadCsvForm').addEventListener('submit', function(e) 
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', 'Bank records imported for review. No payment was verified automatically. Reloading...');
-            setTimeout(() => window.location.reload(), 1500);
+            showAlert('success', 'Bank records imported for review. No payment was verified automatically.');
+            document.getElementById('uploadCsvForm').reset();
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            const refresh = document.createElement('a');
+            refresh.className = 'btn btn-sm btn-outline-primary mt-2';
+            refresh.href = window.location.href;
+            refresh.innerHTML = '<i class="ti ti-refresh me-1"></i>Refresh imported records';
+            document.getElementById('alertContainer').append(refresh);
         } else {
             showAlert('danger', 'Error: ' + data.message);
             btn.innerHTML = originalText;

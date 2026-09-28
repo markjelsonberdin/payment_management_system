@@ -332,7 +332,11 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 const result = await response.json();
                 if (!response.ok || !result.ok) throw new Error(result.error || 'Processing stopped');
                 progress.textContent = `Added ${result.added}, already assigned ${result.existing}, failed ${result.failed}`;
-                if (result.status === 'Completed') { location.reload(); return; }
+                if (result.status === 'Completed') {
+                    progress.textContent = `Completed: added ${result.added}, already assigned ${result.existing}, failed ${result.failed}. Refresh this page when ready to review the final billing run.`;
+                    this.insertAdjacentHTML('afterend', '<a class="btn btn-sm btn-outline-primary ms-2" href="' + location.href + '"><i class="ti ti-refresh me-1"></i>Refresh billing results</a>');
+                    return;
+                }
             }
         } catch (error) { progress.textContent = error.message + '. You can safely resume.'; this.disabled = false; }
     });

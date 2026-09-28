@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const content = document.getElementById('dashboardContent');
   const charts = {};
   let requestVersion = 0;
+  let hasRendered = false;
   const money = value => value == null || !Number.isFinite(Number(value))
     ? 'Unavailable'
     : '₱' + Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -127,9 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function load(event) {
     event?.preventDefault();
     const version = ++requestVersion;
-    state.className = 'alert alert-info';
-    state.textContent = 'Loading report...';
-    content.classList.add('d-none');
+    state.className = 'small text-muted mb-3';
+    state.textContent = hasRendered ? 'Updating report…' : 'Preparing report…';
     try {
       const response = await fetch(window.ACCOUNTING_DASHBOARD_API + '?' + new URLSearchParams(new FormData(form)), {
         credentials: 'same-origin', headers: { Accept: 'application/json' }
@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok || !data.ok) throw new Error(data.error || 'Dashboard data could not be loaded. Please try again.');
       if (sectionState(data, 'kpis') === 'error') throw new Error('Core financial data is temporarily unavailable.');
       content.classList.remove('d-none');
+      hasRendered = true;
       document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString('en-PH');
       renderKpis(data);
       const trend = data.trend || {};
@@ -164,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderOnlineSummary(data);
       renderRecent(data);
       const hasPartial = Object.entries(data.section_status || {}).some(([key, value]) => key !== 'kpis' && value === 'error');
-      state.className = 'alert ' + (hasPartial ? 'alert-warning' : (data.recent_collections || []).length ? 'alert-success' : 'alert-light');
+      state.className = 'small ' + (hasPartial ? 'text-warning' : 'text-muted') + ' mb-3';
       state.textContent = hasPartial ? 'Some report sections are currently unavailable.' :
         (data.recent_collections || []).length
           ? (data.scope?.academic_year || '') + ' · ' + (data.scope?.semester || '') + ' · Report loaded'
@@ -175,8 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (version !== requestVersion) return;
       state.className = 'alert alert-danger';
       state.textContent = 'Unable to load report data.';
-      document.getElementById('lastUpdated').textContent = '';
-      content.classList.add('d-none');
+      if (!hasRendered) document.getElementById('lastUpdated').textContent = '';
     }
   }
 
