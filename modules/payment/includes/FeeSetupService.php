@@ -80,14 +80,15 @@ final class FeeSetupService
                     MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.academic_year END) AS active_academic_year,
                     MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.semester END) AS active_semester,
                     MAX(CASE WHEN fv.effective_status = 'Active' THEN fv.amount END) AS active_amount,
-                    MAX(CASE WHEN fv.effective_status = 'Draft' THEN fv.version_no END) AS latest_draft_version_no
+                    MAX(CASE WHEN fv.effective_status = 'Draft' THEN fv.version_no END) AS latest_draft_version_no,
+                    MAX(CASE WHEN fv.activated_at IS NOT NULL THEN 1 ELSE 0 END) AS identity_locked
              FROM fees f
              JOIN fee_types ft ON ft.fee_type_id = f.fee_type_id
              JOIN fee_groups fg ON fg.fee_group_id = ft.fee_group_id
              LEFT JOIN fee_versions fv ON fv.fee_id = f.fee_id
              WHERE f.fee_code IS NOT NULL
                AND f.fee_type_id IS NOT NULL
-               AND f.identity_status IS NOT NULL
+               AND f.identity_status = 'Active'
              GROUP BY f.fee_id, f.fee_code, f.fee_name, f.fee_type_id, f.identity_status,
                       ft.type_code, ft.type_name, fg.group_code, fg.group_name
              ORDER BY fg.sort_order, ft.sort_order, f.fee_name, f.fee_id"
@@ -151,8 +152,54 @@ final class FeeSetupService
 
         $fee['fee_id'] = (int) $fee['fee_id'];
         $fee['fee_type_id'] = (int) $fee['fee_type_id'];
+        $fee['identity_locked'] = array_reduce(
+            $versionRows,
+            static fn(bool $locked, array $version): bool => $locked || $version['activated_at'] !== null,
+            false
+        );
         $fee['versions'] = $versionRows;
         return $fee;
+    }
+
+    public function archives(): array
+    {
+        $identities = $this->pdo->query(
+            "SELECT f.fee_id, f.fee_code, f.fee_name, f.identity_status, f.updated_at AS archived_at,
+                    ft.type_name, fg.group_name, COUNT(fv.fee_version_id) AS version_count
+             FROM fees f
+             JOIN fee_types ft ON ft.fee_type_id = f.fee_type_id
+             JOIN fee_groups fg ON fg.fee_group_id = ft.fee_group_id
+             LEFT JOIN fee_versions fv ON fv.fee_id = f.fee_id
+             WHERE f.identity_status = 'Archived'
+             GROUP BY f.fee_id, f.fee_code, f.fee_name, f.identity_status, f.updated_at, ft.type_name, fg.group_name
+             ORDER BY f.updated_at DESC, f.fee_id DESC"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        $versions = $this->pdo->query(
+            "SELECT fv.fee_version_id, fv.fee_id, fv.version_no, fv.academic_year, fv.semester,
+                    fv.amount, fv.behavior, fv.is_required, fv.activated_at, fv.archived_at,
+                    f.fee_code, f.fee_name, ft.type_name, fg.group_name
+             FROM fee_versions fv
+             JOIN fees f ON f.fee_id = fv.fee_id
+             JOIN fee_types ft ON ft.fee_type_id = f.fee_type_id
+             JOIN fee_groups fg ON fg.fee_group_id = ft.fee_group_id
+             WHERE fv.effective_status = 'Archived'
+             ORDER BY fv.archived_at DESC, fv.fee_version_id DESC"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($identities as &$identity) {
+            $identity['fee_id'] = (int) $identity['fee_id'];
+            $identity['version_count'] = (int) $identity['version_count'];
+        }
+        foreach ($versions as &$version) {
+            $version['fee_version_id'] = (int) $version['fee_version_id'];
+            $version['fee_id'] = (int) $version['fee_id'];
+            $version['version_no'] = (int) $version['version_no'];
+            $version['amount'] = (float) $version['amount'];
+            $version['is_required'] = (bool) $version['is_required'];
+            $version['applicability'] = $this->version($version['fee_version_id'])['applicability'];
+        }
+        return ['identities' => $identities, 'versions' => $versions];
     }
 
     public function legacyFees(): array
@@ -207,6 +254,13 @@ final class FeeSetupService
             $this->pdo->beginTransaction();
             $fee = $this->lockManagedFee($feeId);
             $this->assertIdentityActive($fee);
+            if ($this->identityHasActivationHistory($feeId)) {
+                throw new FeeSetupException(
+                    'IDENTITY_LOCKED',
+                    'Fee Code, Fee Name, Fee Type, and Fee Group are locked after the first activation.',
+                    409
+                );
+            }
 
             foreach (['category_id', 'default_amount', 'is_required', 'status', 'identity_status'] as $forbiddenField) {
                 if (array_key_exists($forbiddenField, $input)) {
@@ -296,6 +350,7 @@ final class FeeSetupService
             $this->pdo->beginTransaction();
             $fee = $this->lockManagedFee($feeId);
             $this->assertIdentityActive($fee);
+            $this->assertVersionTermAvailable($feeId, $version['academic_year'], $version['semester']);
             $next = $this->pdo->prepare('SELECT COALESCE(MAX(version_no), 0) + 1 FROM fee_versions WHERE fee_id = ?');
             $next->execute([$feeId]);
             $versionNo = (int) $next->fetchColumn();
@@ -323,6 +378,7 @@ final class FeeSetupService
             $this->pdo->beginTransaction();
             $version = $this->lockVersionWithParent($versionId);
             $this->assertDraft($version);
+            $this->assertVersionTermAvailable((int) $version['fee_id'], $payload['academic_year'], $payload['semester'], $versionId);
             $stmt = $this->pdo->prepare(
                 "UPDATE fee_versions SET academic_year=?, semester=?, amount=?, behavior=?, is_required=?,
                         description=?, updated_by=? WHERE fee_version_id=?"
@@ -332,6 +388,9 @@ final class FeeSetupService
                 $payload['is_required'], $payload['description'], $actorId, $versionId,
             ]);
             $this->pdo->commit();
+        } catch (PDOException $e) {
+            $this->rollback();
+            throw $this->mapDatabaseError($e);
         } catch (Throwable $e) {
             $this->rollback();
             throw $e;
@@ -796,6 +855,34 @@ final class FeeSetupService
         }
     }
 
+    private function identityHasActivationHistory(int $feeId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM fee_versions WHERE fee_id = ? AND activated_at IS NOT NULL LIMIT 1');
+        $stmt->execute([$feeId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function assertVersionTermAvailable(int $feeId, string $academicYear, string $semester, ?int $excludeVersionId = null): void
+    {
+        $sql = 'SELECT version_no, effective_status FROM fee_versions WHERE fee_id = ? AND academic_year = ? AND semester = ?';
+        $params = [$feeId, $academicYear, $semester];
+        if ($excludeVersionId !== null) {
+            $sql .= ' AND fee_version_id <> ?';
+            $params[] = $excludeVersionId;
+        }
+        $sql .= ' LIMIT 1 FOR UPDATE';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $conflict = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($conflict) {
+            throw new FeeSetupException(
+                'VERSION_TERM_EXISTS',
+                "Version {$conflict['version_no']} ({$conflict['effective_status']}) already uses $academicYear / $semester for this fee.",
+                409
+            );
+        }
+    }
+
     private function castCatalogRow(array $row): array
     {
         $row['fee_id'] = (int) $row['fee_id'];
@@ -806,6 +893,7 @@ final class FeeSetupService
         $row['active_version_no'] = $row['active_version_no'] !== null ? (int) $row['active_version_no'] : null;
         $row['active_amount'] = $row['active_amount'] !== null ? (float) $row['active_amount'] : null;
         $row['latest_draft_version_no'] = $row['latest_draft_version_no'] !== null ? (int) $row['latest_draft_version_no'] : null;
+        $row['identity_locked'] = (bool) $row['identity_locked'];
         return $row;
     }
 
@@ -814,6 +902,9 @@ final class FeeSetupService
         $driverCode = (int) ($e->errorInfo[1] ?? 0);
         $message = (string) ($e->errorInfo[2] ?? $e->getMessage());
         if ($driverCode === 1062) {
+            if (str_contains($message, 'uq_fee_versions_term')) {
+                return new FeeSetupException('VERSION_TERM_EXISTS', 'That academic year and semester already exists for this fee.', 409, $e);
+            }
             if (str_contains($message, 'uq_fees_fee_code')) {
                 return new FeeSetupException('FEE_CODE_EXISTS', 'That fee code is already reserved.', 409, $e);
             }

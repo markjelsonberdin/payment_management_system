@@ -6,6 +6,24 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 requireAuth();
 requirePaymentPermission('payment.fee_setup');
 
+require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
+require_once ROOT_PATH . '/modules/payment/includes/FeeSetupService.php';
+
+$feeSetupBootstrap = ['taxonomy' => [], 'catalog' => [], 'legacy' => []];
+$feeSetupBootstrapError = null;
+try {
+    $feeSetupService = new FeeSetupService($pdo);
+    $feeSetupBootstrap = [
+        'taxonomy' => $feeSetupService->taxonomy(),
+        'catalog' => $feeSetupService->catalog(),
+        'legacy' => $feeSetupService->legacyFees(),
+        'csrf_token' => generateCsrfToken(),
+    ];
+} catch (Throwable $e) {
+    error_log('Fee Setup page bootstrap failed: ' . $e->getMessage());
+    $feeSetupBootstrapError = 'Fee Setup data is temporarily unavailable.';
+}
+
 $pageTitle = 'Fee Setup & Configuration';
 $activeModule = 'payment';
 $activePage = 'accounting/fee-setup-configuration';
@@ -34,6 +52,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <button class="btn btn-light border shadow-sm fw-bold px-4" id="legacyFeesButton" type="button">
                     <i class="ti ti-tags me-1"></i> Legacy Classification
                 </button>
+                <button class="btn btn-light border shadow-sm fw-bold px-4" id="archivesButton" type="button">
+                    <i class="fas fa-box-archive me-1"></i> Archives
+                </button>
                 <button class="btn btn-primary shadow-sm fw-bold px-4" id="addFeeButton" type="button">
                     <i class="ti ti-plus me-1"></i> Add Fee
                 </button>
@@ -44,6 +65,9 @@ require_once ROOT_PATH . '/includes/layout-start.php';
     <div class="alert d-none alert-dismissible fade show border-0 shadow-sm rounded-3" id="feeAlert" role="alert" aria-live="polite">
         <span id="feeAlertText"></span><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+    <?php if ($feeSetupBootstrapError !== null): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($feeSetupBootstrapError) ?></div>
+    <?php endif; ?>
 
     <div class="accordion mb-4" id="feesAccordion"></div>
     <div class="text-center text-muted py-5 d-none" id="feesEmpty">
@@ -92,8 +116,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <div class="modal fade" id="legacyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content border-0 shadow">
         <div class="modal-header bg-white border-bottom pb-3"><div><h5 class="modal-title fw-bold text-secondary"><i class="ti ti-tags me-2"></i>Legacy Fee Classification</h5><small class="text-muted">Existing fees awaiting classification into the managed catalog.</small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body bg-light p-4"><div class="input-group shadow-sm mb-3"><span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span><input class="form-control border-start-0 ps-0" id="legacySearch" placeholder="Search legacy fee name or category..."></div><div class="table-responsive"><table class="table table-sm table-hover align-middle bg-white mb-0"><thead class="text-uppercase text-secondary"><tr><th>Fee</th><th>Category</th><th class="text-end">Amount</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody id="legacyRows"></tbody></table></div><div class="text-center text-muted py-4 d-none" id="legacyEmpty">No legacy fees awaiting classification.</div></div>
+        <div class="modal-body bg-light p-4"><div id="legacyLoading" class="text-center text-muted py-4 d-none"><span class="spinner-border spinner-border-sm me-2"></span>Loading legacy fees...</div><div id="legacyError" class="alert alert-danger d-none"><span id="legacyErrorText"></span><button class="btn btn-sm btn-outline-danger ms-2" id="legacyRetry" type="button">Retry</button></div><div id="legacyResults"><div class="input-group shadow-sm mb-3"><span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span><input class="form-control border-start-0 ps-0" id="legacySearch" placeholder="Search legacy fee name or category..."></div><div class="table-responsive"><table class="table table-sm table-hover align-middle bg-white mb-0"><thead class="text-uppercase text-secondary"><tr><th>Fee</th><th>Category</th><th class="text-end">Amount</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody id="legacyRows"></tbody></table></div><div class="text-center text-muted py-4 d-none" id="legacyEmpty">No legacy fees awaiting classification.</div></div></div>
         <div class="modal-footer border-0 bg-white"><button class="btn btn-light shadow-sm" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
+</div>
+
+<div class="modal fade" id="archivesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content border-0 shadow">
+        <div class="modal-header"><div><h5 class="modal-title fw-bold"><i class="fas fa-box-archive me-2"></i>Archives</h5><small class="text-muted">Read-only managed fee history.</small></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body bg-light p-4"><div id="archivesLoading" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading archives...</div><div id="archivesError" class="alert alert-danger d-none"><span id="archivesErrorText"></span><button class="btn btn-sm btn-outline-danger ms-2" id="archivesRetry" type="button">Retry</button></div><div id="archivesContent" class="d-none"><h6 class="fw-bold">Archived Fee Identities</h6><div class="table-responsive mb-4"><table class="table table-sm bg-white"><thead><tr><th>Fee</th><th>Classification</th><th>Versions</th><th>Archived</th></tr></thead><tbody id="archivedIdentityRows"></tbody></table></div><h6 class="fw-bold">Archived Fee Versions</h6><div class="table-responsive"><table class="table table-sm bg-white"><thead><tr><th>Fee</th><th>Version / Term</th><th>Configuration</th><th>Archived</th></tr></thead><tbody id="archivedVersionRows"></tbody></table></div><div id="archivesEmpty" class="text-center text-muted py-4 d-none">No archived managed fees or versions.</div></div></div>
+        <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
     </div></div>
 </div>
 
@@ -110,5 +142,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content border-0 shadow"><div class="modal-body text-center p-4"><div class="fs-1 mb-2" id="confirmIcon"><i class="ti ti-alert-triangle text-warning"></i></div><h5 class="fw-bold" id="confirmTitle">Confirm action?</h5><div class="text-muted" id="confirmText"></div><div class="d-flex gap-2 mt-4"><button class="btn btn-light border shadow-sm w-50" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning text-dark fw-bold shadow-sm w-50" id="confirmAction">Confirm</button></div></div></div></div></div>
 
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/fee-setup.js?v=2"></script>
+<script>
+window.FEE_SETUP_BOOTSTRAP = <?= json_encode($feeSetupBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
+</script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/fee-setup.js?v=4"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
