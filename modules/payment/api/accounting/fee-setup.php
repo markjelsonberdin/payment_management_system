@@ -58,6 +58,7 @@ try {
             'catalog' => $service->catalog(),
             'fee' => $service->fee((int) ($_GET['fee_id'] ?? 0)),
             'legacy_fees' => $service->legacyFees(),
+            'archives' => $service->archives(),
             default => throw new FeeSetupException('UNKNOWN_ACTION', 'Unknown Fee Setup action.', 404),
         };
         feeSetupRespond(['ok' => true, 'data' => $data, 'csrf_token' => generateCsrfToken()]);
