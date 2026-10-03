@@ -186,8 +186,9 @@ function smsDefaultModulesForRole(string $roleKey): array
         'research_office' => ['crad'],
         'research_grant' => ['crad_grant'],
         'review_committee' => ['crad_grant'],
-        'payment_admin'      => ['payment'],
+        'mis_admin'          => ['payment'],
         'accounting_officer' => ['payment'],
+        'accounting_admin'   => ['payment'],
         'hr'           => ['faculty'],
         'adviser'      => ['faculty'],
         'panel'        => ['faculty'],
@@ -299,20 +300,14 @@ function userCanAccessModule(string $moduleKey): bool
     if ($moduleKey === '' || $moduleKey === 'dashboard') {
         return true;
     }
-    if (str_starts_with($moduleKey, 'payment.')) {
+    if (str_starts_with($moduleKey, 'payment.')
+        || preg_match('/^(billing|fee|ledger|ar|report|payment_users|integration|school_sales)\./', $moduleKey)) {
         // Payment role capabilities are the source of truth for Payment
         // operations.  Legacy granular module-grant rows may be incomplete
         // (for example, omitting Accounting's fee-setup permission), but
         // must not hide or block a role-owned payment page.
         return paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey);
     }
-    // The global payment dashboard is intentionally shared by Payment Admin,
-    // Accounting Officer, and Cashier even when legacy DB grants omit it.
-    if ($moduleKey === 'payment.collection_analytics_view'
-        && in_array(smsNormalizeRoleKey(getCurrentUserRoleKey()), ['payment_admin', 'finance', 'accounting_officer', 'cashier', 'superadmin'], true)) {
-        return true;
-    }
-
     // Student portal alias
     if ($moduleKey === 'student-portal' || $moduleKey === 'student_portal') {
         $moduleKey = 'student_portal';
@@ -1658,33 +1653,47 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
 function paymentRoleAllowsPermission(string $role, string $permission): bool
 {
     $role = smsNormalizeRoleKey($role);
-    $accountingPermissions = [
-        'payment.fee_setup', 'payment.billing',
-        'payment.discount', 'payment.ledger', 'payment.analytics', 'payment.concern_review',
+    // Legacy page keys resolve to canonical capabilities.  Authorization is
+    // intentionally fail-closed: Global Super Admin is not a PMS operator.
+    $aliases = [
+        'payment.billing' => 'billing.individual.process',
+        'payment.fee_setup' => 'fee.manage',
+        'payment.discount' => 'ar.manage',
+        'payment.ledger' => 'ledger.view',
+        'payment.concern_review' => 'payment.concern.review',
+        'payment.managed_bulk_operate' => 'billing.bulk.process',
+        'payment.managed_bulk_detail' => 'billing.bulk.view',
+        'payment.managed_bulk_approve' => 'billing.bulk.approve',
+        'payment.analytics' => 'report.view',
+        'payment.collection_analytics_view' => 'report.view',
+        'payment.online_payment_config' => 'integration.paymongo.manage',
+        'payment.accounting_users_view' => 'payment_users.view',
+        'payment.accounting_users_manage' => 'payment_users.update',
     ];
-    $adminPermissions = [
-        'payment.online_payment_config', 'payment.school_sales_catalog',
-        'payment.user_management', 'payment.transaction_history_view',
-        'payment.collection_analytics_view',
+    $permission = $aliases[$permission] ?? $permission;
+    $bundles = [
+        'accounting_officer' => [
+            'billing.individual.process', 'billing.bulk.create', 'billing.bulk.preview',
+            'billing.bulk.process', 'billing.bulk.retry', 'billing.bulk.resume', 'billing.bulk.view',
+            'payment.verify', 'payment.concern.review', 'ledger.view', 'ar.view', 'ar.manage',
+        ],
+        'accounting_admin' => [
+            'fee.view', 'fee.manage', 'fee.activate', 'billing.individual.review',
+            'billing.bulk.view', 'billing.bulk.approve', 'payment.verify',
+            'ar.view', 'report.view', 'report.export',
+            'school_sales.catalog.view', 'school_sales.catalog.manage', 'school_sales.catalog.activate',
+        ],
+        'cashier' => [
+            'payment.collection', 'payment.walkin_history', 'payment.school_sales',
+            'payment.cashier_dashboard', 'billing.individual.review',
+        ],
+        'mis_admin' => [
+            'payment_users.view', 'payment_users.create', 'payment_users.update',
+            'payment_users.activate', 'payment_users.reset_password',
+            'integration.paymongo.manage', 'integration.ocr.manage', 'integration.aub.manage',
+        ],
     ];
-    // Super Admin is not limited by incomplete granular permission rows.
-    if ($role === 'superadmin') {
-        return true;
-    }
-    if (in_array($permission, $accountingPermissions, true)) {
-        return in_array($role, ['accounting_officer', 'superadmin'], true);
-    } elseif (in_array($permission, $adminPermissions, true)) {
-        if ($permission === 'payment.user_management') {
-            return in_array($role, ['superadmin'], true);
-        }
-        if ($permission === 'payment.collection_analytics_view') {
-            return in_array($role, ['payment_admin', 'finance', 'accounting_officer', 'cashier', 'superadmin'], true);
-        }
-        return in_array($role, ['payment_admin', 'finance', 'superadmin'], true);
-    } elseif ($permission === 'payment.collection' || $permission === 'payment.walkin_history' || $permission === 'payment.school_sales' || $permission === 'payment.cashier_dashboard') {
-        return in_array($role, ['cashier', 'superadmin'], true);
-    }
-    return true;
+    return in_array($permission, $bundles[$role] ?? [], true);
 }
 
 function requirePaymentPermission(string $permission): void

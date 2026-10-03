@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 requireAuth();
-requirePaymentPermission('payment.online_payment_config');
+requirePaymentPermission('integration.paymongo.manage');
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/PaymentAdminReportingService.php';

@@ -14,8 +14,8 @@ if (!isAuthenticated()) {
     http_response_code(401);
     exit;
 }
-if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.online_payment_config')
-    || !userCanAccessModule('payment.online_payment_config')) {
+if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.paymongo.manage')
+    || !userCanAccessModule('integration.paymongo.manage')) {
     http_response_code(403);
     echo json_encode(['error' => 'FORBIDDEN']);
     exit;

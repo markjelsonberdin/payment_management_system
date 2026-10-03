@@ -466,15 +466,20 @@ function smsIssueOtpToEmail(
  */
 function smsPasswordPolicy(): array
 {
-    $min = max(8, (int) smsSetting('min_password_length', '8'));
+    // PMS personnel accounts use one consistent policy.  The settings value
+    // may raise the minimum, but may never weaken the 12-character baseline.
+    $min = max(12, (int) smsSetting('min_password_length', '12'));
+    $max = 128;
     return [
         'min' => $min,
+        'max' => $max,
         'rules' => [
-            'length'  => "At least {$min} characters",
+            'length'  => "{$min}–{$max} characters",
             'upper'   => 'At least one uppercase letter (A–Z)',
             'lower'   => 'At least one lowercase letter (a–z)',
             'number'  => 'At least one number (0–9)',
             'special' => 'At least one special character (!@#$%^&* etc.)',
+            'not_blank' => 'Not only spaces',
         ],
     ];
 }
@@ -488,11 +493,12 @@ function smsValidatePasswordStrength(string $password): array
 {
     $policy = smsPasswordPolicy();
     $checks = [
-        'length'  => strlen($password) >= $policy['min'],
+        'length'  => strlen($password) >= $policy['min'] && strlen($password) <= $policy['max'],
         'upper'   => (bool) preg_match('/[A-Z]/', $password),
         'lower'   => (bool) preg_match('/[a-z]/', $password),
         'number'  => (bool) preg_match('/[0-9]/', $password),
         'special' => (bool) preg_match('/[^A-Za-z0-9]/', $password),
+        'not_blank' => trim($password) !== '',
     ];
 
     $missing = [];
@@ -509,6 +515,31 @@ function smsValidatePasswordStrength(string $password): array
         'missing' => $missing,
         'message' => $ok ? 'Password meets security requirements.' : ('Password needs: ' . implode('; ', $missing)),
     ];
+}
+
+/** Validate the account-specific rules that cannot safely live only in JS. */
+function smsValidatePasswordForAccount(string $password, string $username = '', string $email = ''): array
+{
+    $result = smsValidatePasswordStrength($password);
+    $normalized = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $password));
+    $common = ['password123', 'password123!', 'admin123', 'admin123!', 'cashier123', 'cashier123!', 'accounting123', 'qwerty123', 'welcome123'];
+    $identifiers = array_filter([
+        strtolower(trim($username)),
+        strtolower(trim($email)),
+        strtolower(trim((string) strtok($email, '@'))),
+    ], static fn(string $value): bool => strlen($value) >= 3);
+    $usesIdentifier = false;
+    foreach ($identifiers as $identifier) {
+        if (str_contains(strtolower($password), $identifier)) { $usesIdentifier = true; break; }
+    }
+    $isCommon = in_array($normalized, $common, true);
+    $result['checks']['identifier'] = !$usesIdentifier;
+    $result['checks']['common'] = !$isCommon;
+    if ($usesIdentifier) $result['missing'][] = 'Must not contain the username or email';
+    if ($isCommon) $result['missing'][] = 'Must not use a common/default password';
+    $result['ok'] = $result['missing'] === [];
+    $result['message'] = $result['ok'] ? 'Password meets security requirements.' : ('Password needs: ' . implode('; ', $result['missing']));
+    return $result;
 }
 
 /**

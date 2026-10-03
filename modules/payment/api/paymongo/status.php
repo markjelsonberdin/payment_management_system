@@ -14,7 +14,7 @@ if (!isAuthenticated()) {
     http_response_code(401);
     exit;
 }
-requirePaymentPermission('payment.online_payment_config');
+requirePaymentPermission('integration.paymongo.manage');
 require_once __DIR__ . '/../../database/db_connect.php';
 
 // 2. Cache Check (if not manually forced)

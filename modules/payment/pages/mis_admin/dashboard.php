@@ -1,0 +1,80 @@
+<?php
+require_once __DIR__ . '/../../../../config/config.php';
+require_once ROOT_PATH . '/includes/authentication.php';
+requireAuth();
+requirePaymentPermission('integration.paymongo.manage');
+$pageTitle = 'Payment MIS Dashboard';
+$activeModule = 'payment';
+$activePage = 'mis_admin/dashboard';
+$reportingControlPeriod = in_array(($_GET['period'] ?? 'today'), ['today', 'week', 'month', 'year'], true) ? $_GET['period'] : 'today';
+$reportingControlMonth = isset($_GET['period_month']) && ctype_digit((string) $_GET['period_month']) ? (int) $_GET['period_month'] : (int) (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('n');
+$reportingControlYear = isset($_GET['period_year']) && preg_match('/^\d{4}$/', (string) $_GET['period_year']) ? (int) $_GET['period_year'] : (int) (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y');
+$reportingControlYears = [];
+$breadcrumbs = [
+    ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
+    ['label' => 'Dashboard', 'url' => null],
+];
+require_once ROOT_PATH . '/includes/breadcrumbs.php';
+require_once ROOT_PATH . '/includes/layout-start.php';
+renderBreadcrumbs($breadcrumbs);
+?>
+<div class="container-fluid py-4" id="paymentAdminDashboard">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1"><i class="ti ti-device-mobile-check text-primary me-2" aria-hidden="true"></i>Dashboard</h1>
+      <p class="text-muted mb-0">Online payment monitoring and status</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
+    </div>
+  </div>
+  <div id="dashboardNotice" class="small text-muted mb-3" role="status" aria-live="polite">Preparing online payment report…</div>
+  <small id="adminLastUpdated" class="text-muted d-block mb-3"></small>
+  <div class="row g-3 mb-4" id="adminKpis" aria-live="polite"><div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-muted">Online payment data will appear here.</div></div></div></div>
+  <div class="row g-3 mb-4">
+    <div class="col-xl-8"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h2 class="h5"><i class="ti ti-chart-line text-primary me-2" aria-hidden="true"></i>Online Payment Trend</h2>
+      <p class="small text-muted">Verified Live allocation amounts only.</p>
+      <div style="height:300px"><canvas id="paymentTrendChart" aria-label="Verified Live online allocation trend"></canvas></div>
+      <div id="trendState" class="small text-muted" role="status"></div>
+    </div></div></div>
+    <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h2 class="h5"><i class="ti ti-chart-donut text-primary me-2" aria-hidden="true"></i>Online Payment Status</h2>
+      <p class="small text-muted">Attempt counts by actual status, across environments. Counts are not collection amounts.</p>
+      <div style="height:270px"><canvas id="onlineStatusChart" aria-label="Online payment attempt counts by status"></canvas></div>
+      <div id="statusState" class="small text-muted" role="status"></div>
+    </div></div></div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h2 class="h5"><i class="ti ti-credit-card text-primary me-2" aria-hidden="true"></i>Online Payment Channels</h2>
+      <p class="small text-muted">Verified Live allocations grouped by recorded payment channel.</p>
+      <div style="height:300px"><canvas id="channelChart" aria-label="Verified Live collections by recorded channel"></canvas></div>
+      <div id="channelState" class="small text-muted" role="status"></div>
+    </div></div></div>
+    <div class="col-xl-5"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h2 class="h5"><i class="ti ti-adjustments-check text-primary me-2" aria-hidden="true"></i>Gateway Readiness</h2>
+      <div id="gatewayMode" class="fw-semibold">Gateway readiness will appear here.</div>
+      <div id="gatewayReadiness" class="small text-muted" role="status"></div>
+      <div id="receivingChannels" class="vstack gap-2 mt-3"></div>
+      <a class="btn btn-sm btn-outline-primary mt-3" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/online-payment-integration.php"><i class="ti ti-settings me-1" aria-hidden="true"></i>Online Payment Settings</a>
+    </div></div></div>
+  </div>
+  <div class="card border-0 shadow-sm"><div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <div><h2 class="h5 mb-1"><i class="ti ti-list-details text-primary me-2" aria-hidden="true"></i>Recent Online Transactions</h2>
+        <p class="small text-muted mb-0">Verified amounts use applied allocations; other statuses show recorded attempt amount.</p></div>
+    </div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+      <thead><tr><th>Date &amp; Time</th><th>Student</th><th>Reference No.</th><th>Channel</th><th class="text-end">Amount</th><th>Status</th><th>Environment</th></tr></thead>
+      <tbody id="recentActivityRows"><tr><td colspan="7" class="text-center text-muted py-4">Online transactions will appear here.</td></tr></tbody>
+    </table></div>
+  </div></div>
+</div>
+<script>
+window.PAYMENT_ADMIN_DASHBOARD_API = <?= json_encode(BASE_URL . '/modules/payment/api/payment-admin-dashboard-data.php') ?>;
+window.PAYMENT_ADMIN_GATEWAY_STATUS_API = <?= json_encode(BASE_URL . '/modules/payment/api/paymongo/status.php') ?>;
+window.PAYMENT_QRPH_LOGO = <?= json_encode(BASE_URL . '/modules/payment/assets/images/qrph%20logo.jpg') ?>;
+</script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=4"></script>
+<?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

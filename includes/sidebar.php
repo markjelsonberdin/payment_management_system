@@ -361,9 +361,18 @@ $researchDirectorNavGroups = [
                     <span class="nav-link sidebar-group-heading">Dashboard</span>
                 </li>
                 <li class="nav-item">
-                    <?php $isPaymentDashboardPage = $activeModule === 'payment' && in_array((string) $activePage, ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true); ?>
+                    <?php
+                    $paymentRoleKey = smsNormalizeRoleKey($roleKey);
+                    $isPaymentDashboardPage = $activeModule === 'payment' && in_array((string) $activePage, ['accounting/dashboard', 'accounting_admin/dashboard', 'mis_admin/dashboard', 'cashier/dashboard'], true);
+                    $dashboardOverviewUrl = BASE_URL . '/dashboard/index.php';
+                    if ($paymentRoleKey === 'accounting_officer') {
+                        $dashboardOverviewUrl = BASE_URL . '/modules/payment/pages/accounting/dashboard.php';
+                    } elseif ($paymentRoleKey === 'accounting_admin') {
+                        $dashboardOverviewUrl = BASE_URL . '/modules/payment/pages/accounting_admin/dashboard.php';
+                    }
+                    ?>
                     <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || $isPaymentDashboardPage) ? 'active' : '' ?>"
-                       href="<?= BASE_URL ?>/dashboard/index.php"
+                       href="<?= htmlspecialchars($dashboardOverviewUrl) ?>"
                        data-title="Overview"
                        title="Overview">
                         <i class="fas fa-th-large" aria-hidden="true"></i>
@@ -386,7 +395,7 @@ $researchDirectorNavGroups = [
                             <?php endif; ?>
                         </span>
                     </li>
-                    <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'payment_admin', 'finance', 'cashier'], true); ?>
+                    <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'accounting_admin', 'mis_admin', 'cashier'], true); ?>
                     <?php if (!$hasCanonicalPaymentDashboard || $navModuleKey === 'payment'): ?>
                         <li class="nav-item">
                             <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && $activePage === '') ? 'active' : '' ?>"
@@ -413,7 +422,7 @@ $researchDirectorNavGroups = [
                             // Filter slugs by permission
                             $allowedSlugs = [];
                             foreach ($groupSlugs as $slug) {
-                                if ($navModuleKey === 'payment' && in_array($slug, ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
+                                if ($navModuleKey === 'payment' && in_array($slug, ['accounting/dashboard', 'accounting_admin/dashboard', 'mis_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
                                 if (!isset($pageTitles[$slug])) { continue; }
                                 if ($roleKey === 'crad_officer' && $slug === 'research-defense-scheduling') { continue; }
                                 if (isset($pagePerms[$slug]) && !userCanAccessModule($pagePerms[$slug])) { continue; }
@@ -444,7 +453,7 @@ $researchDirectorNavGroups = [
                     <?php else: ?>
                         <?php foreach ($module['pages'] as $page): ?>
                             <?php
-                            if ($navModuleKey === 'payment' && in_array($page['slug'], ['accounting/dashboard', 'payment_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
+                            if ($navModuleKey === 'payment' && in_array($page['slug'], ['accounting/dashboard', 'accounting_admin/dashboard', 'mis_admin/dashboard', 'cashier/dashboard'], true)) { continue; }
                             if (isset($page['permission']) && !userCanAccessModule($page['permission'])) { continue; }
                             $isPageActive = ($isModuleActive && $activePage === $page['slug']);
                             $pageHref = BASE_URL . '/modules/' . $moduleFolder . '/pages/' . $page['slug'] . '.php';

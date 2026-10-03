@@ -5,7 +5,7 @@ require_once ROOT_PATH . '/includes/authentication.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/AccountingReportingPageService.php';
 requireAuth();
-requirePaymentPermission('payment.analytics');
+requirePaymentPermission('report.view');
 
 $pageTitle = 'Collection & Analytics';
 $activeModule = 'payment';
@@ -17,7 +17,7 @@ $breadcrumbs = [
 $report = null;
 $reportError = null;
 try {
-    $report = (new AccountingReportingPageService($pdo))->load($_GET);
+    $report = (new AccountingReportingPageService($pdo))->loadForWeb($_GET);
 } catch (InvalidArgumentException $e) {
     $reportError = $e->getMessage();
 } catch (Throwable $e) {
@@ -159,6 +159,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
       <?php endforeach; ?>
       <?php if (empty($report['recent_collections'])): ?><tr><td colspan="10" class="payment-table-empty">No collection records found for the selected filters.</td></tr><?php endif; ?>
       </tbody></table></div>
+      <?php $pagination = $report['recent_collections_pagination'] ?? null; if ($pagination && $pagination['total_pages'] > 1): $pageQuery = static function (int $page) use ($pagination): string { return '?' . http_build_query(array_merge($_GET, ['page' => $page, 'page_size' => $pagination['page_size']])); }; ?>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3">
+          <small class="text-muted">Showing <?= number_format((($pagination['page'] - 1) * $pagination['page_size']) + 1) ?>–<?= number_format(min($pagination['page'] * $pagination['page_size'], $pagination['total_records'])) ?> of <?= number_format($pagination['total_records']) ?> records</small>
+          <nav aria-label="Detailed official collections pages"><ul class="pagination pagination-sm mb-0">
+            <li class="page-item <?= $pagination['has_previous'] ? '' : 'disabled' ?>"><a class="page-link" href="<?= $pagination['has_previous'] ? htmlspecialchars($pageQuery($pagination['page'] - 1), ENT_QUOTES, 'UTF-8') : '#' ?>">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">Page <?= number_format($pagination['page']) ?> of <?= number_format($pagination['total_pages']) ?></span></li>
+            <li class="page-item <?= $pagination['has_next'] ? '' : 'disabled' ?>"><a class="page-link" href="<?= $pagination['has_next'] ? htmlspecialchars($pageQuery($pagination['page'] + 1), ENT_QUOTES, 'UTF-8') : '#' ?>">Next</a></li>
+          </ul></nav>
+        </div>
+      <?php endif; ?>
     </div></section>
   <?php endif; ?>
 </main>

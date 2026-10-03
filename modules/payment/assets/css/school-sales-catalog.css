@@ -1,0 +1,31 @@
+.school-sales-catalog { --catalog-radius: .9rem; }
+.school-sales-catalog .card { border-radius: var(--catalog-radius); }
+.catalog-list-card { min-height: 32rem; max-height: calc(100vh - 11rem); position: sticky; top: 1rem; overflow: hidden; }
+.catalog-list { overflow-y: auto; }
+.catalog-list .list-group-item { border: 0; border-bottom: 1px solid var(--bs-border-color); padding: 1rem 1.15rem; transition: background-color .15s ease; }
+.catalog-list .list-group-item:hover { background: var(--bs-tertiary-bg); }
+.catalog-list .list-group-item.active { color: inherit; background: rgba(var(--bs-primary-rgb), .08); border-left: 4px solid var(--bs-primary); }
+.catalog-list-code { font: .72rem var(--bs-font-monospace); color: var(--bs-secondary-color); }
+.catalog-state { padding: 3rem 1.25rem; color: var(--bs-secondary-color); text-align: center; }
+.catalog-welcome { padding: 6rem 2rem; }
+.catalog-welcome > i { font-size: 3.25rem; color: var(--bs-secondary-color); opacity: .5; }
+.catalog-actions { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; }
+.catalog-meta { background: var(--bs-tertiary-bg); border-radius: .65rem; padding: .75rem .85rem; height: 100%; }
+.catalog-meta-label { color: var(--bs-secondary-color); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.readiness-list { display: grid; gap: .55rem; }
+.readiness-row { display: flex; align-items: flex-start; gap: .65rem; padding: .7rem .8rem; border: 1px solid var(--bs-border-color); border-radius: .6rem; }
+.variant-card { padding: 1rem 1.15rem; border-bottom: 1px solid var(--bs-border-color); }
+.variant-card:last-child { border-bottom: 0; }
+.price-history { margin-top: .8rem; padding-left: 1rem; border-left: 2px solid var(--bs-border-color); }
+.price-row { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(10rem, 1.6fr) auto; gap: .75rem; align-items: center; padding: .45rem 0; font-size: .86rem; }
+.current-price { font-size: 1.05rem; font-weight: 700; }
+.catalog-empty-inline { color: var(--bs-secondary-color); padding: 1.5rem; text-align: center; }
+.catalog-field { margin-bottom: 1rem; }
+.catalog-field:last-child { margin-bottom: 0; }
+.catalog-field .form-label { font-weight: 600; }
+#catalogAlert { border-left: 4px solid transparent; }
+#catalogAlert.alert-success { border-left-color: var(--bs-success); }
+#catalogAlert.alert-warning { border-left-color: var(--bs-warning); }
+#catalogAlert.alert-danger { border-left-color: var(--bs-danger); }
+@media (max-width: 1199.98px) { .catalog-list-card { position: static; max-height: 30rem; min-height: 20rem; } }
+@media (max-width: 575.98px) { .price-row { grid-template-columns: 1fr; gap: .15rem; } .catalog-actions { justify-content: flex-start; } }

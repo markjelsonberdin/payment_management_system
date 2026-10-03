@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../includes/PaymentConcernVerificationService.php';
 require_once __DIR__ . '/../../includes/bank_recon/BankReconciliationService.php';
 
 requireAuth();
-requirePaymentPermission('payment.concern_review');
+requirePaymentPermission('payment.concern.review');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

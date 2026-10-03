@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../database/db_connect.php';
 
 requireAuth();
 // Assuming same permission as concern review for accounting
-requirePaymentPermission('payment.concern_review');
+requirePaymentPermission('payment.concern.review');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
