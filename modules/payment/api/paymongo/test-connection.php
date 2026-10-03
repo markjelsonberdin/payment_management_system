@@ -13,8 +13,8 @@ if (!isAuthenticated()) {
     echo json_encode(['success' => false, 'error' => 'AUTHENTICATION_REQUIRED']);
     exit;
 }
-if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.online_payment_config')
-    || !userCanAccessModule('payment.online_payment_config')) {
+if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.paymongo.manage')
+    || !userCanAccessModule('integration.paymongo.manage')) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'FORBIDDEN']);
     exit;

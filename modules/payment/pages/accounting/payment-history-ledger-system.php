@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/PaymentHistoryService.php';
 
 requireAuth();
 $cashierHistoryMode = !empty($cashierHistoryMode);
-requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'payment.ledger');
+requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'ledger.view');
 if ($cashierHistoryMode && (int) getCurrentUserId() <= 0) {
     http_response_code(403);
     exit('Cashier account required.');

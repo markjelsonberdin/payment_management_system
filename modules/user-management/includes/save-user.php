@@ -40,7 +40,7 @@ if (!$pdo) {
 }
 
 $action = (string) ($data['action'] ?? 'save');
-$validRoles = ['superadmin', 'sms_admin', 'admission', 'registrar', 'finance', 'accounting_officer', 'cashier', 'hr', 'adviser', 'research_director', 'grammarian', 'panel', 'it_office', 'osa', 'qa', 'crad', 'crad_officer', 'research_coordinator', 'research_grant', 'student'];
+$validRoles = ['superadmin', 'sms_admin', 'admission', 'registrar', 'mis_admin', 'hr', 'adviser', 'research_director', 'grammarian', 'panel', 'it_office', 'osa', 'qa', 'crad', 'crad_officer', 'research_coordinator', 'research_grant', 'student'];
 $validStatus = ['active', 'inactive', 'locked', 'suspended'];
 
 /**
@@ -309,8 +309,8 @@ try {
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare(
-            'INSERT INTO users (username, email, password_hash, full_name, role_key, student_id, status, notes, password_changed_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+            'INSERT INTO users (username, email, password_hash, full_name, role_key, student_id, status, notes, password_changed_at, must_change_password)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)'
         );
         $stmt->execute([
             $username,
@@ -321,6 +321,7 @@ try {
             $studentId,
             $status,
             $notes !== '' ? $notes : null,
+            $role === 'accounting_admin' ? 1 : 0,
         ]);
 
         $newUserId = (int) $pdo->lastInsertId();

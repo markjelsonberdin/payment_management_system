@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
+
+if (!paymentSchoolSalesSellingEnabled()) {
+    http_response_code(404);
+    exit('School Sales is unavailable.');
+}
+
 require_once __DIR__ . '/../../database/db_connect.php';
 require_once __DIR__ . '/../../includes/CashSaleService.php';
 require_once __DIR__ . '/../../includes/PaymentNotificationService.php';

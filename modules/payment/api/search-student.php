@@ -5,7 +5,7 @@ require_once __DIR__ . '/../database/db_connect.php';
 require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
 header('Content-Type: application/json');
-if (!isAuthenticated() || !userCanAccessModule('payment.billing')) {
+if (!isAuthenticated() || !userCanAccessModule('billing.individual.process')) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'FORBIDDEN']);
     exit;

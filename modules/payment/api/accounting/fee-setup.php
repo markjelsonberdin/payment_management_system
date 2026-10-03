@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 requireAuth();
-requirePaymentPermission('payment.fee_setup');
+requirePaymentPermission('fee.manage');
 
 header('Content-Type: application/json; charset=utf-8');
 

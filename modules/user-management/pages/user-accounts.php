@@ -34,6 +34,7 @@ if ($pdo) {
                 ('admin', 'Super Admin', 'Legacy super admin access', 1),
                 ('sms_admin', 'Admin', 'General administrator account', 1),
                 ('accounting_officer', 'Accounting Officer', 'Payment billing, financial review, reconciliation, and reporting', 1),
+                ('accounting_admin', 'Accounting Admin', 'Financial authority: fee management, bulk approval, financial review, AR oversight, reports, and payment-verification oversight', 1),
                 ('research_coordinator', 'Research Coordinator', 'Research coordination access', 1),
                 ('adviser', 'Adviser', 'Research adviser faculty account', 1),
                 ('research_director', 'Research Director', 'Research defense scheduling director account', 1),
@@ -312,9 +313,8 @@ renderBreadcrumbs($breadcrumbs);
                 <option value="sms_admin">Admin</option>
                 <option value="admission">Admission</option>
                 <option value="registrar">Registrar</option>
-                <option value="finance">Finance</option>
-                <option value="payment_admin">Payment Admin</option>
-                <option value="accounting_officer">Accounting Officer</option>
+                <option value="mis_admin">Payment MIS Admin</option>
+                <option value="accounting_admin">Accounting Admin</option>
                 <option value="cashier">Cashier</option>
                 <option value="hr">Dean</option>
                 <option value="adviser">Adviser</option>
@@ -527,9 +527,8 @@ renderBreadcrumbs($breadcrumbs);
                                 <option value="sms_admin">Admin</option>
                                 <option value="admission">Admission</option>
                                 <option value="registrar">Registrar</option>
-                                <option value="finance">Finance</option>
-                                <option value="payment_admin">Payment Admin</option>
-                                <option value="accounting_officer">Accounting Officer</option>
+                                <option value="mis_admin">Payment MIS Admin</option>
+                                <option value="accounting_admin">Accounting Admin</option>
                                 <option value="cashier">Cashier</option>
                                 <option value="hr">Dean</option>
                                 <option value="adviser">Adviser</option>

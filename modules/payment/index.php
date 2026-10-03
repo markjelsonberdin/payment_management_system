@@ -10,9 +10,9 @@ $breadcrumbs = [['label' => 'Payment Management', 'url' => null]];
 $role = smsNormalizeRoleKey(getCurrentUserRoleKey());
 $groupByRole = [
     'accounting_officer' => 'ACCOUNTING PORTAL',
+    'accounting_admin' => 'ACCOUNTING ADMIN PORTAL',
     'cashier' => 'CASHIER PORTAL',
-    'payment_admin' => 'PAYMENT ADMIN PORTAL',
-    'finance' => 'PAYMENT ADMIN PORTAL',
+    'mis_admin' => 'MIS ADMIN PORTAL',
 ];
 $paymentMeta = $MODULES['payment'] ?? ['groups' => [], 'pages' => []];
 $groupNames = isset($groupByRole[$role]) ? [$groupByRole[$role]] : array_keys($paymentMeta['groups']);

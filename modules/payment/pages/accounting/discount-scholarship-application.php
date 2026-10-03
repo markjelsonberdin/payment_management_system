@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/ScholarshipDiscountService.php';
 
 // I-enforce ang login at module access
 requireAuth();
-requirePaymentPermission('payment.discount');
+requirePaymentPermission('ar.manage');
 
 // ==========================================
 // BACKEND: PROCESS SCHOLARSHIP APPLICATION

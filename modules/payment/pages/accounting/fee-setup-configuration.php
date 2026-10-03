@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 requireAuth();
-requirePaymentPermission('payment.fee_setup');
+requirePaymentPermission('fee.manage');
 
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/FeeSetupService.php';

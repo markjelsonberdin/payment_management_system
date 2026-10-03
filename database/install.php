@@ -72,6 +72,7 @@ $roles = [
     ['registrar', 'Registrar', 'Enrollment, records, scheduling'],
     ['finance', 'Finance', 'Payments and receivables'],
     ['accounting_officer', 'Accounting Officer', 'Payment billing, financial review, reconciliation, and reporting'],
+    ['accounting_admin', 'Accounting Admin', 'Financial authority: fee management, bulk approval, financial review, AR oversight, reports, and payment-verification oversight'],
     ['hr', 'HR', 'Faculty and HR processes'],
     ['it_office', 'IT Office', 'LMS and IT modules'],
     ['osa', 'OSA', 'Student affairs / co-curricular'],
@@ -111,7 +112,8 @@ $defaults = [
 $permRows = [
     'registrar'     => ['enrollment', 'registrar', 'curriculum', 'scheduling'],
     'finance'       => ['payment'],
-    'accounting_officer' => ['payment', 'payment.billing', 'payment.discount', 'payment.ledger', 'payment.analytics', 'payment.concern_review'],
+    'accounting_officer' => ['payment'],
+    'accounting_admin' => ['payment'],
     'hr'            => ['faculty'],
     'it_office'     => ['lms'],
     'osa'           => ['cocurricular'],

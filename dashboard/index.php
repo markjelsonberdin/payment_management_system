@@ -5,17 +5,17 @@
 $pageTitle    = 'Dashboard';
 $activeModule = 'dashboard';
 $breadcrumbs  = [];
-// Preflight before layout output: only Accounting Officer enters the protected
-// Accounting financial dashboard. Legacy Finance remains Payment Admin scoped.
+// Preflight before layout output. Accounting Officers land on operational
+// billing; collection analytics belongs exclusively to Accounting Admin.
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/authentication.php';
 requireAuth();
 
 $dashboardRoleKey = getCurrentUserRoleKey();
 $paymentDashboardRoutes = [
-    'accounting_officer' => '/modules/payment/pages/accounting/dashboard.php',
-    'payment_admin' => '/modules/payment/pages/payment_admin/dashboard.php',
-    'finance' => '/modules/payment/pages/payment_admin/dashboard.php',
+    'accounting_officer' => '/modules/payment/pages/accounting/student-billing-invoicing.php',
+    'accounting_admin' => '/modules/payment/pages/accounting_admin/dashboard.php',
+    'mis_admin' => '/modules/payment/pages/mis_admin/payment-user-management.php',
     'cashier' => '/modules/payment/pages/cashier/dashboard.php',
 ];
 if (isset($paymentDashboardRoutes[$dashboardRoleKey])) {

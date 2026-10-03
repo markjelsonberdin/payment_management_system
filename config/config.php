@@ -85,6 +85,14 @@ if (!function_exists('sms2_env')) {
     }
 }
 
+if (!function_exists('paymentSchoolSalesSellingEnabled')) {
+    /** Cashier School Sales is fail-closed; only normalized exact "true" enables it. */
+    function paymentSchoolSalesSellingEnabled(): bool
+    {
+        return strtolower(trim((string) sms2_env('PAYMENT_SCHOOL_SALES_SELLING_ENABLED', ''))) === 'true';
+    }
+}
+
 if (!function_exists('sms2_detect_base_url')) {
     function sms2_detect_base_url(): string
     {
@@ -279,44 +287,51 @@ $MODULES = [
         'icon'  => 'fa-credit-card',
         'groups' => [
             'ACCOUNTING PORTAL' => [
-                'accounting/fee-setup-configuration',
                 'accounting/student-billing-invoicing',
                 'accounting/discount-scholarship-application',
                 'accounting/payment-history-ledger-system',
-                'accounting/collection-reporting-analytics',
                 'accounting/payment-concern-portal',
                 'accounting/bank-reconciliation',
             ],
+            'ACCOUNTING ADMIN PORTAL' => [
+                'accounting_admin/dashboard',
+                'accounting/fee-setup-configuration',
+                'accounting_admin/managed-bulk-approval',
+                'accounting/collection-reporting-analytics',
+                'accounting_admin/school-sales-catalog',
+            ],
             'CASHIER PORTAL' => [
                 'cashier/payment-collection-portal',
-                'cashier/school-sales',
+                ...(paymentSchoolSalesSellingEnabled() ? ['cashier/school-sales'] : []),
                 'cashier/walk-in-transaction-history',
             ],
-            'PAYMENT ADMIN PORTAL' => [
-                'payment_admin/online-payment-integration',
-                'payment_admin/school-sales-catalog',
+            'MIS ADMIN PORTAL' => [
+                'mis_admin/dashboard',
+                'mis_admin/payment-user-management',
+                'mis_admin/online-payment-integration',
             ],
         ],
         'pages' => [
             // Accounting / Cashier Pages
-            ['slug' => 'accounting/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.analytics'],
-            ['slug' => 'accounting/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'payment.fee_setup'],
-            ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'payment.billing'],
+            ['slug' => 'accounting/dashboard', 'title' => 'Dashboard', 'permission' => 'billing.individual.process'],
+            ['slug' => 'accounting_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'report.view'],
+            ['slug' => 'accounting/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'fee.manage'],
+            ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'billing.individual.process'],
             ['slug' => 'cashier/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
             ['slug' => 'cashier/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.cashier_dashboard'],
-            ['slug' => 'cashier/school-sales', 'title' => 'School Sales', 'permission' => 'payment.school_sales'],
-            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'payment.discount'],
-            ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'payment.ledger'],
-            ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'payment.analytics'],
-            ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern_review'],
-            ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern_review'],
+            ...(paymentSchoolSalesSellingEnabled() ? [['slug' => 'cashier/school-sales', 'title' => 'School Sales', 'permission' => 'payment.school_sales']] : []),
+            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'ar.manage'],
+            ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'ledger.view'],
+            ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'report.view'],
+            ['slug' => 'accounting_admin/managed-bulk-approval', 'title' => 'Managed Bulk Run Approval', 'permission' => 'billing.bulk.approve'],
+            ['slug' => 'accounting_admin/school-sales-catalog', 'title' => 'School Sales Catalog', 'permission' => 'school_sales.catalog.view'],
+            ['slug' => 'accounting/payment-concern-portal', 'title' => 'Payment Concern Review', 'permission' => 'payment.concern.review'],
+            ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern.review'],
             ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'Transactions', 'permission' => 'payment.walkin_history'],
             
-            // Payment Admin Pages
-            ['slug' => 'payment_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.online_payment_config'],
-            ['slug' => 'payment_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'payment.online_payment_config'],
-            ['slug' => 'payment_admin/school-sales-catalog', 'title' => 'School Sales Catalog', 'permission' => 'payment.school_sales_catalog'],
-            ['slug' => 'payment_admin/payment-users', 'title' => 'Payment Staff Accounts', 'permission' => 'payment.user_management'],
+            ['slug' => 'mis_admin/dashboard', 'title' => 'Technical Dashboard', 'permission' => 'integration.paymongo.manage'],
+            ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Personnel Management', 'permission' => 'payment_users.view'],
+            ['slug' => 'mis_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'integration.paymongo.manage'],
         ],
     ],
     'faculty' => [

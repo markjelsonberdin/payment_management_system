@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/StructuredActivityAuditWriter.php';
 
 /**
  * Write an audit log entry.

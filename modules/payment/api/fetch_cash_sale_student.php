@@ -1,12 +1,18 @@
 <?php
 require_once __DIR__ . '/../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
-require_once __DIR__ . '/../database/db_connect.php';
-require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+if (!paymentSchoolSalesSellingEnabled()) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => 'FEATURE_DISABLED', 'message' => 'School Sales is unavailable.']);
+    exit;
+}
+
 requireAuth();
 requirePaymentPermission('payment.school_sales');
+require_once __DIR__ . '/../database/db_connect.php';
+require_once __DIR__ . '/../includes/RegistrarStudentClient.php';
 
 $studentNumber = trim((string) ($_GET['student_number'] ?? ''));
 if (!preg_match('/^S\d{9}$/i', $studentNumber)) {
