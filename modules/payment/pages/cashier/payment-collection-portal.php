@@ -164,9 +164,16 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Page Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-cash-register text-primary me-2"></i>Walk-In Payment Collection</h2>
-            <p class="text-muted mb-0 fs-6">Receive cash payments, allocate them to student billing, and issue Official Receipts (OR).</p>
+            <h2 class="mb-1 fw-bolder"><i class="fas fa-cash-register text-primary me-2"></i>Cashier Collection Portal</h2>
+            <p class="text-muted mb-0 fs-6">Collect academic fees or approved school items and issue Official Receipts (OR).</p>
         </div>
+    </div>
+
+    <div class="nav nav-pills bg-white border rounded-3 p-2 shadow-sm mb-4" role="navigation" aria-label="Cashier collection type">
+        <a class="nav-link active" aria-current="page" href="payment-collection-portal.php"><i class="ti ti-school me-1"></i>Academic Payments</a>
+        <?php if (paymentSchoolSalesSellingEnabled()): ?>
+            <a class="nav-link" href="school-sales.php"><i class="ti ti-shopping-bag me-1"></i>School Items</a>
+        <?php endif; ?>
     </div>
 
     <!-- Alerts -->
