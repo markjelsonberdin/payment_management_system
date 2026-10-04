@@ -167,6 +167,55 @@ function smsUserKickEpoch(int $userId): int
     return (int) smsSetting(smsUserKickEpochKey($userId), '0');
 }
 
+/**
+ * Atomically advance a user's session generation.
+ *
+ * The value remains timestamp-compatible for legacy sessions, while new
+ * sessions compare the exact generation captured at login.  This removes the
+ * same-second race without adding a second session store or changing schema.
+ */
+function smsBumpUserKickEpoch(PDO $pdo, int $userId): int
+{
+    if ($userId <= 0) {
+        throw new InvalidArgumentException('A valid user ID is required for session revocation.');
+    }
+    $key = smsUserKickEpochKey($userId);
+    $floor = time() + 1;
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?)
+             ON CONFLICT(setting_key) DO UPDATE SET setting_value =
+             CAST(MAX(CAST(system_settings.setting_value AS INTEGER) + 1, CAST(excluded.setting_value AS INTEGER)) AS TEXT)'
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE setting_value =
+             CAST(GREATEST(CAST(setting_value AS UNSIGNED) + 1, CAST(VALUES(setting_value) AS UNSIGNED)) AS CHAR)'
+        );
+    }
+    $stmt->execute([$key, (string) $floor]);
+    $read = $pdo->prepare('SELECT setting_value FROM system_settings WHERE setting_key = ? LIMIT 1');
+    $read->execute([$key]);
+    $generation = (int) $read->fetchColumn();
+    if ($generation <= 0) {
+        throw new RuntimeException('Unable to advance the user session generation.');
+    }
+    if (!isset($GLOBALS['__sms_settings_cache']) || !is_array($GLOBALS['__sms_settings_cache'])) {
+        $GLOBALS['__sms_settings_cache'] = [];
+    }
+    $GLOBALS['__sms_settings_cache'][$key] = (string) $generation;
+    return $generation;
+}
+
+function smsUserSessionGenerationRevoked(?int $sessionGeneration, int $currentGeneration, int $loginAt): bool
+{
+    if ($sessionGeneration !== null) {
+        return $sessionGeneration !== $currentGeneration;
+    }
+    return $currentGeneration > 0 && $currentGeneration > $loginAt;
+}
+
 /** Bump epoch so module users with older sessions must sign in again. */
 function smsForceLogoutModuleUsers(string $moduleKey): int
 {
@@ -185,18 +234,20 @@ function smsForceLogoutModuleUsers(string $moduleKey): int
  *
  * @param list<int> $userIds
  */
-function smsForceLogoutUsers(array $userIds): int
+function smsForceLogoutUsers(array $userIds, ?PDO $pdo = null): int
 {
-    $epoch = time();
+    $pdo ??= db();
+    if (!$pdo) {
+        return 0;
+    }
     $count = 0;
     foreach ($userIds as $rawId) {
         $userId = (int) $rawId;
         if ($userId <= 0) {
             continue;
         }
-        if (smsSetSetting(smsUserKickEpochKey($userId), (string) $epoch)) {
-            $count++;
-        }
+        smsBumpUserKickEpoch($pdo, $userId);
+        $count++;
     }
     return $count;
 }
@@ -242,9 +293,10 @@ function smsEnforceModuleForceLogout(): void
 
     // Picked logout — only this account
     $userEpoch = smsUserKickEpoch($userId);
-    if ($userEpoch > 0 && $userEpoch > $loginAt) {
-        $shouldKick = true;
-    }
+    $sessionGeneration = array_key_exists('user_kick_epoch', $_SESSION)
+        ? (int) $_SESSION['user_kick_epoch']
+        : null;
+    $shouldKick = smsUserSessionGenerationRevoked($sessionGeneration, $userEpoch, $loginAt);
 
     // Module-wide logout — all roles tied to the module
     if (!$shouldKick) {

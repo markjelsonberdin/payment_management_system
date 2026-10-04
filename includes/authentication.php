@@ -482,9 +482,8 @@ function smsReviewCommitteeGrantModule(): array
 
 function smsPostLoginRedirectUrl(): string
 {
-    require_once __DIR__ . '/navigation-context.php';
-
-    return smsRoleHomeUrl(getCurrentUserRoleKey());
+    // The generic dashboard owns the canonical role landing routes.
+    return BASE_URL . '/dashboard/index.php';
 }
 
 function requireModuleAccess(string $moduleKey): void
@@ -1391,6 +1390,8 @@ function smsCompleteLoginSession(array $user, string $username = ''): array
     $_SESSION['must_change_password'] = (int) ($user['must_change_password'] ?? 0);
     $_SESSION['last_activity'] = time();
     $_SESSION['login_at'] = time();
+    require_once __DIR__ . '/module-controls.php';
+    $_SESSION['user_kick_epoch'] = smsUserKickEpoch((int) $user['id']);
     unset($_SESSION['presence_touched_at']);
     smsTouchUserPresence((int) $user['id']);
 
@@ -1669,18 +1670,20 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
         'payment.online_payment_config' => 'integration.paymongo.manage',
         'payment.accounting_users_view' => 'payment_users.view',
         'payment.accounting_users_manage' => 'payment_users.update',
+        'payment_users.reset_password' => 'payment_users.password.reset',
     ];
     $permission = $aliases[$permission] ?? $permission;
     $bundles = [
         'accounting_officer' => [
             'billing.individual.process', 'billing.bulk.create', 'billing.bulk.preview',
             'billing.bulk.process', 'billing.bulk.retry', 'billing.bulk.resume', 'billing.bulk.view',
-            'payment.verify', 'payment.concern.review', 'ledger.view', 'ar.view', 'ar.manage',
+            'billing.individual.review', 'ar.view',
         ],
         'accounting_admin' => [
             'fee.view', 'fee.manage', 'fee.activate', 'billing.individual.review',
             'billing.bulk.view', 'billing.bulk.approve', 'payment.verify',
-            'ar.view', 'report.view', 'report.export',
+            'payment.concern.review', 'ledger.view', 'ar.view', 'ar.manage',
+            'report.view', 'report.export',
             'school_sales.catalog.view', 'school_sales.catalog.manage', 'school_sales.catalog.activate',
         ],
         'cashier' => [
@@ -1688,9 +1691,10 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
             'payment.cashier_dashboard', 'billing.individual.review',
         ],
         'mis_admin' => [
-            'payment_users.view', 'payment_users.create', 'payment_users.update',
-            'payment_users.activate', 'payment_users.reset_password',
-            'integration.paymongo.manage', 'integration.ocr.manage', 'integration.aub.manage',
+            'payment.mis_overview', 'payment_users.view', 'payment_users.create', 'payment_users.update',
+            'payment_users.role.assign', 'payment_users.activate', 'payment_users.deactivate',
+            'payment_users.unlock', 'payment_users.password.reset',
+            'integration.paymongo.manage', 'integration.ocr.manage',
         ],
     ];
     return in_array($permission, $bundles[$role] ?? [], true);
