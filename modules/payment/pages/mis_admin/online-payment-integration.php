@@ -5,85 +5,49 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
-require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
+require_once __DIR__ . '/../../includes/PayMongoIntegrationSecurity.php';
+require_once __DIR__ . '/../../includes/PayMongoConfigurationService.php';
 
 requireAuth();
 requirePaymentPermission('integration.paymongo.manage');
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 global $pdo;
+$corePdo = db();
+if (!$corePdo) {
+    http_response_code(503);
+    exit('PayMongo administration is temporarily unavailable.');
+}
+try {
+    $actor = PayMongoIntegrationSecurity::requireActiveMisActor($corePdo);
+} catch (DomainException $e) {
+    http_response_code(403);
+    exit('Your account authority changed. Sign in again.');
+}
+$outbox = new PaymentAuditOutboxService($pdo, new StructuredActivityAuditWriter($corePdo));
+$configurationService = new PayMongoConfigurationService(
+    $pdo,
+    new SchoolSalesCatalogMutationInfrastructure($pdo, $outbox)
+);
 
-// ==========================================
-// SAVE SETTINGS LOGIC (POST)
-// ==========================================
+// Configuration mutation: technical PayMongo settings only.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings'])) {
-    
-    $gateway_mode = trim($_POST['gateway_mode']);
-    
-    // Toggles (Kung naka-check, '1', kung hindi ay '0')
-    $channel_gcash = isset($_POST['channel_gcash']) ? '1' : '0';
-    $channel_maya  = isset($_POST['channel_maya']) ? '1' : '0';
-    $channel_card  = isset($_POST['channel_card']) ? '1' : '0';
-    $channel_qrph  = isset($_POST['channel_qrph']) ? '1' : '0';
-    $fee_policy    = trim($_POST['fee_policy']);
-
+    if (!verifyCsrfToken((string) ($_POST['csrf_token'] ?? ''))) {
+        http_response_code(403);
+        exit('The request could not be verified. Refresh the page and try again.');
+    }
     try {
-        $pdo->beginTransaction();
-
-        $stmt = $pdo->prepare("
-            INSERT INTO payment_gateway_settings (setting_key, setting_value) 
-            VALUES (:key, :val) 
-            ON DUPLICATE KEY UPDATE setting_value = :val
-        ");
-
-        // Base prefix depending on gateway mode
-        $prefix = ($gateway_mode === 'live') ? 'live_' : 'test_';
-
-        // Kunin muna ang existing channels bago mag-save para sa audit log
-        $existing = [];
-        $stmtEx = $pdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key LIKE '%_channel_%'");
-        while ($row = $stmtEx->fetch(PDO::FETCH_ASSOC)) {
-            $existing[$row['setting_key']] = $row['setting_value'];
-        }
-
-        $settingsToUpdate = [
-            'gateway_mode'                => $gateway_mode,
-            $prefix . 'channel_gcash'     => $channel_gcash,
-            $prefix . 'channel_maya'      => $channel_maya,
-            $prefix . 'channel_card'      => $channel_card,
-            $prefix . 'channel_qrph'      => $channel_qrph,
-            'fee_policy'                  => $fee_policy
-        ];
-
-        foreach ($settingsToUpdate as $key => $val) {
-            $stmt->execute([':val' => $val, ':key' => $key]);
-            
-            // Detailed Audit Log for Channels
-            if (str_contains($key, '_channel_')) {
-                $oldVal = $existing[$key] ?? '0';
-                if ($oldVal !== $val) {
-                    $channelName = str_replace([$prefix . 'channel_', 'qrph'], ['', 'QR Ph'], $key);
-                    $channelName = ucfirst($channelName);
-                    $from = ($oldVal === '1') ? 'ON' : 'OFF';
-                    $to   = ($val === '1') ? 'ON' : 'OFF';
-                    $env  = strtoupper($gateway_mode);
-                    logActivity('payment_channel_updated', "[$env] $channelName: $from -> $to", 'payment');
-                }
-            }
-        }
-        
-        $pdo->commit();
-
-        header("Location: online-payment-integration.php?success=1");
+        $configurationService->update($_POST, $actor);
+        unset($_SESSION['paymongo_status_cache']);
+        header('Location: online-payment-integration.php?result=updated');
         exit();
-
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        header("Location: online-payment-integration.php?error=" . urlencode($e->getMessage()));
+    } catch (DomainException|InvalidArgumentException $e) {
+        $safeCode = in_array($e->getMessage(), ['FINANCIAL_SETTING_FORBIDDEN', 'GATEWAY_MODE_INVALID'], true)
+            ? $e->getMessage() : 'PAYMONGO_CONFIG_INVALID';
+        header('Location: online-payment-integration.php?error_code=' . rawurlencode($safeCode));
+        exit();
+    } catch (Throwable $e) {
+        error_log('PayMongo configuration update failed: ' . get_class($e));
+        header('Location: online-payment-integration.php?error_code=PAYMONGO_CONFIG_SAVE_FAILED');
         exit();
     }
 }
@@ -98,28 +62,38 @@ try {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
 } catch (PDOException $e) {
-    $dbError = $e->getMessage();
+    error_log('PayMongo settings lookup failed: ' . get_class($e));
+    $dbError = 'Payment gateway settings are temporarily unavailable.';
 }
 
 // ==========================================
 // LOAD SECURE CONFIGURATION
 // ==========================================
-$paymongoConfig = require __DIR__ . '/../../config/paymongo.php';
-
-// Prepare keys for JS injection (Safe, will not expose .env path)
-// We still need to pass both test and live keys for the JS dropdown toggle.
-// Since paymongo.php only gives the active one, we will temporarily use sms2_env (Wait, we have getenv() available now via env_loader.php)
-$pk_test = getenv('PAYMONGO_PK_TEST') ?: '';
-$sk_test = !empty(getenv('PAYMONGO_SK_TEST')) ? 'sk_test_********' : '';
-$wh_test = !empty(getenv('PAYMONGO_WHSEC_TEST')) ? 'whsec_********' : '';
-
-$pk_live = getenv('PAYMONGO_PK_LIVE') ?: '';
-$sk_live = !empty(getenv('PAYMONGO_SK_LIVE')) ? 'sk_live_********' : '';
-$wh_live = !empty(getenv('PAYMONGO_WHSEC_LIVE')) ? 'whsec_********' : '';
+require_once __DIR__ . '/../../config/env_loader.php';
+payment_load_env(__DIR__ . '/../../.env');
+$credentialStatus = [
+    'test' => [
+        'public' => (string) getenv('PAYMONGO_PK_TEST') !== '',
+        'secret' => (string) getenv('PAYMONGO_SK_TEST') !== '',
+        'webhook' => (string) getenv('PAYMONGO_WHSEC_TEST') !== '',
+    ],
+    'live' => [
+        'public' => (string) getenv('PAYMONGO_PK_LIVE') !== '',
+        'secret' => (string) getenv('PAYMONGO_SK_LIVE') !== '',
+        'webhook' => (string) getenv('PAYMONGO_WHSEC_LIVE') !== '',
+    ],
+];
+$formCorrelationId = CatalogCorrelationId::generate();
+$errorMessages = [
+    'FINANCIAL_SETTING_FORBIDDEN' => 'Financial fee policy cannot be changed from MIS administration.',
+    'GATEWAY_MODE_INVALID' => 'Select a supported PayMongo environment.',
+    'PAYMONGO_CONFIG_INVALID' => 'The PayMongo configuration request is invalid.',
+    'PAYMONGO_CONFIG_SAVE_FAILED' => 'The PayMongo configuration could not be saved.',
+];
 
 $pageTitle    = 'Online Payment Integration';
 $activeModule = 'payment';
-$activePage   = 'online-payment-integration';
+$activePage   = 'mis_admin/online-payment-integration';
 $breadcrumbs  = [
     ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
     ['label' => 'Online Payment Integration', 'url' => null],
@@ -140,21 +114,21 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
             <h2 class="mb-1 fw-bolder"><i class="ti ti-world text-primary me-2"></i>Online Payment Integration</h2>
-            <p class="text-muted mb-0 fs-6">Configure payment gateway credentials, active digital channels, and processing fee rules.</p>
+            <p class="text-muted mb-0 fs-6">Monitor PayMongo credentials and manage technical environment and channel availability.</p>
         </div>
     </div>
 
     <!-- Alerts -->
-    <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
+    <?php if (($_GET['result'] ?? '') === 'updated'): ?>
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
             <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> Payment gateway settings updated successfully.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     
-    <?php if (isset($_GET['error'])): ?>
+    <?php if (isset($_GET['error_code'])): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= htmlspecialchars($_GET['error']) ?>
+            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= e($errorMessages[$_GET['error_code']] ?? 'The PayMongo request could not be completed.') ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -162,9 +136,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <!-- Dashboard Status Cards Header -->
     <div class="d-flex justify-content-between align-items-end mb-3">
         <h5 class="fw-bold mb-0 text-dark">Integration Health</h5>
-        <button type="button" class="btn btn-sm btn-outline-primary fw-bold shadow-sm" id="btnRefreshStatus">
-            <i class="ti ti-refresh me-1" id="iconRefreshStatus"></i> Refresh Status
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-success fw-bold shadow-sm" id="btnTestConnection">
+                <i class="ti ti-plug-connected me-1"></i> Test Connection
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary fw-bold shadow-sm" id="btnRefreshStatus">
+                <i class="ti ti-refresh me-1" id="iconRefreshStatus"></i> Refresh Status
+            </button>
+        </div>
     </div>
 
     <!-- Dashboard Status Cards -->
@@ -209,8 +188,20 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         </div>
     </div>
 
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-3 small">
+                <div class="col-lg-6"><strong>Expected webhook URL:</strong> <span class="text-break" id="expectedWebhookUrl">Checking...</span></div>
+                <div class="col-lg-2"><strong>URL status:</strong> <span id="webhookUrlStatus">UNVERIFIED</span></div>
+                <div class="col-lg-2"><strong>Last successful test:</strong> <span id="lastSuccessfulTest">Never</span></div>
+                <div class="col-lg-2"><strong>Last configuration update:</strong> <span id="lastConfigUpdate">Unknown</span></div>
+            </div>
+        </div>
+    </div>
+
     <form action="" method="POST">
         <?= csrfField(); ?>
+        <input type="hidden" name="correlation_id" value="<?= e($formCorrelationId) ?>">
         <div class="row">
             <!-- Left Column: API Credentials & Mode -->
             <div class="col-lg-7 mb-4">
@@ -229,44 +220,26 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <small class="text-muted d-block mt-1">This dropdown dictates which set of keys below will be used by the system during checkout.</small>
                         </div>
 
-                        <!-- Dynamic Key Display -->
+                        <!-- Presence-only credential status; values never enter HTML or JavaScript. -->
                         <div class="p-3 rounded-3 border" id="keyDisplayBox">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-dark" id="lblPublicKey">Public Key</label>
-                                <input type="text" class="form-control shadow-sm font-monospace bg-white" id="displayPublicKey" readonly>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-dark" id="lblSecretKey">Secret Key</label>
-                                <div class="input-group shadow-sm">
-                                    <input type="password" class="form-control font-monospace bg-white text-muted" id="displaySecretKey" readonly>
-                                </div>
-                            </div>
-                            <div class="mb-0">
-                                <label class="form-label fw-bold text-dark" id="lblWebhookKey">Webhook Secret</label>
-                                <div class="input-group shadow-sm">
-                                    <input type="password" class="form-control font-monospace bg-white" id="displayWebhookKey" readonly>
-                                </div>
-                            </div>
-
-                            <style>
-                                input[type="password"]::-ms-reveal,
-                                input[type="password"]::-ms-clear {
-                                    display: none;
-                                }
-                            </style>
-                            <script>
-                                document.addEventListener('DOMContentLoaded', function() {
-                                    // Password toggles are automatically handled by sms-security-ui.js
-                                });
-                            </script>
-                            <small class="d-block mt-3" id="keyHintText"><i class="ti ti-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.</small>
+                            <?php foreach (['test' => 'Test', 'live' => 'Live'] as $modeKey => $modeLabel): ?>
+                                <h6 class="fw-bold <?= $modeKey === 'live' ? 'text-danger' : 'text-primary' ?>"><?= e($modeLabel) ?> credentials</h6>
+                                <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Secret'] as $credentialKey => $credentialLabel): ?>
+                                    <div class="d-flex justify-content-between border-bottom py-2">
+                                        <span><?= e($credentialLabel) ?></span>
+                                        <span class="badge <?= $credentialStatus[$modeKey][$credentialKey] ? 'text-bg-success' : 'text-bg-secondary' ?>">
+                                            <?= $credentialStatus[$modeKey][$credentialKey] ? 'CONFIGURED' : 'NOT CONFIGURED' ?>
+                                        </span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                            <small class="d-block mt-3 text-muted"><i class="ti ti-info-circle me-1"></i>Credential values are managed only through protected server environment variables.</small>
                         </div>
-
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Channel Toggles & Fee Policy -->
+            <!-- Right Column: Channel Toggles -->
             <div class="col-lg-5 mb-4">
                 
                 <!-- Payment Channels Card -->
@@ -307,24 +280,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     </div>
                 </div>
 
-                <!-- Convenience Fee Policy Card -->
                 <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-cash me-2"></i>Convenience Fee Policy</h5>
-                    </div>
                     <div class="card-body p-4">
-                        <div class="mb-3">
-                            <select class="form-select shadow-sm" name="fee_policy">
-                                <option value="pass_to_student" <?= (isset($settings['fee_policy']) && $settings['fee_policy'] === 'pass_to_student') ? 'selected' : '' ?>>Pass Processing Fee to Student</option>
-                                <option value="absorb_by_school" <?= (isset($settings['fee_policy']) && $settings['fee_policy'] === 'absorb_by_school') ? 'selected' : '' ?>>Absorb Processing Fee by School</option>
-                            </select>
-                        </div>
+                        <p class="text-muted small">Saving changes updates technical PayMongo configuration only. Processing-fee policy remains Accounting-owned.</p>
                         <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
                             <i class="ti ti-device-floppy me-1"></i> Save Gateway Configuration
                         </button>
                     </div>
                 </div>
-
             </div>
         </div>
     </form>
@@ -333,20 +296,12 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const gatewaySelect = document.getElementById('gatewayModeSelect');
-    const displayPK = document.getElementById('displayPublicKey');
-    const displaySK = document.getElementById('displaySecretKey');
-    const displayWH = document.getElementById('displayWebhookKey');
-    
-    const lblPK = document.getElementById('lblPublicKey');
-    const lblSK = document.getElementById('lblSecretKey');
-    const lblWH = document.getElementById('lblWebhookKey');
-    
-    const keyBox = document.getElementById('keyDisplayBox');
-    const keyHint = document.getElementById('keyHintText');
 
     // Polling UI Elements
     const btnRefresh = document.getElementById('btnRefreshStatus');
     const iconRefresh = document.getElementById('iconRefreshStatus');
+    const btnTestConnection = document.getElementById('btnTestConnection');
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
     const ui = {
         api: {
@@ -366,20 +321,6 @@ document.addEventListener("DOMContentLoaded", function () {
             text: document.getElementById('gatewayStatusText'),
             icon: document.getElementById('gatewayStatusIcon'),
             sub: document.getElementById('gatewayStatusSubtext')
-        }
-    };
-
-    // PHP Variables injected into JS
-    const keys = {
-        test: {
-            pk: "<?= htmlspecialchars($pk_test) ?>",
-            sk: "<?= htmlspecialchars($sk_test) ?>",
-            wh: "<?= htmlspecialchars($wh_test) ?>"
-        },
-        live: {
-            pk: "<?= htmlspecialchars($pk_live) ?>",
-            sk: "<?= htmlspecialchars($sk_live) ?>",
-            wh: "<?= htmlspecialchars($wh_live) ?>"
         }
     };
 
@@ -407,42 +348,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function updateFields() {
         const mode = gatewaySelect.value;
-        
-        displayPK.value = keys[mode].pk;
-        displaySK.value = keys[mode].sk;
-        displayWH.value = keys[mode].wh;
-        
-        // Update Toggles
         switches.qrph.checked = channels[mode].qrph;
         switches.gcash.checked = channels[mode].gcash;
         switches.maya.checked = channels[mode].maya;
         switches.card.checked = channels[mode].card;
-
-        if (mode === 'live') {
-            lblPK.textContent = 'Live Public Key';
-            lblSK.textContent = 'Live Secret Key';
-            lblWH.textContent = 'Live Webhook Secret';
-            
-            keyBox.className = 'p-3 bg-danger bg-opacity-10 rounded-3 border border-danger border-opacity-25';
-            displayPK.classList.add('border-danger');
-            displaySK.classList.add('border-danger');
-            displayWH.classList.add('border-danger');
-            
-            keyHint.innerHTML = '<i class="ti ti-shield-check me-1"></i>Live keys are locked in the <code>.env</code> file for maximum security.';
-            keyHint.className = 'd-block mt-3 text-danger';
-        } else {
-            lblPK.textContent = 'Test Public Key';
-            lblSK.textContent = 'Test Secret Key';
-            lblWH.textContent = 'Test Webhook Secret';
-            
-            keyBox.className = 'p-3 bg-light rounded-3 border';
-            displayPK.classList.remove('border-danger');
-            displaySK.classList.remove('border-danger');
-            displayWH.classList.remove('border-danger');
-            
-            keyHint.innerHTML = '<i class="ti ti-info-circle me-1"></i>Keys are securely loaded from the <code>.env</code> file. To update, modify the environment file directly.';
-            keyHint.className = 'd-block mt-3 text-muted';
-        }
     }
 
     // Polling Logic
@@ -480,6 +389,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 // WEBHOOK CARD
                 if (data.webhook.status === 'ready') {
                     setCardState(ui.webhook, 'Ready', 'success', 'ti ti-antenna', data.webhook.message);
+                } else if (data.webhook.status === 'url_mismatch') {
+                    setCardState(ui.webhook, 'URL Mismatch', 'danger', 'ti ti-link-off', data.webhook.message);
                 } else if (data.webhook.status === 'configured_but_invalid') {
                     setCardState(ui.webhook, 'Invalid Config', 'warning', 'ti ti-alert-triangle', data.webhook.message);
                 } else {
@@ -498,6 +409,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     setCardState(ui.gateway, 'NOT READY', 'secondary', 'ti ti-player-stop', data.gateway.message);
                 }
+
+                document.getElementById('expectedWebhookUrl').textContent = data.webhook.expected_url || 'Unavailable';
+                document.getElementById('webhookUrlStatus').textContent = data.webhook.url_status || 'UNVERIFIED';
+                document.getElementById('lastSuccessfulTest').textContent = data.last_test?.successful_at || 'Never';
+                document.getElementById('lastConfigUpdate').textContent = data.last_configuration_update || 'Unknown';
 
             })
             .catch(err => {
@@ -596,6 +512,27 @@ document.addEventListener("DOMContentLoaded", function () {
             const div = document.getElementById('status_' + channel);
             if (div) div.innerHTML = `<span class="text-warning"><i class="ti ti-alert-circle me-1"></i>Unsaved change. Click save to apply.</span>`;
         });
+    });
+
+    btnTestConnection.addEventListener('click', () => {
+        btnTestConnection.disabled = true;
+        const body = new URLSearchParams({
+            csrf_token: csrfToken,
+            correlation_id: crypto.randomUUID(),
+        });
+        fetch('../../api/paymongo/test-connection.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+            body: body.toString(),
+        })
+            .then(res => res.json().then(data => ({ok: res.ok, data})))
+            .then(({ok, data}) => {
+                const label = data.status || data.error || 'PROVIDER_ERROR';
+                setCardState(ui.api, label.replaceAll('_', ' '), ok ? 'success' : 'danger', ok ? 'ti ti-wifi' : 'ti ti-alert-triangle', data.message || 'Connection test completed.');
+                fetchStatus(true);
+            })
+            .catch(() => setCardState(ui.api, 'NETWORK ERROR', 'danger', 'ti ti-alert-triangle', 'The connection test could not be completed.'))
+            .finally(() => { btnTestConnection.disabled = false; });
     });
 
     btnRefresh.addEventListener('click', () => {

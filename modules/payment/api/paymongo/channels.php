@@ -5,19 +5,29 @@
  */
 require_once __DIR__ . '/../../../../config/config.php';
 require_once __DIR__ . '/../../../../includes/authentication.php';
+require_once ROOT_PATH . '/modules/payment/includes/PayMongoIntegrationSecurity.php';
 
 header('Content-Type: application/json');
 
 // Security Check
 if (!isAuthenticated()) {
-    echo json_encode(['error' => 'Unauthorized']);
     http_response_code(401);
+    echo json_encode(['error' => 'AUTHENTICATION_REQUIRED']);
     exit;
 }
-if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.paymongo.manage')
-    || !userCanAccessModule('integration.paymongo.manage')) {
+requireAuth();
+try {
+    $corePdo = db();
+    if (!$corePdo) throw new RuntimeException('Core database unavailable.');
+    PayMongoIntegrationSecurity::requireActiveMisActor($corePdo);
+} catch (DomainException $e) {
     http_response_code(403);
-    echo json_encode(['error' => 'FORBIDDEN']);
+    echo json_encode(['error' => 'ACTOR_SESSION_STALE']);
+    exit;
+} catch (Throwable $e) {
+    error_log('PayMongo channel authorization failed: ' . get_class($e));
+    http_response_code(503);
+    echo json_encode(['error' => 'CHANNEL_STATUS_UNAVAILABLE']);
     exit;
 }
 
@@ -51,7 +61,8 @@ try {
     }
 
     if (empty($sk)) {
-        echo json_encode(['error' => "Secret key for $targetMode mode is missing in .env"]);
+        http_response_code(422);
+        echo json_encode(['error' => 'PAYMONGO_CONFIGURATION_MISSING']);
         exit;
     }
 

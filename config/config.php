@@ -297,6 +297,9 @@ $MODULES = [
                 'accounting_admin/dashboard',
                 'accounting/fee-setup-configuration',
                 'accounting_admin/managed-bulk-approval',
+                'accounting/discount-scholarship-application',
+                'accounting/payment-history-ledger-system',
+                'accounting/payment-concern-portal',
                 'accounting/collection-reporting-analytics',
                 'accounting_admin/school-sales-catalog',
             ],
@@ -329,7 +332,7 @@ $MODULES = [
             ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern.review'],
             ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'Transactions', 'permission' => 'payment.walkin_history'],
             
-            ['slug' => 'mis_admin/dashboard', 'title' => 'Technical Dashboard', 'permission' => 'integration.paymongo.manage'],
+            ['slug' => 'mis_admin/dashboard', 'title' => 'MIS Admin Overview', 'permission' => 'payment.mis_overview'],
             ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Personnel Management', 'permission' => 'payment_users.view'],
             ['slug' => 'mis_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'integration.paymongo.manage'],
         ],

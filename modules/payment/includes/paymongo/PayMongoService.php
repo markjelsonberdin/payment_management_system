@@ -5,15 +5,26 @@
  * Handles secure communication with the PayMongo API.
  * Insulates the rest of the application from direct API logic.
  */
+final class PayMongoProviderException extends RuntimeException
+{
+    public function __construct(public readonly string $category, string $diagnostic = '', ?Throwable $previous = null)
+    {
+        parent::__construct($diagnostic !== '' ? $diagnostic : $category, 0, $previous);
+    }
+}
+
 class PayMongoService {
     private $config;
     private $baseUrl = 'https://api.paymongo.com/v1';
 
-    public function __construct() {
+    public function __construct(?string $secretKey = null) {
         $this->config = require __DIR__ . '/../../config/paymongo.php';
+        if ($secretKey !== null) {
+            $this->config['secret_key'] = $secretKey;
+        }
         
         if (empty($this->config['secret_key'])) {
-            throw new Exception("PayMongo Secret Key is missing from configuration.");
+            throw new PayMongoProviderException('CONFIGURATION_ERROR', 'PayMongo secret key is not configured.');
         }
     }
 
@@ -50,17 +61,19 @@ class PayMongoService {
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
+        $errorNumber = curl_errno($ch);
         curl_close($ch);
 
         if ($response === false) {
-            throw new Exception("PayMongo API Request Failed: " . $error);
+            $category = $errorNumber === CURLE_OPERATION_TIMEDOUT ? 'TIMEOUT' : 'NETWORK_ERROR';
+            throw new PayMongoProviderException($category, 'PayMongo transport failure: ' . $error);
         }
 
         $decodedResponse = json_decode($response, true);
         
         if ($httpCode >= 400) {
-            $errorMessage = $decodedResponse['errors'][0]['detail'] ?? 'Unknown API Error';
-            throw new Exception("PayMongo API Error ($httpCode): " . $errorMessage);
+            $category = in_array($httpCode, [401, 403], true) ? 'AUTHENTICATION_FAILED' : 'PROVIDER_ERROR';
+            throw new PayMongoProviderException($category, 'PayMongo HTTP ' . $httpCode . ' response.');
         }
 
         return $decodedResponse;

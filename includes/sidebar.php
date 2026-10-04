@@ -385,6 +385,10 @@ $researchDirectorNavGroups = [
                     $isModuleActive = ($activeModule === $navModuleKey);
                     $moduleFolder = $navModuleKey === 'student_portal' ? 'student-portal' : $navModuleKey;
                     $overviewUrl = BASE_URL . '/modules/' . $moduleFolder . '/index.php';
+                    $isMisOverview = $navModuleKey === 'payment' && smsNormalizeRoleKey($roleKey) === 'mis_admin';
+                    if ($isMisOverview) {
+                        $overviewUrl = BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php';
+                    }
                     $moduleInMaint = smsIsModuleInMaintenance((string) $navModuleKey);
                     ?>
                     <li class="nav-item sidebar-group-label">
@@ -398,7 +402,7 @@ $researchDirectorNavGroups = [
                     <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'accounting_admin', 'mis_admin', 'cashier'], true); ?>
                     <?php if (!$hasCanonicalPaymentDashboard || $navModuleKey === 'payment'): ?>
                         <li class="nav-item">
-                            <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && $activePage === '') ? 'active' : '' ?>"
+                            <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && ($activePage === '' || ($isMisOverview && $activePage === 'mis_admin/dashboard'))) ? 'active' : '' ?>"
                                href="<?= htmlspecialchars($overviewUrl) ?>">
                                 <i class="fas fa-th-large" aria-hidden="true"></i>
                                 <span>Overview</span>

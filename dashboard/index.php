@@ -15,7 +15,7 @@ $dashboardRoleKey = getCurrentUserRoleKey();
 $paymentDashboardRoutes = [
     'accounting_officer' => '/modules/payment/pages/accounting/student-billing-invoicing.php',
     'accounting_admin' => '/modules/payment/pages/accounting_admin/dashboard.php',
-    'mis_admin' => '/modules/payment/pages/mis_admin/payment-user-management.php',
+    'mis_admin' => '/modules/payment/pages/mis_admin/dashboard.php',
     'cashier' => '/modules/payment/pages/cashier/dashboard.php',
 ];
 if (isset($paymentDashboardRoutes[$dashboardRoleKey])) {
