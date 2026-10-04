@@ -57,7 +57,7 @@ $isReprint = $firstRenderEventId > 0 && $renderEventId !== $firstRenderEventId;
 logActivity('render_cashier_receipt', sprintf('Rendered %s receipt %s%s.', $recordType, $receipt['receipt_number'] ?: $receipt['reference_number'], $isReprint ? ' (reprint)' : ''), 'payment', $viewerId);
 $receiptNumber = $receipt['receipt_number'] ?: $receipt['reference_number'];
 $autoPrint = $isCashier && (string) ($_GET['autoprint'] ?? '') === '1';
-$backUrl = BASE_URL . ($saleId > 0 ? '/modules/payment/pages/cashier/school-sales.php' : '/modules/payment/pages/cashier/payment-collection-portal.php');
+$backUrl = BASE_URL . ($saleId > 0 ? '/modules/payment/pages/cashier/payment-collection-portal.php?view=school-items' : '/modules/payment/pages/cashier/payment-collection-portal.php');
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cashier Payment Receipt - <?= htmlspecialchars($receiptNumber) ?></title>
 <style>
