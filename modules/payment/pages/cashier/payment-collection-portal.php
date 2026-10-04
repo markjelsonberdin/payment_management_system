@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 require_once __DIR__ . '/../../includes/PaymentSecurityService.php';
 require_once __DIR__ . '/../../includes/PaymentNotificationService.php';
 require_once __DIR__ . '/../../includes/OfficialReceiptService.php';
+require_once __DIR__ . '/../../includes/CashSaleService.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection');
@@ -21,6 +22,22 @@ $cashier_id = (int) getCurrentUserId();
 if ($cashier_id <= 0) {
     http_response_code(403);
     exit('Cashier account required.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_sale'])) {
+    try {
+        if (!paymentSchoolSalesSellingEnabled()) throw new RuntimeException('School item sales are unavailable.');
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) throw new RuntimeException('Invalid CSRF token.');
+        $items = json_decode((string) ($_POST['items_json'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+        $sale = (new CashSaleService($pdo))->create((int) ($_POST['student_id'] ?? 0), $cashier_id, $items, (float) ($_POST['cash_received'] ?? 0), trim((string) ($_POST['remarks'] ?? '')), trim((string) ($_POST['idempotency_key'] ?? '')));
+        if (!($sale['duplicate'] ?? false)) {
+            (new PaymentNotificationService($pdo))->notifySchoolSale((int) $_POST['student_id'], $sale['cash_sale_id'], $sale['total'], $sale['receipt_number']);
+            logActivity('process_cash_school_sale', 'Processed school sale of PHP ' . number_format($sale['total'], 2) . ' with OR ' . $sale['receipt_number'], 'payment', $cashier_id);
+        }
+        header('Location: print-receipt.php?cash_sale_id=' . (int) $sale['cash_sale_id'] . '&autoprint=1'); exit();
+    } catch (Throwable $e) {
+        header('Location: payment-collection-portal.php?view=school-items&error=' . urlencode($e->getMessage())); exit();
+    }
 }
 
 // ==========================================
@@ -170,12 +187,16 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 
     <div class="nav nav-pills bg-white border rounded-3 p-2 shadow-sm mb-4" role="navigation" aria-label="Cashier collection type">
-        <a class="nav-link active" aria-current="page" href="payment-collection-portal.php"><i class="ti ti-school me-1"></i>Academic Payments</a>
+        <a class="nav-link <?= $cashierView === 'academic' ? 'active' : '' ?>" <?= $cashierView === 'academic' ? 'aria-current="page"' : '' ?> href="payment-collection-portal.php"><i class="ti ti-school me-1"></i>Academic Payments</a>
         <?php if (paymentSchoolSalesSellingEnabled()): ?>
-            <a class="nav-link" href="school-sales.php"><i class="ti ti-shopping-bag me-1"></i>School Items</a>
+            <a class="nav-link <?= $cashierView === 'school-items' ? 'active' : '' ?>" <?= $cashierView === 'school-items' ? 'aria-current="page"' : '' ?> href="payment-collection-portal.php?view=school-items"><i class="ti ti-shopping-bag me-1"></i>School Items</a>
         <?php endif; ?>
     </div>
 
+    <?php if ($cashierView === 'school-items'): ?>
+        <?php if (isset($_GET['error'])): ?><div class="alert alert-danger alert-dismissible shadow-sm"><i class="ti ti-alert-circle me-2"></i><?= htmlspecialchars($_GET['error']) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif; ?>
+        <?php require __DIR__ . '/school-items-panel.php'; ?>
+    <?php else: ?>
     <!-- Alerts -->
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success alert-dismissible shadow-sm">
@@ -347,4 +368,5 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 <!-- Dinagdagan ng ?v=time() para laging fresh ang basahin ng browser na JavaScript file -->
 <script src="../../assets/js/payment-collection.js?v=<?= time() ?>"></script>
 <script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-search.js"></script>
+    <?php endif; ?>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
