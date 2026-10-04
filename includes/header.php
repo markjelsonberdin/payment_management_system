@@ -58,6 +58,13 @@ $bodyClass = $bodyClass ?? '';
     <link href="<?= BASE_URL ?>/assets/vendor/fonts/inter.css" rel="stylesheet">
     <!-- Tabler Icons (used by Kenneth's UI in icons.php) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <?php
+    // Payment pages opt in with $loadChartJs. Other SMS2 modules keep the existing default.
+    $smsLoadChartJs = $loadChartJs ?? (($activeModule ?? '') !== 'payment');
+    $smsLoadResearchCss = $loadResearchMonitoringCss ?? in_array((string) ($activeModule ?? ''), ['crad', 'faculty', 'student-portal', 'accreditation'], true);
+    $smsExtraHeadCss = (isset($extraHeadCss) && is_array($extraHeadCss)) ? $extraHeadCss : [];
+    ?>
+    <?php if ($smsLoadChartJs): ?>
     <script src="<?= BASE_URL ?>/assets/vendor/chartjs/chart.umd.min.js"></script>
     <script>
     (function () {
@@ -75,6 +82,7 @@ $bodyClass = $bodyClass ?? '';
         Chart.prototype._smsUpdatePatched = true;
     })();
     </script>
+    <?php endif; ?>
     <!-- SMS 2 Theme -->
     <link href="<?= BASE_URL ?>/assets/css/theme.css?v=3" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/layout.css?v=5" rel="stylesheet">
@@ -82,6 +90,11 @@ $bodyClass = $bodyClass ?? '';
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/dashboard-glass.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/sms-security-ui.css?v=19" rel="stylesheet">
+    <?php if ($smsLoadResearchCss): ?>
     <link href="<?= BASE_URL ?>/assets/css/research-monitoring.css?v=1" rel="stylesheet">
+    <?php endif; ?>
+    <?php foreach ($smsExtraHeadCss as $smsHeadHref): ?>
+    <link href="<?= htmlspecialchars((string) $smsHeadHref, ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet">
+    <?php endforeach; ?>
 </head>
 <body class="<?= htmlspecialchars($bodyClass) ?>"<?= strpos(' ' . $bodyClass . ' ', ' login-page ') !== false ? ' style="background:#071c48"' : '' ?>>

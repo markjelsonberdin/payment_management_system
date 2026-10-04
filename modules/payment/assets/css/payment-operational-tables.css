@@ -1,14 +1,14 @@
-.payment-operational-table{border:1px solid var(--bs-border-color,#dee2e6);border-radius:.75rem;overflow:hidden;background:#fff}
-.payment-operational-table .table{margin-bottom:0;--bs-table-hover-bg:rgba(13,110,253,.035)}
-.payment-operational-table thead th{padding:.7rem .8rem;background:#f8fafc;color:#475569;font-size:.75rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;white-space:nowrap;vertical-align:middle;border-bottom:1px solid #dbe3ec}
-.payment-operational-table tbody td{padding:.7rem .8rem;border-color:#edf1f5;vertical-align:middle}
-.payment-operational-table tbody tr:hover{background:rgba(13,110,253,.035)}
-.payment-table-primary{font-weight:600;color:#1e293b}
-.payment-table-secondary{display:block;color:#64748b;font-size:.78rem;font-weight:400}
+.payment-operational-table{border:1px solid var(--sms-border,var(--bs-border-color,#dee2e6));border-radius:var(--sms-radius-sm,12px);overflow:hidden;background:var(--sms-surface-solid,#fff)}
+.payment-operational-table .table{margin-bottom:0;--bs-table-hover-bg:rgba(30,64,175,.035)}
+.payment-operational-table thead th{padding:.7rem .8rem;background:var(--sms-table-head-bg,#f8fafc);color:var(--sms-text-muted,#475569);font-size:.75rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;white-space:nowrap;vertical-align:middle;border-bottom:1px solid var(--sms-border,#dbe3ec)}
+.payment-operational-table tbody td{padding:.7rem .8rem;border-color:var(--sms-table-border,#edf1f5);vertical-align:middle}
+.payment-operational-table tbody tr:hover{background:rgba(30,64,175,.035)}
+.payment-table-primary{font-weight:600;color:var(--sms-heading,#1e293b)}
+.payment-table-secondary{display:block;color:var(--sms-text-muted,#64748b);font-size:.78rem;font-weight:400}
 .payment-table-money{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;font-weight:600}
 .payment-table-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:.35rem;white-space:nowrap}
 .payment-table-actions .btn{min-width:2.25rem;min-height:2.25rem;display:inline-flex;align-items:center;justify-content:center}
-.payment-table-toolbar .form-label{font-size:.75rem;font-weight:600;color:#64748b;margin-bottom:.3rem}
+.payment-table-toolbar .form-label{font-size:.75rem;font-weight:600;color:var(--sms-text-muted,#64748b);margin-bottom:.3rem}
 .payment-table-toolbar .form-control,.payment-table-toolbar .form-select{min-height:2.35rem}
-.payment-table-empty{padding:2.5rem 1rem!important;color:#64748b;text-align:center}
+.payment-table-empty{padding:2.5rem 1rem!important;color:var(--sms-text-muted,#64748b);text-align:center}
 @media(max-width:767.98px){.payment-operational-table{overflow-x:auto}.payment-operational-table>.table{min-width:980px}.payment-table-toolbar .btn{min-height:2.35rem}}

@@ -1,0 +1,6 @@
+.cashier-dashboard .payment-stat-card.is-accent {
+    border-left-color: #0891b2;
+}
+.cashier-dashboard .payment-chart-frame canvas {
+    max-width: 100%;
+}

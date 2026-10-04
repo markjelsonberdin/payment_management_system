@@ -1,0 +1,3 @@
+.scholarship-card { transition: all 0.2s ease-in-out; cursor: pointer; }
+.scholarship-card:hover { border-color: var(--sms-primary, #1e40af) !important; transform: translateY(-3px); box-shadow: var(--sms-shadow-md); }
+.scholarship-card.selected { border: 2px solid var(--sms-primary, #1e40af) !important; background-color: var(--sms-primary-xlight, #f8fbff); box-shadow: var(--sms-shadow-md); }

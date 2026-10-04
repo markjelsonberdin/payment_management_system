@@ -82,9 +82,19 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 <?php renderBreadcrumbs($breadcrumbs); ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-base.css">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
-<div class="container-fluid py-4">
- <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h2 class="fw-bolder mb-1">Transactions</h2><p class="text-muted mb-0">Your completed academic cash payments and school sales only.</p></div><a class="btn btn-outline-primary" href="<?= htmlspecialchars($exportUrl) ?>"><i class="ti ti-file-spreadsheet me-1"></i>Export Excel</a></div>
+<div class="container-fluid py-4 payment-page">
+ <div class="payment-page-header">
+     <div class="payment-page-header-text">
+         <h2 class="payment-page-title"><i class="ti ti-history me-2" aria-hidden="true"></i>Transactions</h2>
+         <p class="payment-page-lede">Your completed academic cash payments and school sales only.</p>
+     </div>
+     <div class="payment-page-actions">
+         <a class="btn btn-outline-primary fw-bold shadow-sm" href="<?= htmlspecialchars($exportUrl) ?>"><i class="ti ti-file-spreadsheet me-1"></i>Export Excel</a>
+     </div>
+ </div>
  <?php if($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
  <form class="card border-0 shadow-sm mb-4 payment-table-toolbar" method="get"><div class="card-body"><div class="row g-2 align-items-end">
   <div class="col-lg-4"><label class="form-label small fw-bold">Search</label><input class="form-control" name="search" value="<?=htmlspecialchars($filters['search'])?>" placeholder="Student, OR, category, or item"></div>

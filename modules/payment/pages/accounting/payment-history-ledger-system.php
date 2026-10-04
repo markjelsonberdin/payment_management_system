@@ -147,6 +147,8 @@ $breadcrumbs  = [
 ];
 
 require_once __DIR__ . '/../../../../includes/breadcrumbs.php';
+require_once ROOT_PATH . '/modules/payment/includes/payment-ui-assets.php';
+paymentUiUseSharedCss(['css/accounting/payment-history.css?v=1'], true);
 require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 $fromRow = $totalRows === 0 ? 0 : $offset + 1;
@@ -154,17 +156,16 @@ $toRow = min($offset + count($paymentList), $totalRows);
 ?>
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
-<div class="container-fluid py-4 ph-ledger">
-    <div class="row mb-4 align-items-center">
-        <div class="col-lg-7">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-history text-primary me-2"></i><?= htmlspecialchars($pageTitle) ?></h2>
-            <p class="text-muted mb-0 fs-6"><?= $cashierHistoryMode ? 'Review walk-in transactions processed by your account.' : 'Audit walk-in and online collections, official receipts, and student ledger balances.' ?></p>
+<div class="container-fluid py-4 ph-ledger payment-page">
+    <div class="payment-page-header">
+        <div class="payment-page-header-text">
+            <h2 class="payment-page-title"><i class="ti ti-history me-2" aria-hidden="true"></i><?= htmlspecialchars($pageTitle) ?></h2>
+            <p class="payment-page-lede"><?= $cashierHistoryMode ? 'Review walk-in transactions processed by your account.' : 'Audit walk-in and online collections, official receipts, and student ledger balances.' ?></p>
         </div>
-        <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+        <div class="payment-page-actions">
             <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-outline-primary fw-bold shadow-sm" id="btnExportHistory">
-                <i class="fas fa-file-excel me-1"></i> Export Excel
+                <i class="ti ti-file-spreadsheet me-1"></i> Export Excel
             </a>
         </div>
     </div>
@@ -175,36 +176,36 @@ $toRow = min($offset + count($paymentList), $totalRows);
 
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
+            <div class="card payment-stat-card is-success h-100">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.75rem;">Total Collections</p>
+                    <p class="payment-stat-card-label">Total Collections</p>
                     <h3 class="fw-bolder mb-0 text-success">₱ <?= number_format($totalCollections, 2) ?></h3>
                     <small class="text-muted">Verified amounts applied</small>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-primary border-4">
+            <div class="card payment-stat-card h-100">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.75rem;">Total Transactions</p>
+                    <p class="payment-stat-card-label">Total Transactions</p>
                     <h3 class="fw-bolder mb-0 text-dark"><?= number_format($totalTransactions) ?></h3>
                     <small class="text-muted">All recorded payments</small>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-warning border-4">
+            <div class="card payment-stat-card is-warning h-100">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.75rem;">Pending Transactions</p>
+                    <p class="payment-stat-card-label">Pending Transactions</p>
                     <h3 class="fw-bolder mb-0 text-warning"><?= number_format($pendingTransactions) ?></h3>
                     <small class="text-muted">Awaiting verification</small>
                 </div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-info border-4">
+            <div class="card payment-stat-card is-info h-100">
                 <div class="card-body">
-                    <p class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.75rem;">Today's Collections</p>
+                    <p class="payment-stat-card-label">Today's Collections</p>
                     <h3 class="fw-bolder mb-0 text-info">₱ <?= number_format($todayCollections, 2) ?></h3>
                     <small class="text-muted">Verified today</small>
                 </div>
@@ -271,7 +272,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm align-middle mb-0 text-nowrap" id="historyTable">
-                    <thead class="bg-light text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <thead class="bg-light text-uppercase text-secondary">
                         <tr>
                             <?php
                             $headersBeforeFee = [
@@ -401,7 +402,7 @@ $toRow = min($offset + count($paymentList), $totalRows);
                                         <p class="text-muted mb-3">Try adjusting your search term, payment channel, status, or date range.</p>
                                         <?php if (!empty($filters['search']) || !empty($filters['status']) || !empty($filters['channel']) || !empty($filters['date_range'])): ?>
                                             <a href="<?= htmlspecialchars(PAYMENT_HISTORY_PAGE) ?>" class="btn btn-sm btn-outline-primary fw-semibold">
-                                                <i class="fas fa-undo me-1"></i> Clear all filters
+                                                <i class="ti ti-arrow-back-up me-1"></i> Clear all filters
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -445,9 +446,9 @@ $toRow = min($offset + count($paymentList), $totalRows);
     </div>
 </div>
 
-<div class="modal fade" id="ledgerModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade payment-modal" id="ledgerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 1rem;">
+        <div class="modal-content shadow-lg">
             <div class="modal-header bg-primary text-white border-bottom-0 p-4">
                 <h5 class="modal-title fw-bolder mb-0"><i class="ti ti-file-invoice me-2 opacity-75"></i>Ledger & Transaction Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -459,30 +460,6 @@ $toRow = min($offset + count($paymentList), $totalRows);
         </div>
     </div>
 </div>
-
-<style>
-.ph-ledger-loading {
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255,255,255,0.72);
-}
-[data-theme="dark"] .ph-ledger-loading {
-    background: rgba(15, 23, 42, 0.72);
-}
-
-.ph-ledger .pagination .page-item .page-link {
-    border-radius: 0.4rem !important;
-    margin: 0 3px;
-    min-width: 36px;
-    text-align: center;
-    padding: 0.375rem 0.75rem;
-    box-shadow: none !important;
-}
-</style>
 
 <script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-history-ledger.js?v=2"></script>
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>
