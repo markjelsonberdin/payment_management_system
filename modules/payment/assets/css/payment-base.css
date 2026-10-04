@@ -1,0 +1,30 @@
+/**
+ * Payment shared base — scoped to .payment-page.
+ * Tokens alias SMS2 theme variables. Do not restyle the SMS2 shell.
+ */
+
+.payment-page {
+    --payment-space-xs: 0.35rem;
+    --payment-space-sm: 0.75rem;
+    --payment-space-md: 1rem;
+    --payment-space-lg: 1.5rem;
+    --payment-radius-sm: var(--sms-radius-sm, 8px);
+    --payment-radius-md: var(--sms-radius, 14px);
+    --payment-border: var(--sms-border, #e2e8f0);
+    --payment-muted: var(--sms-text-muted, #64748b);
+    --payment-heading: var(--sms-heading, #0f172a);
+    --payment-surface: var(--sms-surface-solid, #fff);
+}
+
+.payment-page .payment-page-inner {
+    padding-top: 0.25rem;
+}
+
+.payment-page .payment-card,
+.payment-page .card.payment-card {
+    background: var(--payment-surface);
+    border: 1px solid var(--sms-border-soft, var(--payment-border));
+    border-radius: var(--payment-radius-md);
+    box-shadow: var(--sms-shadow-sm, 0 2px 8px rgba(15, 33, 88, 0.09));
+}
+

@@ -1,0 +1,20 @@
+.ph-ledger-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.72);
+}
+[data-theme="dark"] .ph-ledger-loading {
+    background: rgba(15, 23, 42, 0.72);
+}
+.ph-ledger .pagination .page-item .page-link {
+    border-radius: 0.4rem !important;
+    margin: 0 3px;
+    min-width: 36px;
+    text-align: center;
+    padding: 0.375rem 0.75rem;
+    box-shadow: none !important;
+}

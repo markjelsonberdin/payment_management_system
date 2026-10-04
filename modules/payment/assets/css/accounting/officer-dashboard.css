@@ -1,0 +1,10 @@
+#officerDashboard{color:var(--sms-text)}
+#officerDashboard .card{background:var(--sms-surface);color:var(--sms-text);border-color:var(--sms-border-soft)!important}
+#officerDashboard .text-muted{color:var(--sms-text-muted)!important}
+#officerDashboard .officer-kpi{transition:transform .16s ease,box-shadow .16s ease;color:var(--sms-text)!important}
+#officerDashboard .officer-kpi:hover{transform:translateY(-2px);box-shadow:var(--sms-shadow-md)!important}
+.officer-kpi-icon,.officer-action-icon{display:inline-grid;place-items:center;width:2.55rem;height:2.55rem;border-radius:.75rem;background:var(--sms-primary-xlight);color:var(--sms-primary);font-size:1.05rem}
+.officer-action-icon{width:2rem;height:2rem;border-radius:.55rem}
+.officer-kpi-value{color:var(--sms-heading);font-weight:800}
+.officer-quick-action{display:inline-flex;align-items:center;gap:.55rem}
+.officer-quick-action:hover{color:#fff!important}

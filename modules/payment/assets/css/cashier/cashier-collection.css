@@ -1,0 +1,6 @@
+.cashier-collection .payment-locked-panel {
+    pointer-events: none;
+}
+.cashier-collection #paymentPanel.opacity-50 {
+    opacity: 0.5;
+}

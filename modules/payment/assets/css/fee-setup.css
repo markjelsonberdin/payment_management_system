@@ -54,23 +54,6 @@
 }
 
 /* ---- Fee items table ---------------------------------------------------- */
-.fee-setup .fee-items-table thead {
-    font-size: .70rem;
-    letter-spacing: .04em;
-}
-.fee-setup .fee-items-table thead th {
-    font-weight: 700;
-    color: var(--bs-secondary-color);
-}
-.fee-setup .fee-items-table tbody tr {
-    transition: background-color var(--fee-transition);
-}
-.fee-setup .fee-items-table tbody tr:hover {
-    background-color: rgba(var(--bs-primary-rgb), .035);
-}
-.fee-setup .fee-items-table .fee-name {
-    font-size: .9rem;
-}
 .fee-setup .fee-code {
     font-family: var(--bs-font-monospace);
     font-size: .72rem;
@@ -81,13 +64,10 @@
     display: inline-block;
     margin-top: .15rem;
 }
-.fee-setup .fee-actions {
-    white-space: nowrap;
-}
-.fee-setup .fee-actions .btn {
+.fee-setup .payment-table-actions .btn {
     transition: transform var(--fee-transition), box-shadow var(--fee-transition);
 }
-.fee-setup .fee-actions .btn:hover {
+.fee-setup .payment-table-actions .btn:hover {
     transform: translateY(-1px);
 }
 .fee-setup .fee-state-badge {
@@ -169,31 +149,9 @@
 }
 
 /* ---- Legacy classification modal ---------------------------------------- */
-#legacyModal thead {
-    font-size: .72rem;
-    letter-spacing: .03em;
-}
-#legacyModal tbody tr {
-    transition: background-color var(--fee-transition);
-}
-#legacyRows .btn {
-    transition: transform var(--fee-transition);
-}
-#legacyRows .btn:hover {
-    transform: translateY(-1px);
-}
 #legacyEmpty {
     border: 1px dashed var(--bs-border-color);
     border-radius: .6rem;
-}
-
-#archivesModal table th,
-#legacyModal table th {
-    white-space: nowrap;
-}
-
-#archivesModal tbody td {
-    vertical-align: middle;
 }
 
 /* ---- Classification preview / review panels ----------------------------- */
@@ -203,14 +161,6 @@
     padding: 1rem;
     background: var(--bs-body-bg);
     height: 100%;
-}
-#classificationPreview .fee-review-panel h6 {
-    font-size: .72rem;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-    font-weight: 700;
-    margin-bottom: .5rem;
 }
 
 /* ---- Alerts -------------------------------------------------------------- */

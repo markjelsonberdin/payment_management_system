@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Hero card
             '<div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">' +
                 '<div class="card-body p-4 text-center">' +
-                    '<div class="text-uppercase fw-bold text-muted small mb-1" style="letter-spacing: 0.5px;">Total Payment Amount</div>' +
+                    '<div class="payment-modal-hero-label">Total Payment Amount</div>' +
                     '<h2 class="fw-bolder text-primary mb-2">' + money(data.checkout_total) + '</h2>' +
                     '<div class="mb-2">' + statusBadge(data.payment_status) + '</div>' +
                     '<div class="text-muted small">Ref: <span class="fw-semibold text-dark">#' + text(data.reference_number, 'N/A') + '</span>' +
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="col-md-6">' +
                     '<div class="card border-0 shadow-sm rounded-3 h-100 bg-white">' +
                         '<div class="card-body p-3">' +
-                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-school me-1 text-primary"></i> Student & Details</h6>' +
+                            '<h6 class="payment-modal-section-title"><i class="ti ti-school me-1 text-primary"></i> Student & Details</h6>' +
                             modalRow('Student Name', data.full_name) +
                             modalRow('Student No.', data.student_number) +
                             modalRow('Course / Program', data.course || '—') +
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="col-md-6">' +
                     '<div class="card border-0 shadow-sm rounded-3 h-100 bg-white">' +
                         '<div class="card-body p-3">' +
-                            '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="fas fa-calculator me-1 text-primary"></i> Payment & Ledger</h6>' +
+                            '<h6 class="payment-modal-section-title"><i class="fas fa-calculator me-1 text-primary"></i> Payment & Ledger</h6>' +
                             modalRow('Applied Allocation Amount', money(data.amount)) +
                             modalRow('Processing Fee', money(data.processing_fee)) +
                             modalRow('Checkout Total', money(data.checkout_total), true) +
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Allocations breakdown
             '<div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">' +
                 '<div class="card-body p-3">' +
-                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-list-check me-1 text-primary"></i> Fee Allocation Breakdown</h6>' +
+                    '<h6 class="payment-modal-section-title"><i class="ti ti-list-check me-1 text-primary"></i> Fee Allocation Breakdown</h6>' +
                     allocationHtml +
                 '</div>' +
             '</div>' +
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Audit Trail
             '<div class="card border-0 shadow-sm rounded-3 bg-white">' +
                 '<div class="card-body p-3">' +
-                    '<h6 class="fw-bold text-secondary text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;"><i class="ti ti-shield-check me-1 text-primary"></i> Audit Information</h6>' +
+                    '<h6 class="payment-modal-section-title"><i class="ti ti-shield-check me-1 text-primary"></i> Audit Information</h6>' +
                     modalRow('Legacy Payment Date', text(data.payment_date, '—')) +
                     modalRow('Created At (Attempt)', formatStamp(data.created_at)) +
                     modalRow('Verified At (Official)', data.verified_at ? formatStamp(data.verified_at) : 'Pending Verification') +
