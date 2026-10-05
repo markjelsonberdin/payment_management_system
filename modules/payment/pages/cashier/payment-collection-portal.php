@@ -22,6 +22,16 @@ if ($cashier_id <= 0) {
     http_response_code(403);
     exit('Cashier account required.');
 }
+$parseCashierMoney = static function ($value, string $field): float {
+    if (!is_string($value) && !is_int($value) && !is_float($value)) {
+        throw new InvalidArgumentException($field . ' must be a valid amount.');
+    }
+    $raw = trim((string) $value);
+    if (!preg_match('/^\d{1,8}(?:\.\d{1,2})?$/D', $raw)) {
+        throw new InvalidArgumentException($field . ' must be a positive amount with up to two decimal places.');
+    }
+    return (float) $raw;
+};
 $schoolSalesEnabled = paymentSchoolSalesSellingEnabled();
 $canSellSchoolItems = $schoolSalesEnabled
     && paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.school_sales')
@@ -96,27 +106,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         exit('Invalid CSRF token.');
     }
 
-    $billing_id       = $_POST['billing_id'] ?? '';
-    $student_id       = $_POST['student_id'] ?? '';
-    
-    $amount_paid      = (float) $_POST['amount_paid'];
-    $cash_received    = (float) ($_POST['cash_received'] ?? $amount_paid);
-    $payment_context  = $_POST['payment_context'] ?? 'GENERAL_PRIORITY';
-    $category_id      = isset($_POST['category_id']) ? (int)$_POST['category_id'] : null;
-    // Cashier collection is cash-only. Never accept channel or OR data from the browser.
-    $payment_channel  = 'Cash';
-    $remarks          = trim($_POST['remarks']);
-
     try {
+        $billing_id = $_POST['billing_id'] ?? '';
+        $student_id = $_POST['student_id'] ?? '';
+        if (!is_scalar($billing_id) || !preg_match('/^\d+$/D', (string) $billing_id)) {
+            throw new InvalidArgumentException('Billing record is required. Refresh and select the student again.');
+        }
+        if (!is_scalar($student_id) || !preg_match('/^\d+$/D', (string) $student_id)) {
+            throw new InvalidArgumentException('Student record is required.');
+        }
+
+        $amount_paid = $parseCashierMoney($_POST['amount_paid'] ?? null, 'Amount applied');
+        $cashReceivedInput = $_POST['cash_received'] ?? '';
+        if (!is_scalar($cashReceivedInput)) {
+            throw new InvalidArgumentException('Cash received must be a valid amount.');
+        }
+        $cashReceivedInput = trim((string) $cashReceivedInput);
+        $cash_received = $cashReceivedInput === '' ? $amount_paid : $parseCashierMoney($cashReceivedInput, 'Cash received');
+        $payment_context = $_POST['payment_context'] ?? 'GENERAL_PRIORITY';
+        $categoryInput = $_POST['category_id'] ?? null;
+        $itemInput = $_POST['item_id'] ?? null;
+        $category_id = $categoryInput !== null && is_scalar($categoryInput) && preg_match('/^\d+$/D', (string) $categoryInput) ? (int) $categoryInput : null;
+        $item_id = $itemInput !== null && is_scalar($itemInput) && preg_match('/^\d+$/D', (string) $itemInput) ? (int) $itemInput : null;
+        $idempotencyInput = $_POST['idempotency_key'] ?? '';
+        $idempotency_key = is_scalar($idempotencyInput) ? strtolower(trim((string) $idempotencyInput)) : '';
+        // Cashier collection is cash-only. Never accept channel or OR data from the browser.
+        $payment_channel = 'Cash';
+        $remarksInput = $_POST['remarks'] ?? '';
+        if (!is_scalar($remarksInput)) {
+            throw new InvalidArgumentException('Remarks must be plain text.');
+        }
+        $remarks = trim((string) $remarksInput);
+
         if (empty($billing_id)) {
             throw new Exception("Cache Error: Walang naipasang Billing ID ang form! Paki-Hard Refresh (CTRL + F5) ang iyong browser.");
         }
         if ((int) $student_id <= 0) {
             throw new Exception('Student record is required.');
         }
+        if (!preg_match('/^[a-f0-9]{64}$/D', $idempotency_key)) {
+            throw new RuntimeException('This payment form expired. Refresh the page and try again.');
+        }
+        if (!is_string($payment_context) || !in_array($payment_context, ['GENERAL_PRIORITY', 'ENROLLMENT_PRIORITY', 'CATEGORY_PRIORITY', 'SPECIFIC_ITEM'], true)) {
+            throw new InvalidArgumentException('Select a valid payment context.');
+        }
+
+        $requestFingerprint = hash('sha256', json_encode([
+            'student_id' => (int) $student_id,
+            'billing_id' => (int) $billing_id,
+            'amount_paid' => number_format($amount_paid, 2, '.', ''),
+            'cash_received' => number_format($cash_received, 2, '.', ''),
+            'payment_context' => $payment_context,
+            'category_id' => $category_id,
+            'item_id' => $item_id,
+            'remarks' => $remarks,
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 
         // Start transaction for atomic payment record + allocation
         $pdo->beginTransaction();
+
+        // Claim this exact cashier submission before touching the billing balance.
+        // The database unique key serializes simultaneous retries across requests.
+        $claim = $pdo->prepare("INSERT INTO cashier_payment_idempotency (cashier_user_id, idempotency_key, request_fingerprint, payment_id)
+            VALUES (?, ?, ?, NULL)
+            ON DUPLICATE KEY UPDATE idempotency_key = VALUES(idempotency_key)");
+        $claim->execute([$cashier_id, $idempotency_key, $requestFingerprint]);
+        $claimLookup = $pdo->prepare('SELECT request_fingerprint, payment_id FROM cashier_payment_idempotency WHERE cashier_user_id = ? AND idempotency_key = ? FOR UPDATE');
+        $claimLookup->execute([$cashier_id, $idempotency_key]);
+        $claimRow = $claimLookup->fetch(PDO::FETCH_ASSOC);
+        if (!$claimRow || !hash_equals((string) $claimRow['request_fingerprint'], $requestFingerprint)) {
+            throw new RuntimeException('This payment form was already used for different payment details. Refresh and review the student and amount.');
+        }
+        if ((int) ($claimRow['payment_id'] ?? 0) > 0) {
+            $existingPayment = $pdo->prepare("SELECT payment_id FROM payments WHERE payment_id = ? AND verified_by = ? AND transaction_type = 'Walk-in' AND payment_channel = 'Cash' AND payment_status = 'Verified' LIMIT 1");
+            $existingPayment->execute([(int) $claimRow['payment_id'], $cashier_id]);
+            $existingPaymentId = (int) $existingPayment->fetchColumn();
+            if ($existingPaymentId <= 0) {
+                throw new RuntimeException('The prior payment record needs review. No additional payment was posted.');
+            }
+            $pdo->commit();
+            header('Location: print-receipt.php?payment_id=' . $existingPaymentId . '&autoprint=1');
+            exit();
+        }
 
         // 1. Validate Billing with Row-Level Locking (FOR UPDATE)
         $stmtBill = $pdo->prepare("SELECT billing_id, remaining_balance, billing_type FROM billing WHERE billing_id = :id FOR UPDATE");
@@ -134,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             $amount_paid, 
             (float)$bill['remaining_balance'], 
             $bill, 
-            $payment_context === 'SPECIFIC_ITEM' ? (int)($_POST['item_id'] ?? 0) : null, 
+            $payment_context === 'SPECIFIC_ITEM' ? $item_id : null,
             $category_id
         );
 
@@ -146,9 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
             throw new Exception("Cash received (₱".number_format($cash_received, 2).") cannot be less than the amount applied to balance (₱".number_format($amount_paid, 2).").");
         }
 
-        $change_amount = $cash_received - $amount_paid;
-
-        $change_amount = $cash_received - $amount_paid;
+        $change_amount = round($cash_received - $amount_paid, 2);
 
         // Reserve an immutable OR inside the same transaction before posting payment.
         $reference_number = (new OfficialReceiptService($pdo))->reserve();
@@ -178,28 +247,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         // Signature: allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context, $categoryId)
         $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $category_id);
 
+        $completeClaim = $pdo->prepare('UPDATE cashier_payment_idempotency SET payment_id = ? WHERE cashier_user_id = ? AND idempotency_key = ? AND payment_id IS NULL');
+        $completeClaim->execute([(int) $payment_id, $cashier_id, $idempotency_key]);
+        if ($completeClaim->rowCount() !== 1) {
+            throw new RuntimeException('Unable to finalize the cashier payment request. The payment was not committed.');
+        }
+
         $pdo->commit();
 
-        (new PaymentNotificationService($pdo))->notifyVerifiedPayment(
-            (int) $student_id,
-            (int) $payment_id,
-            $amount_paid,
-            'Cashier walk-in',
-            $reference_number
-        );
+        // These side effects run after the payment is durable. Their failure must
+        // not make the cashier believe the payment failed and submit a new charge.
+        try {
+            (new PaymentNotificationService($pdo))->notifyVerifiedPayment(
+                (int) $student_id,
+                (int) $payment_id,
+                $amount_paid,
+                'Cashier walk-in',
+                $reference_number
+            );
 
-        // Payment is now durable in Payment DB. Audit is authoritative in SMS2 Core.
-        logActivity(
-            'process_walk_in_payment',
-            "Processed walk-in payment of ₱" . number_format($amount_paid, 2) . " (Context: {$payment_context}) for Billing ID #{$billing_id} with OR No: {$reference_number}",
-            'payment',
-            (int) $cashier_id
-        );
+            // Payment is now durable in Payment DB. Audit is authoritative in SMS2 Core.
+            logActivity(
+                'process_walk_in_payment',
+                "Processed walk-in payment of ₱" . number_format($amount_paid, 2) . " (Context: {$payment_context}) for Billing ID #{$billing_id} with OR No: {$reference_number}",
+                'payment',
+                (int) $cashier_id
+            );
+        } catch (Throwable $postCommitError) {
+            error_log('Cashier payment post-commit notification/audit failed for payment ' . (int) $payment_id . ': ' . $postCommitError->getMessage());
+        }
 
         header("Location: print-receipt.php?payment_id=" . (int) $payment_id . "&autoprint=1");
         exit();
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         if (isset($pdo) && $pdo->inTransaction()) {
             $pdo->rollBack();
         }
@@ -326,6 +407,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="billing_id" id="inputBillingId">
                         <input type="hidden" name="student_id" id="inputStudentId">
+                        <input type="hidden" name="idempotency_key" value="<?= htmlspecialchars(bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>">
 
                         <div class="row">
                             <div class="col-md-12 mb-3">

@@ -36,19 +36,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     document.getElementById('inputStudentId').value = data.student_id;
                     activeBalance = data.balance;
 
-                    // Unpaid Fees Breakdown Logic
+                    // Unpaid Fees Breakdown Logic. Values originate in the database,
+                    // so render them as text instead of interpolating them into HTML.
                     const breakdownContainer = document.getElementById('unpaidFeesContainer');
                     const breakdownList = document.getElementById('unpaidFeesList');
-                    breakdownList.innerHTML = '';
+                    breakdownList.replaceChildren();
 
                     if (data.breakdown) {
                         if (data.breakdown.has_error) {
-                            // Show consistency error
-                            breakdownList.innerHTML = `
-                                <div class="alert alert-danger p-2 small mb-0">
-                                    <i class="ti ti-alert-triangle me-1"></i> ${data.breakdown.error_message}
-                                </div>
-                            `;
+                            const errorNotice = document.createElement('div');
+                            errorNotice.className = 'alert alert-danger p-2 small mb-0';
+                            errorNotice.setAttribute('role', 'alert');
+                            errorNotice.textContent = data.breakdown.error_message || 'Billing details need review.';
+                            breakdownList.appendChild(errorNotice);
                             breakdownContainer.classList.remove('d-none');
                             
                             // Prevent payment processing because of inconsistency
@@ -59,28 +59,61 @@ document.addEventListener("DOMContentLoaded", function () {
                         } else if (data.breakdown.categories && data.breakdown.categories.length > 0) {
                             const categorySelect = document.getElementById('inputCategoryId');
                             if (categorySelect) {
-                                categorySelect.innerHTML = '<option value="">Select unpaid category</option>';
+                                categorySelect.replaceChildren(new Option('Select unpaid category', ''));
                                 data.breakdown.categories.forEach(cat => {
                                     const option = document.createElement('option');
                                     option.value = cat.category_id;
-                                    option.textContent = `${cat.category_name} — ₱ ${parseFloat(cat.category_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                                    option.textContent = `${String(cat.category_name ?? '')} — ₱ ${Number(cat.category_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                     categorySelect.appendChild(option);
                                 });
                             }
-                            let html = '';
                             let grandTotal = 0;
                             data.breakdown.categories.forEach(cat => {
                                 const categoryTotal = Number(cat.category_total || 0);
                                 grandTotal += categoryTotal;
-                                html += `<details class="border rounded mb-2 bg-white"><summary class="d-flex justify-content-between align-items-center px-2 py-2 fw-bold" style="cursor:pointer"><span>${cat.category_name}</span><span class="text-danger">₱ ${categoryTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></summary><div class="border-top px-2 pt-2 pb-1">`;
+                                const details = document.createElement('details');
+                                details.className = 'border rounded mb-2 bg-white';
+                                const summary = document.createElement('summary');
+                                summary.className = 'd-flex justify-content-between align-items-center px-2 py-2 fw-bold';
+                                summary.style.cursor = 'pointer';
+                                const categoryName = document.createElement('span');
+                                categoryName.textContent = String(cat.category_name ?? 'Uncategorized');
+                                const categoryAmount = document.createElement('span');
+                                categoryAmount.className = 'text-danger';
+                                categoryAmount.textContent = `₱ ${categoryTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                summary.append(categoryName, categoryAmount);
+                                details.appendChild(summary);
+                                const feeList = document.createElement('div');
+                                feeList.className = 'border-top px-2 pt-2 pb-1';
                                 cat.fees.forEach(fee => {
-                                    const source = fee.source_context ? `<span class="badge bg-light text-secondary border ms-1">${fee.source_context}</span>` : '';
-                                    html += `<div class="d-flex justify-content-between gap-2 align-items-start mb-2 small"><span>${fee.fee_name}${source}</span><strong>₱ ${Number(fee.remaining_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></div>`;
+                                    const row = document.createElement('div');
+                                    row.className = 'd-flex justify-content-between gap-2 align-items-start mb-2 small';
+                                    const description = document.createElement('span');
+                                    description.appendChild(document.createTextNode(String(fee.fee_name ?? 'Fee')));
+                                    if (fee.source_context) {
+                                        const source = document.createElement('span');
+                                        source.className = 'badge bg-light text-secondary border ms-1';
+                                        source.textContent = String(fee.source_context);
+                                        description.appendChild(source);
+                                    }
+                                    const remaining = document.createElement('strong');
+                                    remaining.textContent = `₱ ${Number(fee.remaining_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    row.append(description, remaining);
+                                    feeList.appendChild(row);
                                 });
-                                html += `</div></details>`;
+                                details.appendChild(feeList);
+                                breakdownList.appendChild(details);
                             });
-                            html += `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-dark"><span class="fw-bolder">TOTAL OUTSTANDING</span><span class="fw-bolder text-danger">₱ ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>`;
-                            breakdownList.innerHTML = html;
+                            const totalRow = document.createElement('div');
+                            totalRow.className = 'd-flex justify-content-between align-items-center mt-3 pt-2 border-top text-dark';
+                            const totalLabel = document.createElement('span');
+                            totalLabel.className = 'fw-bolder';
+                            totalLabel.textContent = 'TOTAL OUTSTANDING';
+                            const totalAmount = document.createElement('span');
+                            totalAmount.className = 'fw-bolder text-danger';
+                            totalAmount.textContent = `₱ ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            totalRow.append(totalLabel, totalAmount);
+                            breakdownList.appendChild(totalRow);
                             breakdownContainer.classList.remove('d-none');
                         } else {
                             breakdownContainer.classList.add('d-none');

@@ -6,12 +6,10 @@ SELECT
          AND (SELECT COUNT(*) FROM information_schema.columns
               WHERE table_schema = DATABASE() AND table_name = 'cashier_payment_idempotency'
                 AND column_name IN ('cashier_user_id', 'idempotency_key', 'request_fingerprint', 'payment_id')) = 4
-         AND (SELECT COUNT(*) FROM information_schema.statistics
+         AND (SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics
               WHERE table_schema = DATABASE() AND table_name = 'cashier_payment_idempotency'
-                AND index_name = 'uq_cashier_payment_idempotency_request' AND non_unique = 0) = 1
-         AND (SELECT COUNT(*) FROM information_schema.statistics
-              WHERE table_schema = DATABASE() AND table_name = 'cashier_payment_idempotency'
-                AND index_name = 'uq_cashier_payment_idempotency_payment' AND non_unique = 0) = 1
+                AND index_name IN ('uq_cashier_payment_idempotency_request', 'uq_cashier_payment_idempotency_payment')
+                AND non_unique = 0) = 2
         THEN 'PASS'
         ELSE 'FAIL'
     END AS validation_status,
