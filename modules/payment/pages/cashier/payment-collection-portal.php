@@ -11,7 +11,6 @@ require_once __DIR__ . '/../../includes/PaymentAllocationService.php';
 require_once __DIR__ . '/../../includes/PaymentSecurityService.php';
 require_once __DIR__ . '/../../includes/PaymentNotificationService.php';
 require_once __DIR__ . '/../../includes/OfficialReceiptService.php';
-require_once __DIR__ . '/../../includes/CashSaleService.php';
 
 requireAuth();
 requirePaymentPermission('payment.collection');
@@ -23,12 +22,37 @@ if ($cashier_id <= 0) {
     http_response_code(403);
     exit('Cashier account required.');
 }
+$schoolSalesEnabled = paymentSchoolSalesSellingEnabled();
+$canSellSchoolItems = $schoolSalesEnabled
+    && paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.school_sales')
+    && userCanAccessModule('payment.school_sales');
+$requestedView = $_GET['view'] ?? 'academic';
+$cashierView = 'academic';
+if ($requestedView === 'school-items') {
+    if (!$schoolSalesEnabled) {
+        http_response_code(404);
+        exit('School item sales are unavailable.');
+    }
+    if (!$canSellSchoolItems) {
+        http_response_code(403);
+        exit('You do not have permission to sell school items.');
+    }
+    $cashierView = 'school-items';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_sale'])) {
+    if (!$schoolSalesEnabled) {
+        http_response_code(404);
+        exit('School item sales are unavailable.');
+    }
+    if (!$canSellSchoolItems) {
+        http_response_code(403);
+        exit('You do not have permission to sell school items.');
+    }
     try {
-        if (!paymentSchoolSalesSellingEnabled()) throw new RuntimeException('School item sales are unavailable.');
         if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) throw new RuntimeException('Invalid CSRF token.');
         $items = json_decode((string) ($_POST['items_json'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+        require_once __DIR__ . '/../../includes/CashSaleService.php';
         $sale = (new CashSaleService($pdo))->create((int) ($_POST['student_id'] ?? 0), $cashier_id, $items, (float) ($_POST['cash_received'] ?? 0), trim((string) ($_POST['remarks'] ?? '')), trim((string) ($_POST['idempotency_key'] ?? '')));
         if (!($sale['duplicate'] ?? false)) {
             (new PaymentNotificationService($pdo))->notifySchoolSale((int) $_POST['student_id'], $sale['cash_sale_id'], $sale['total'], $sale['receipt_number']);
@@ -37,6 +61,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_sale'])) {
         header('Location: print-receipt.php?cash_sale_id=' . (int) $sale['cash_sale_id'] . '&autoprint=1'); exit();
     } catch (Throwable $e) {
         header('Location: payment-collection-portal.php?view=school-items&error=' . urlencode($e->getMessage())); exit();
+    }
+}
+
+$recentSales = [];
+$salesHistoryUnavailable = false;
+if ($cashierView === 'school-items') {
+    try {
+        $recentSalesStmt = $pdo->prepare("SELECT cs.cash_sale_id, cs.receipt_number, cs.sold_at, cs.total_amount, s.full_name, s.student_number, COALESCE(items.item_names, '') AS items
+            FROM cash_sales cs
+            JOIN students s ON s.student_id = cs.student_id
+            LEFT JOIN (
+                SELECT cash_sale_id, GROUP_CONCAT(item_name_snapshot ORDER BY cash_sale_line_id SEPARATOR ', ') AS item_names
+                FROM cash_sale_items GROUP BY cash_sale_id
+            ) items ON items.cash_sale_id = cs.cash_sale_id
+            WHERE cs.cashier_id = ? AND cs.sale_status = 'Completed'
+            ORDER BY cs.sold_at DESC, cs.cash_sale_id DESC LIMIT 10");
+        $recentSalesStmt->execute([$cashier_id]);
+        $recentSales = $recentSalesStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        error_log('Cashier recent school sales: ' . $e->getMessage());
+        $salesHistoryUnavailable = true;
     }
 }
 
@@ -188,7 +233,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <div class="nav nav-pills bg-white border rounded-3 p-2 shadow-sm mb-4" role="navigation" aria-label="Cashier collection type">
         <a class="nav-link <?= $cashierView === 'academic' ? 'active' : '' ?>" <?= $cashierView === 'academic' ? 'aria-current="page"' : '' ?> href="payment-collection-portal.php"><i class="ti ti-school me-1"></i>Academic Payments</a>
-        <?php if (paymentSchoolSalesSellingEnabled()): ?>
+        <?php if ($canSellSchoolItems): ?>
             <a class="nav-link <?= $cashierView === 'school-items' ? 'active' : '' ?>" <?= $cashierView === 'school-items' ? 'aria-current="page"' : '' ?> href="payment-collection-portal.php?view=school-items"><i class="ti ti-shopping-bag me-1"></i>School Items</a>
         <?php endif; ?>
     </div>

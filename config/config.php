@@ -302,7 +302,7 @@ $MODULES = [
             ],
             'CASHIER PORTAL' => [
                 'cashier/payment-collection-portal',
-                ...(paymentSchoolSalesSellingEnabled() ? ['cashier/school-sales'] : []),
+                'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
             'MIS ADMIN PORTAL' => [
