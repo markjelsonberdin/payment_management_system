@@ -83,6 +83,7 @@ try {
     }
     SimpleXlsxWriter::download('cashier-transactions-' . date('Ymd-His') . '.xlsx', $rows);
 } catch (Throwable $e) {
+    error_log('Cashier history export failed: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Unable to export cashier history.';
