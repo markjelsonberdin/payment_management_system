@@ -25,7 +25,7 @@
 .cashier-history-filter > label {
     display: block;
     margin-bottom: .35rem;
-    color: #475569;
+    color: var(--sms-text-muted, #475569);
     font-size: .72rem;
     font-weight: 750;
     letter-spacing: .035em;
@@ -36,7 +36,9 @@
 .cashier-history-filter .form-select,
 .cashier-history-filter .input-group-text {
     min-height: 2.7rem;
-    border-color: #dbe3ee;
+    border-color: var(--sms-input-border, var(--sms-border, #dbe3ee));
+    background-color: var(--sms-input-bg, var(--sms-surface-solid, #fff));
+    color: var(--sms-text, #334155);
 }
 
 .cashier-history-filter .form-select,
@@ -46,8 +48,13 @@
 
 .cashier-history-filter .input-group-text {
     border-radius: .65rem 0 0 .65rem;
-    background: #f8fafc;
-    color: #64748b;
+    background: var(--sms-surface-muted, #f8fafc);
+    color: var(--sms-text-muted, #64748b);
+}
+
+.cashier-history-filter .form-control::placeholder {
+    color: var(--sms-text-faint, #94a3b8);
+    opacity: 1;
 }
 
 .cashier-history-filter--search .form-control {
@@ -66,8 +73,8 @@
 
 .cashier-history-filter .form-control:focus,
 .cashier-history-filter .form-select:focus {
-    border-color: #80aaff;
-    box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+    border-color: var(--sms-primary-light, #80aaff);
+    box-shadow: 0 0 0 .2rem var(--sms-input-focus, rgba(37, 99, 235, .12));
 }
 
 .cashier-history-results {
@@ -99,23 +106,29 @@
     justify-content: center;
     align-items: center;
     padding: .35rem .65rem;
-    border: 1px solid #dbe3ee;
+    border: 1px solid var(--sms-border, #dbe3ee);
     border-radius: .55rem !important;
-    color: #334155;
+    background: var(--sms-surface-solid, #fff);
+    color: var(--sms-text, #334155);
     font-weight: 600;
     text-decoration: none;
 }
 
 .cashier-history-pagination .page-item.active .page-link {
-    border-color: #1d4ed8;
-    background: #1d4ed8;
-    color: #fff;
+    border-color: var(--sms-primary, #1d4ed8);
+    background: var(--sms-primary, #1d4ed8);
+    color: var(--sms-body-bg, #fff);
+}
+
+.cashier-history-pagination .page-link:hover {
+    border-color: var(--sms-primary, #1d4ed8);
+    color: var(--sms-primary, #1d4ed8);
 }
 
 .cashier-history-pagination .page-item.disabled .page-link {
     border-color: transparent;
-    background: transparent;
-    color: #94a3b8;
+    background: var(--sms-surface-solid, #fff);
+    color: var(--sms-text-faint, #94a3b8);
 }
 
 .cashier-history-pagination .page-link:focus-visible {
