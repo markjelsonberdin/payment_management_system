@@ -14,6 +14,8 @@ $dateRange = (string) ($_GET['date_range'] ?? '');
 $search = trim((string) ($_GET['search'] ?? ''));
 $status = (string) ($_GET['status'] ?? '');
 $channel = (string) ($_GET['channel'] ?? '');
+$periodMonth = $_GET['period_month'] ?? null;
+$periodYear = $_GET['period_year'] ?? null;
 
 try {
     $official = PaymentReportingScope::officialCondition('p');
@@ -21,7 +23,7 @@ try {
     $params = [$cashierId, $cashierId];
 
     if (in_array($dateRange, ['today', 'week', 'month', 'year'], true)) {
-        $selectedRange = CashierReportingPeriod::resolve($dateRange);
+        $selectedRange = CashierReportingPeriod::resolve($dateRange, null, $periodMonth, $periodYear);
         $where[] = 'h.recorded_at >= ? AND h.recorded_at < ?';
         $params[] = CashierReportingPeriod::sql($selectedRange['current_start']);
         $params[] = CashierReportingPeriod::sql($selectedRange['current_end_exclusive']);

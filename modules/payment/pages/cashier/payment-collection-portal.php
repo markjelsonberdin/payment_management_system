@@ -271,6 +271,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <input type="text" class="form-control" id="searchStudentNumber" placeholder="Enter Student Number (e.g. S230106713)" autocomplete="off">
                         <button class="btn btn-primary px-4 fw-bold" type="button" id="btnSearchStudent">Find</button>
                     </div>
+                    <div id="studentLookupError" class="alert alert-danger py-2 d-none" role="alert"></div>
 
                     <!-- Billing Details Box (Dynamic) -->
                     <div id="studentBillingInfo" class="d-none mt-4">
@@ -329,7 +330,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label class="form-label fw-bold small text-muted">Payment Context <span class="text-danger">*</span></label>
-                                <select class="form-select" name="payment_context" id="inputPaymentContext" required onchange="document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value === 'CATEGORY_PRIORITY') ? false : true; document.getElementById('categorySelectionWrapper').classList.toggle('d-none', this.value !== 'CATEGORY_PRIORITY')">
+                                <select class="form-select" name="payment_context" id="inputPaymentContext" required>
                                     <option value="GENERAL_PRIORITY" selected>General / Full Payment (Covers All Fees Including Tuition)</option>
                                     <option value="ENROLLMENT_PRIORITY">Enrollment Priority (RFID &rarr; Misc &rarr; Lab)</option>
                                     <option value="CATEGORY_PRIORITY">Designated Category (Specific Fee Only)</option>
