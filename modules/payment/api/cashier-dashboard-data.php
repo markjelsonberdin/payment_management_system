@@ -69,6 +69,37 @@ try {
     $mismatchSql="SELECT COUNT(*) FROM payments p {$allocationJoin} WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official} AND p.verified_at>=? AND p.verified_at<? AND (academic_alloc.payment_id IS NULL OR p.amount<>COALESCE(academic_alloc.allocated_total,0))";
     $allocationMismatchCount=(int)cashierScalar($pdo,$mismatchSql,[$cashierId,$currentStart,$currentEnd]);
 
+    // Match the existing Accounting definition: official term-to-date academic
+    // allocations divided by the active term's net assessed amount. School
+    // sales are excluded because they are not collections against student fees.
+    $collectionEfficiency = null;
+    $collectionEfficiencyTerm = null;
+    $collectionEfficiencyStatus = 'no_data';
+    try {
+        $termStmt = $pdo->query('SELECT academic_year,semester FROM billing ORDER BY academic_year DESC,billing_id DESC LIMIT 1');
+        $activeTerm = $termStmt->fetch(PDO::FETCH_ASSOC);
+        if ($activeTerm) {
+            $activeAcademicYear = (string) $activeTerm['academic_year'];
+            $activeSemester = (string) $activeTerm['semester'];
+            $assessedAmount = cashierScalar($pdo,
+                'SELECT COALESCE(SUM(total_amount-COALESCE(discount_amount,0)),0) FROM billing WHERE academic_year=? AND semester=?',
+                [$activeAcademicYear, $activeSemester]
+            );
+            $termCollections = cashierScalar($pdo,
+                "SELECT COALESCE(SUM(pa.allocated_amount),0) FROM payment_allocations pa JOIN payments p ON p.payment_id=pa.payment_id JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id JOIN billing b ON b.billing_id=bi.billing_id WHERE {$official} AND b.academic_year=? AND b.semester=? AND p.verified_at IS NOT NULL AND p.verified_at<?",
+                [$activeAcademicYear, $activeSemester, $currentEnd]
+            );
+            if ($assessedAmount > 0) {
+                $collectionEfficiency = $termCollections / $assessedAmount * 100;
+                $collectionEfficiencyStatus = 'ok';
+            }
+            $collectionEfficiencyTerm = ['academic_year' => $activeAcademicYear, 'semester' => $activeSemester];
+        }
+    } catch (Throwable $e) {
+        error_log('Cashier dashboard collection efficiency: ' . $e->getMessage());
+        $collectionEfficiencyStatus = 'error';
+    }
+
     $receipts=0;
     $receiptTrackingAvailable=true;
     try {
@@ -106,13 +137,14 @@ try {
     $currentTrend=cashierTrend($pdo,$cashierId,$period,$range['current_start'],$range['current_end_exclusive'],$official);
     $priorTrend=cashierTrend($pdo,$cashierId,$period,$range['prior_start'],$range['prior_end_exclusive'],$official);
     $priorTrend['values']=array_slice(array_pad($priorTrend['values'],count($currentTrend['labels']),0.0),0,count($currentTrend['labels']));
-    $sections=array_replace(['kpis'=>'ok','trend'=>array_sum($currentTrend['values'])>0?'ok':'no_data','academic_categories'=>$academicCategories?'ok':'no_data','sale_categories'=>$saleCategories?'ok':'no_data','recent_transactions'=>$recentTransactions?'ok':'no_data','receipts'=>$receiptTrackingAvailable?'ok':'error'],$optionalErrors);
-    $hasPartial=!empty($optionalErrors) || !$receiptTrackingAvailable;
+    $sections=array_replace(['kpis'=>'ok','trend'=>array_sum($currentTrend['values'])>0?'ok':'no_data','academic_categories'=>$academicCategories?'ok':'no_data','sale_categories'=>$saleCategories?'ok':'no_data','recent_transactions'=>$recentTransactions?'ok':'no_data','receipts'=>$receiptTrackingAvailable?'ok':'error','collection_efficiency'=>$collectionEfficiencyStatus],$optionalErrors);
+    $hasPartial=!empty($optionalErrors) || !$receiptTrackingAvailable || $collectionEfficiencyStatus==='error';
 
     echo json_encode([
       'ok'=>true,'partial'=>$hasPartial,'period'=>$period,'period_label'=>$range['period_label'],'period_month'=>$range['period_month'],'period_year'=>$range['period_year'],'available_period_years'=>$availablePeriodYears,'timezone'=>$range['timezone'],'comparison_label'=>$range['comparison_label'],'generated_at'=>(new DateTimeImmutable('now',new DateTimeZone(CashierReportingPeriod::TIMEZONE)))->format(DATE_ATOM),'section_status'=>$sections,
       'range'=>['start_at'=>$currentStart,'end_exclusive'=>$currentEnd,'prior_start_at'=>$priorStart,'prior_end_exclusive'=>$priorEnd],
       'kpis'=>['academic'=>$academic,'sales'=>$sales,'total_cash'=>$academic+$sales,'transactions'=>$academicCount+$saleCount,'receipts'=>$receipts],
+      'collection_efficiency'=>['percentage'=>$collectionEfficiency,'term'=>$collectionEfficiencyTerm,'status'=>$collectionEfficiencyStatus],
       'comparison'=>['academic'=>['current'=>$academic,'prior'=>$academicPrior],'sales'=>['current'=>$sales,'prior'=>$salesPrior],'total'=>['current'=>$academic+$sales,'prior'=>$academicPrior+$salesPrior]],
       'trend'=>['current'=>$currentTrend,'prior'=>$priorTrend],
       'academic_categories'=>$academicCategories,'sale_categories'=>$saleCategories,'recent_transactions'=>$recentTransactions,

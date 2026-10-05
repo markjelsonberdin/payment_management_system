@@ -6,8 +6,64 @@
     max-width: 100%;
 }
 
+.cashier-dashboard {
+    padding-top: .5rem !important;
+}
+
 .cashier-dashboard__header {
     align-items: center !important;
+    padding: .25rem 0 .5rem;
+}
+
+.cashier-dashboard__heading {
+    min-width: min(100%, 19rem);
+}
+
+.cashier-dashboard__eyebrow {
+    display: inline-block;
+    margin-bottom: .25rem;
+    color: var(--sms-primary, #1e40af);
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.cashier-dashboard__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    color: var(--sms-text-muted, #64748b);
+    font-size: .9rem;
+}
+
+.cashier-dashboard__identity strong {
+    color: var(--sms-heading, #0f172a);
+    font-weight: 700;
+}
+
+.cashier-dashboard__date {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .55rem;
+    padding: .28rem .65rem;
+    border: 1px solid var(--sms-border, #e2e8f0);
+    border-radius: 999px;
+    background: var(--sms-surface-muted, #f8fafc);
+    color: var(--sms-text-muted, #64748b);
+    font-size: .78rem;
+    font-weight: 650;
+}
+
+.cashier-dashboard__date::before {
+    content: "";
+    width: .42rem;
+    height: .42rem;
+    border-radius: 50%;
+    background: var(--sms-primary, #1e40af);
 }
 
 .cashier-period-card {
@@ -35,9 +91,9 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: .2rem;
     padding: .25rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--sms-border, #e2e8f0);
     border-radius: .8rem;
-    background: #f1f5f9;
+    background: var(--sms-surface-muted, #f1f5f9);
 }
 
 .cashier-period-tab {
@@ -46,7 +102,7 @@
     border: 0;
     border-radius: .6rem;
     background: transparent;
-    color: #475569;
+    color: var(--sms-text-muted, #475569);
     font-size: .84rem;
     font-weight: 650;
     line-height: 1.15;
@@ -54,14 +110,22 @@
 }
 
 .cashier-period-tab:hover {
-    color: #1d4ed8;
-    background: rgba(255, 255, 255, .75);
+    color: var(--sms-primary, #1d4ed8);
+    background: var(--sms-surface-elevated, rgba(255, 255, 255, .75));
 }
 
 .cashier-period-tab.is-active {
-    background: #fff;
-    color: #1d4ed8;
+    background: var(--sms-surface-solid, #fff);
+    color: var(--sms-primary, #1d4ed8);
     box-shadow: 0 1px 4px rgba(15, 23, 42, .16);
+}
+
+.cashier-efficiency-card {
+    border-left-color: var(--sms-info, #0891b2) !important;
+}
+
+.cashier-dashboard .card {
+    color: var(--sms-text, #334155);
 }
 
 .cashier-period-tab:focus-visible,
@@ -91,6 +155,10 @@
 @media (max-width: 575.98px) {
     .cashier-dashboard__header {
         align-items: stretch !important;
+    }
+
+    .cashier-dashboard__heading {
+        min-width: 100%;
     }
 
     .cashier-period-card {
