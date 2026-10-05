@@ -1,6 +1,111 @@
 .cashier-dashboard .payment-stat-card.is-accent {
     border-left-color: #0891b2;
 }
+
 .cashier-dashboard .payment-chart-frame canvas {
     max-width: 100%;
+}
+
+.cashier-dashboard__header {
+    align-items: center !important;
+}
+
+.cashier-period-card {
+    display: grid;
+    gap: .55rem;
+    min-width: min(100%, 26rem);
+    padding: .75rem;
+    border: 1px solid var(--bs-border-color, #dbe3ee);
+    border-radius: 1rem;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: 0 .35rem 1.2rem rgba(15, 23, 42, .07);
+}
+
+.cashier-period-card__label {
+    color: var(--bs-secondary-color, #64748b);
+    font-size: .72rem;
+    font-weight: 750;
+    letter-spacing: .065em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.cashier-period-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .2rem;
+    padding: .25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: .8rem;
+    background: #f1f5f9;
+}
+
+.cashier-period-tab {
+    min-height: 2.5rem;
+    padding: .4rem .55rem;
+    border: 0;
+    border-radius: .6rem;
+    background: transparent;
+    color: #475569;
+    font-size: .84rem;
+    font-weight: 650;
+    line-height: 1.15;
+    transition: color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.cashier-period-tab:hover {
+    color: #1d4ed8;
+    background: rgba(255, 255, 255, .75);
+}
+
+.cashier-period-tab.is-active {
+    background: #fff;
+    color: #1d4ed8;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .16);
+}
+
+.cashier-period-tab:focus-visible,
+.cashier-period-selection .form-select:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .3);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.cashier-period-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.cashier-period-selection .form-select {
+    width: auto;
+    min-width: 9rem;
+    min-height: 2.45rem;
+    border-radius: .65rem;
+}
+
+.cashier-period-selection #periodYear {
+    min-width: 6.5rem;
+}
+
+@media (max-width: 575.98px) {
+    .cashier-dashboard__header {
+        align-items: stretch !important;
+    }
+
+    .cashier-period-card {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cashier-period-tab {
+        min-height: 2.75rem;
+        padding-inline: .25rem;
+        font-size: .76rem;
+    }
+
+    .cashier-period-selection .form-select {
+        flex: 1;
+        min-width: 0;
+    }
 }

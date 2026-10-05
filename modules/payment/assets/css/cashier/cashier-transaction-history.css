@@ -1,0 +1,148 @@
+.cashier-history-toolbar {
+    border-radius: 1rem;
+    background: var(--bs-body-bg, #fff);
+}
+
+.cashier-history-toolbar > .card-body {
+    padding: 1.15rem;
+}
+
+.cashier-history-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+    align-items: end;
+    gap: .9rem;
+}
+
+.cashier-history-filter {
+    min-width: 0;
+}
+
+.cashier-history-filter--search {
+    grid-column: span 2;
+}
+
+.cashier-history-filter > label {
+    display: block;
+    margin-bottom: .35rem;
+    color: #475569;
+    font-size: .72rem;
+    font-weight: 750;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+.cashier-history-filter .form-control,
+.cashier-history-filter .form-select,
+.cashier-history-filter .input-group-text {
+    min-height: 2.7rem;
+    border-color: #dbe3ee;
+}
+
+.cashier-history-filter .form-select,
+.cashier-history-filter .form-control {
+    border-radius: .65rem;
+}
+
+.cashier-history-filter .input-group-text {
+    border-radius: .65rem 0 0 .65rem;
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.cashier-history-filter--search .form-control {
+    border-radius: 0 .65rem .65rem 0;
+}
+
+.cashier-history-filter--actions {
+    display: flex;
+    gap: .5rem;
+}
+
+.cashier-history-filter--actions .btn {
+    min-height: 2.7rem;
+    white-space: nowrap;
+}
+
+.cashier-history-filter .form-control:focus,
+.cashier-history-filter .form-select:focus {
+    border-color: #80aaff;
+    box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+}
+
+.cashier-history-results {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 .65rem;
+    padding-inline: .15rem;
+}
+
+.cashier-history-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: .8rem;
+    margin-top: .9rem;
+}
+
+.cashier-history-pagination .pagination {
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+
+.cashier-history-pagination .page-link {
+    display: inline-flex;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    justify-content: center;
+    align-items: center;
+    padding: .35rem .65rem;
+    border: 1px solid #dbe3ee;
+    border-radius: .55rem !important;
+    color: #334155;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.cashier-history-pagination .page-item.active .page-link {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.cashier-history-pagination .page-item.disabled .page-link {
+    border-color: transparent;
+    background: transparent;
+    color: #94a3b8;
+}
+
+.cashier-history-pagination .page-link:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .3);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+@media (max-width: 767.98px) {
+    .cashier-history-filter--search {
+        grid-column: 1 / -1;
+    }
+
+    .cashier-history-filter--actions {
+        grid-column: 1 / -1;
+    }
+
+    .cashier-history-filter--actions .btn-primary {
+        flex: 1;
+    }
+
+    .cashier-history-results,
+    .cashier-history-footer {
+        align-items: flex-start;
+    }
+
+    .cashier-history-footer {
+        flex-direction: column;
+    }
+}
