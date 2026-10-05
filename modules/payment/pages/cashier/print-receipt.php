@@ -23,7 +23,7 @@ try {
         $stmt = $pdo->prepare("SELECT p.payment_id, p.student_id, p.verified_by AS cashier_id, p.receipt_number, p.reference_number, p.amount, p.cash_received, p.change_amount, p.payment_date, p.verified_at AS created_at, p.remarks, p.payment_status, s.user_id AS student_user_id, s.student_number, s.full_name, s.course, s.year_level, b.academic_year, b.semester FROM payments p JOIN students s ON s.student_id=p.student_id LEFT JOIN billing b ON b.billing_id=p.billing_id WHERE p.payment_id=? AND p.transaction_type='Walk-in' AND p.payment_channel='Cash' LIMIT 1");
         $stmt->execute([$paymentId]); $receipt = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($receipt) {
-            $lineStmt = $pdo->prepare('SELECT bi.fee_name AS description, 1 AS quantity, pa.allocated_amount AS unit_price, pa.allocated_amount AS line_total FROM payment_allocations pa JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id WHERE pa.payment_id=? ORDER BY pa.allocated_at, pa.payment_allocation_id');
+            $lineStmt = $pdo->prepare('SELECT bi.fee_name AS description, 1 AS quantity, pa.allocated_amount AS unit_price, pa.allocated_amount AS line_total FROM payment_allocations pa JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id WHERE pa.payment_id=? ORDER BY pa.allocated_at, pa.allocation_id');
             $lineStmt->execute([$paymentId]); $lines = $lineStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } else {
@@ -34,7 +34,7 @@ try {
             $lineStmt->execute([$saleId]); $lines = $lineStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
-} catch (Throwable $e) { http_response_code(503); exit('Receipt data is temporarily unavailable.'); }
+} catch (Throwable $e) { error_log('Cashier receipt query failed: ' . $e->getMessage()); http_response_code(503); exit('Receipt data is temporarily unavailable.'); }
 
 if (!$receipt || ($paymentId > 0 && $receipt['payment_status'] !== 'Verified') || ($saleId > 0 && $receipt['payment_status'] !== 'Completed')) { http_response_code(404); exit('Completed cashier receipt not found.'); }
 if ($isStudent && (int) $receipt['student_user_id'] !== $viewerId) { http_response_code(403); exit('You may only open your own receipt.'); }
