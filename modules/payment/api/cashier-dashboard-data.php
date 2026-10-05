@@ -69,14 +69,23 @@ try {
     $mismatchSql="SELECT COUNT(*) FROM payments p {$allocationJoin} WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official} AND p.verified_at>=? AND p.verified_at<? AND (academic_alloc.payment_id IS NULL OR p.amount<>COALESCE(academic_alloc.allocated_total,0))";
     $allocationMismatchCount=(int)cashierScalar($pdo,$mismatchSql,[$cashierId,$currentStart,$currentEnd]);
 
-    $receiptSql="SELECT COUNT(*) FROM (
-      SELECT p.payment_id record_id,MIN(e.rendered_at) first_render FROM payments p JOIN cashier_receipt_print_events e ON e.record_type='payment' AND e.record_id=p.payment_id
-       WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official} GROUP BY p.payment_id
-      UNION ALL
-      SELECT cs.cash_sale_id,MIN(e.rendered_at) FROM cash_sales cs JOIN cashier_receipt_print_events e ON e.record_type='cash_sale' AND e.record_id=cs.cash_sale_id
-       WHERE cs.cashier_id=? AND cs.sale_status='Completed' GROUP BY cs.cash_sale_id
-    ) originals WHERE first_render>=? AND first_render<?";
-    $receipts=(int)cashierScalar($pdo,$receiptSql,[$cashierId,$cashierId,$currentStart,$currentEnd]);
+    $receipts=0;
+    $receiptTrackingAvailable=true;
+    try {
+        $receiptSql="SELECT COUNT(*) FROM (
+          SELECT p.payment_id record_id,MIN(e.rendered_at) first_render FROM payments p JOIN cashier_receipt_print_events e ON e.record_type='payment' AND e.record_id=p.payment_id
+           WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official} GROUP BY p.payment_id
+          UNION ALL
+          SELECT cs.cash_sale_id,MIN(e.rendered_at) FROM cash_sales cs JOIN cashier_receipt_print_events e ON e.record_type='cash_sale' AND e.record_id=cs.cash_sale_id
+           WHERE cs.cashier_id=? AND cs.sale_status='Completed' GROUP BY cs.cash_sale_id
+        ) originals WHERE first_render>=? AND first_render<?";
+        $receipts=(int)cashierScalar($pdo,$receiptSql,[$cashierId,$cashierId,$currentStart,$currentEnd]);
+    } catch (Throwable $e) {
+        // Receipt tracking is supplemental; a missing tracking table must not
+        // make the core collection totals and transaction history unavailable.
+        error_log('Cashier dashboard receipt tracking: '.$e->getMessage());
+        $receiptTrackingAvailable=false;
+    }
 
     $optionalErrors=[];
     try{$categoryStmt=$pdo->prepare("SELECT COALESCE(NULLIF(fc.category_name,''),'Unmapped category') label,COALESCE(SUM(pa.allocated_amount),0) total FROM payments p JOIN payment_allocations pa ON pa.payment_id=p.payment_id JOIN billing_items bi ON bi.billing_item_id=pa.billing_item_id JOIN fees f ON f.fee_id=bi.fee_id LEFT JOIN fee_categories fc ON fc.category_id=f.category_id WHERE p.transaction_type='Walk-in' AND p.payment_method='Walk-in' AND p.payment_channel='Cash' AND p.verified_by=? AND p.verified_at IS NOT NULL AND {$official} AND p.verified_at>=? AND p.verified_at<? GROUP BY COALESCE(NULLIF(fc.category_name,''),'Unmapped category') ORDER BY total DESC, label");$categoryStmt->execute([$cashierId,$currentStart,$currentEnd]);$academicCategories=$categoryStmt->fetchAll(PDO::FETCH_ASSOC);}catch(Throwable $e){error_log('Cashier dashboard academic categories: '.$e->getMessage());$academicCategories=[];$optionalErrors['academic_categories']='error';}
@@ -97,8 +106,8 @@ try {
     $currentTrend=cashierTrend($pdo,$cashierId,$period,$range['current_start'],$range['current_end_exclusive'],$official);
     $priorTrend=cashierTrend($pdo,$cashierId,$period,$range['prior_start'],$range['prior_end_exclusive'],$official);
     $priorTrend['values']=array_slice(array_pad($priorTrend['values'],count($currentTrend['labels']),0.0),0,count($currentTrend['labels']));
-    $sections=array_replace(['kpis'=>'ok','trend'=>array_sum($currentTrend['values'])>0?'ok':'no_data','academic_categories'=>$academicCategories?'ok':'no_data','sale_categories'=>$saleCategories?'ok':'no_data','recent_transactions'=>$recentTransactions?'ok':'no_data'],$optionalErrors);
-    $hasPartial=!empty($optionalErrors);
+    $sections=array_replace(['kpis'=>'ok','trend'=>array_sum($currentTrend['values'])>0?'ok':'no_data','academic_categories'=>$academicCategories?'ok':'no_data','sale_categories'=>$saleCategories?'ok':'no_data','recent_transactions'=>$recentTransactions?'ok':'no_data','receipts'=>$receiptTrackingAvailable?'ok':'error'],$optionalErrors);
+    $hasPartial=!empty($optionalErrors) || !$receiptTrackingAvailable;
 
     echo json_encode([
       'ok'=>true,'partial'=>$hasPartial,'period'=>$period,'period_label'=>$range['period_label'],'period_month'=>$range['period_month'],'period_year'=>$range['period_year'],'available_period_years'=>$availablePeriodYears,'timezone'=>$range['timezone'],'comparison_label'=>$range['comparison_label'],'generated_at'=>(new DateTimeImmutable('now',new DateTimeZone(CashierReportingPeriod::TIMEZONE)))->format(DATE_ATOM),'section_status'=>$sections,
