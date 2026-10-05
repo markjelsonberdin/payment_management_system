@@ -17,7 +17,7 @@ $filters = [
     'period_year' => (string) ($_GET['period_year'] ?? ''),
 ];
 $pageSize = 50;
-$page = max(1, (int) ($_GET['page'] ?? 1));
+$historyPage = max(1, (int) ($_GET['page'] ?? 1));
 $totalRows = 0;
 $totalPages = 1;
 $reportingNow = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
@@ -79,11 +79,11 @@ try {
     $countStmt->execute($params);
     $totalRows = (int) $countStmt->fetchColumn();
     $totalPages = max(1, (int) ceil($totalRows / $pageSize));
-    $page = min($page, $totalPages);
+    $historyPage = min($historyPage, $totalPages);
     $stmt = $pdo->prepare($filteredSql . ' ORDER BY h.recorded_at DESC, h.record_id DESC LIMIT ? OFFSET ?');
     foreach ($params as $index => $value) $stmt->bindValue($index + 1, $value);
     $stmt->bindValue(count($params) + 1, $pageSize, PDO::PARAM_INT);
-    $stmt->bindValue(count($params) + 2, ($page - 1) * $pageSize, PDO::PARAM_INT);
+    $stmt->bindValue(count($params) + 2, ($historyPage - 1) * $pageSize, PDO::PARAM_INT);
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { error_log('Cashier history query failed: ' . $e->getMessage()); $error = 'Cashier transaction history is temporarily unavailable.'; }
@@ -120,7 +120,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
   <div class="col-sm-4 col-lg-2"><label class="form-label small fw-bold">Payment Method</label><select class="form-select" name="channel"><option value="">Cash only</option><option value="Cash" <?=$filters['channel']==='Cash'?'selected':''?>>Cash</option></select></div>
   <div class="col-lg-2 d-flex gap-2"><button class="btn btn-primary flex-grow-1">Apply</button><a class="btn btn-outline-secondary" href="walk-in-transaction-history.php">Reset</a></div>
  </div></div></form>
- <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 small text-muted"><span>Showing <?= $totalRows ? (($page-1)*$pageSize+1) : 0 ?>–<?= min($page*$pageSize,$totalRows) ?> of <?= number_format($totalRows) ?> transactions</span><?php if($totalPages>1): ?><nav aria-label="Transaction history pages"><ul class="pagination pagination-sm mb-0"><?php $paginationFilters=$filters; if($page>1): ?><li class="page-item"><a class="page-link" href="?<?=htmlspecialchars(http_build_query(array_merge($paginationFilters,['page'=>$page-1])))?>">Previous</a></li><?php endif; ?><li class="page-item disabled"><span class="page-link">Page <?=$page?> of <?=$totalPages?></span></li><?php if($page<$totalPages): ?><li class="page-item"><a class="page-link" href="?<?=htmlspecialchars(http_build_query(array_merge($paginationFilters,['page'=>$page+1])))?>">Next</a></li><?php endif; ?></ul></nav><?php endif; ?></div>
+ <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 small text-muted"><span>Showing <?= $totalRows ? (($historyPage-1)*$pageSize+1) : 0 ?>–<?= min($historyPage*$pageSize,$totalRows) ?> of <?= number_format($totalRows) ?> transactions</span><?php if($totalPages>1): ?><nav aria-label="Transaction history pages"><ul class="pagination pagination-sm mb-0"><?php $paginationFilters=$filters; if($historyPage>1): ?><li class="page-item"><a class="page-link" href="?<?=htmlspecialchars(http_build_query(array_merge($paginationFilters,['page'=>$historyPage-1])))?>">Previous</a></li><?php endif; ?><li class="page-item disabled"><span class="page-link">Page <?=$historyPage?> of <?=$totalPages?></span></li><?php if($historyPage<$totalPages): ?><li class="page-item"><a class="page-link" href="?<?=htmlspecialchars(http_build_query(array_merge($paginationFilters,['page'=>$historyPage+1])))?>">Next</a></li><?php endif; ?></ul></nav><?php endif; ?></div>
  <div class="card border-0 shadow-sm payment-operational-table"><div class="card-body p-0"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Date / Time</th><th>OR / Reference</th><th>Student</th><th>Type</th><th>Category / Items</th><th>Academic Context</th><th class="text-end">Amount</th><th>Action</th></tr></thead><tbody>
  <?php if(!$rows): ?><tr><td colspan="8" class="payment-table-empty">No cashier transactions found for the selected filters.</td></tr><?php endif; foreach($rows as $row): $receiptUrl = $row['transaction_type']==='School Sale' ? 'print-receipt.php?cash_sale_id='.(int)$row['record_id'] : 'print-receipt.php?payment_id='.(int)$row['record_id']; $allocationMismatch=(int)$row['allocation_mismatch']===1; ?>
  <tr><td><span class="payment-table-primary"><?=htmlspecialchars($row['recorded_at'])?></span></td><td class="payment-table-primary"><?=htmlspecialchars($row['receipt'])?></td><td><span class="payment-table-primary"><?=htmlspecialchars($row['full_name'])?></span><small class="payment-table-secondary"><?=htmlspecialchars($row['student_number'])?></small></td><td><span class="badge <?=$row['transaction_type']==='School Sale'?'bg-info':'bg-primary'?>"><?=htmlspecialchars($row['transaction_type'])?></span></td><td class="payment-table-secondary"><?=htmlspecialchars($row['details'] ?: '—')?></td><td><span class="payment-table-primary"><?=htmlspecialchars(trim(($row['academic_year'] ?: '') . ' ' . ($row['semester'] ?: '')) ?: '—')?></span><small class="payment-table-secondary"><?=htmlspecialchars($row['billing_type'] ?: '')?></small></td><td class="payment-table-money">PHP <?=number_format((float)$row['total'],2)?><?php if($allocationMismatch): ?><small class="d-block text-danger"><span class="badge bg-danger">Allocation mismatch</span><br>Header: PHP <?=number_format((float)$row['header_amount'],2)?><br>Allocated: PHP <?=number_format((float)$row['total'],2)?><br>Difference: PHP <?=number_format((float)$row['amount_difference'],2)?></small><?php endif; ?></td><td><div class="payment-table-actions"><a class="btn btn-sm btn-outline-primary" title="Print receipt" aria-label="Print receipt" target="_blank" href="<?=$receiptUrl?>"><i class="ti ti-printer"></i></a></div></td></tr>
