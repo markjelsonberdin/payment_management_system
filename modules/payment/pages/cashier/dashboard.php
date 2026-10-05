@@ -9,6 +9,7 @@ $cashierPhtNow = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
 $dashboardMonth = filter_var($_GET['period_month'] ?? $cashierPhtNow->format('n'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 12]]) ?: (int) $cashierPhtNow->format('n');
 $dashboardYear = filter_var($_GET['period_year'] ?? $cashierPhtNow->format('Y'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 9998]]) ?: (int) $cashierPhtNow->format('Y');
 $pageTitle='Dashboard'; $activeModule='payment'; $activePage='cashier/dashboard';
+$loadChartJs = true;
 $breadcrumbs=[['label'=>'Payment Management','url'=>BASE_URL.'/modules/payment/index.php'],['label'=>'Dashboard','url'=>null]];
 require_once ROOT_PATH . '/includes/breadcrumbs.php'; require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
