@@ -218,16 +218,21 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Secret'] as $credentialKey => $credentialLabel): ?>
                                     <div class="mb-3">
                                         <label class="form-label small fw-semibold mb-1" for="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"><?= e($credentialLabel) ?></label>
-                                        <input
-                                            type="password"
-                                            class="form-control font-monospace"
-                                            id="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"
-                                            value="<?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '' ?>"
-                                            placeholder="<?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'Not configured' ?>"
-                                            aria-label="<?= e($modeLabel . ' ' . $credentialLabel) ?>"
-                                            readonly
-                                            autocomplete="off"
-                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="password"
+                                                class="form-control font-monospace"
+                                                id="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"
+                                                value="<?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '' ?>"
+                                                placeholder="<?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'Not configured' ?>"
+                                                aria-label="<?= e($modeLabel . ' ' . $credentialLabel) ?>"
+                                                readonly
+                                                autocomplete="off"
+                                            >
+                                            <span class="input-group-text text-muted" title="Credential hidden" aria-label="Credential hidden">
+                                                <i class="ti ti-eye-off" aria-hidden="true"></i>
+                                            </span>
+                                        </div>
                                         <div class="form-text"><?= $credentialStatus[$modeKey][$credentialKey] ? 'Configured' : 'Not configured' ?></div>
                                     </div>
                                 <?php endforeach; ?>
