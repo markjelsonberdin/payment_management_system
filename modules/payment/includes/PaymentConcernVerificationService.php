@@ -40,6 +40,15 @@ class PaymentConcernVerificationService {
         $issues = [];
         $status = 'READY_FOR_REVIEW';
 
+        $evidenceNotes = json_decode((string)($ocr['extraction_notes'] ?? ''), true);
+        $indicators = is_array($evidenceNotes) && is_array($evidenceNotes['indicators'] ?? null) ? $evidenceNotes['indicators'] : [];
+        foreach ($indicators as $indicator) {
+            if (!is_string($indicator) || $indicator === 'MANUAL_REVIEW_REQUIRED') continue;
+            $issues[] = str_replace('_', ' ', $indicator);
+            if (in_array($indicator, ['EXACT_IMAGE_DUPLICATE','REFERENCE_DUPLICATE'], true)) $status = 'POSSIBLE_DUPLICATE';
+            elseif ($status === 'READY_FOR_REVIEW') $status = 'NEEDS_CORRECTION';
+        }
+
         if ($ocr['extraction_status'] === 'AMBIGUOUS') {
             $status = 'AMBIGUOUS';
             $issues[] = "Multiple plausible candidates found for one or more fields. Manual review required.";
@@ -107,7 +116,7 @@ class PaymentConcernVerificationService {
         if (count($issues) > 0) {
             return [
                 'status' => $status !== 'READY_FOR_REVIEW' ? $status : 'NEEDS_CORRECTION',
-                'remarks' => implode(' | ', $issues)
+                'remarks' => implode(' | ', array_values(array_unique($issues)))
             ];
         }
 

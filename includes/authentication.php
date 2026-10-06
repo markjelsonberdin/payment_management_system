@@ -357,6 +357,11 @@ function getVisibleModules(array $modules): array
         unset($visible['payment']);
     }
 
+    if (smsNormalizeRoleKey(getCurrentUserRoleKey()) === 'mis_admin' && isset($visible['payment'])) {
+        $visible['payment']['label'] = 'MIS Admin';
+        $visible['payment']['overview_group_label'] = 'Dashboard';
+    }
+
     if (getCurrentUserRoleKey() === 'research_coordinator' && isset($visible['crad'])) {
         $visible['crad'] = smsResearchCoordinatorCradModule();
     }
@@ -1691,7 +1696,8 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
             'payment.cashier_dashboard', 'billing.individual.review',
         ],
         'mis_admin' => [
-            'payment.mis_overview', 'payment_users.view', 'payment_users.create', 'payment_users.update',
+            'payment.mis_overview', 'payment.security.view', 'payment.audit.view',
+            'payment_users.view', 'payment_users.create', 'payment_users.update',
             'payment_users.role.assign', 'payment_users.activate', 'payment_users.deactivate',
             'payment_users.unlock', 'payment_users.password.reset',
             'integration.paymongo.manage', 'integration.ocr.manage',

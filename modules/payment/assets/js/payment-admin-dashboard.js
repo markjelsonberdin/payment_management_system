@@ -7,6 +7,7 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
   const count = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : 'Unavailable';
+  const links = window.MIS_OVERVIEW_LINKS || {};
   function clear() {
     byId('adminKpis').replaceChildren();
     byId('roleCounts').textContent = 'Account counts unavailable.';
@@ -18,11 +19,11 @@
   function render(data) {
     const accounts = data.accounts;
     byId('adminKpis').innerHTML = [
-      ['Payment Staff Users', 'total'], ['Active Users', 'active'],
-      ['Inactive / Disabled Users', 'inactive'], ['Temporarily Locked Accounts', 'locked']
-    ].map(([label, key]) => '<div class="col-sm-6 col-xl-3"><div class="card h-100"><div class="card-body">' +
-      '<div class="small text-muted">' + label + '</div><div class="h4 mt-2 mb-0">' +
-      (accounts ? count(accounts[key]) : 'Unavailable') + '</div></div></div></div>').join('');
+      ['Payment Personnel', 'total', links.users], ['Active Personnel', 'active', links.users],
+      ['Inactive Personnel', 'inactive', links.users], ['Locked Accounts', 'locked', (links.security || '') + '?state=locked']
+    ].map(([label, key, href]) => '<div class="col-sm-6 col-xl-3"><div class="card mis-card"><div class="card-body">' +
+      '<div class="mis-card-label">' + label + '</div><div class="mis-card-value">' +
+      (accounts ? count(accounts[key]) : 'Unavailable') + '</div><a class="small stretched-link" href="' + esc(href || '#') + '">View details</a></div></div></div>').join('');
     if (accounts) {
       byId('roleCounts').innerHTML = [['Accounting Admin', 'accounting_admin'], ['Accounting Officer', 'accounting_officer'], ['Cashier', 'cashier']]
         .map(([label, key]) => '<div class="d-flex justify-content-between border-bottom py-2"><span>' + label + '</span><strong>' + count(accounts.by_role[key]) + '</strong></div>').join('');

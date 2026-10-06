@@ -12,10 +12,11 @@ $groupByRole = [
     'accounting_officer' => 'ACCOUNTING PORTAL',
     'accounting_admin' => 'ACCOUNTING ADMIN PORTAL',
     'cashier' => 'CASHIER PORTAL',
-    'mis_admin' => 'MIS ADMIN PORTAL',
+    'mis_admin' => ['Payment Administration', 'Integrations', 'Security', 'Audit'],
 ];
 $paymentMeta = $MODULES['payment'] ?? ['groups' => [], 'pages' => []];
-$groupNames = isset($groupByRole[$role]) ? [$groupByRole[$role]] : array_keys($paymentMeta['groups']);
+$configuredGroups = $groupByRole[$role] ?? array_keys($paymentMeta['groups']);
+$groupNames = is_array($configuredGroups) ? $configuredGroups : [$configuredGroups];
 $allowedSlugs = [];
 foreach ($groupNames as $groupName) {
     foreach (($paymentMeta['groups'][$groupName] ?? []) as $slug) {
@@ -44,9 +45,11 @@ foreach ($allowedSlugs as $slug) {
 // This fallback protects the UI from incomplete legacy permission metadata;
 // it does not change the page-level authorization checks.
 if ($overviewCards === [] && isset($groupByRole[$role])) {
-    foreach (($paymentMeta['groups'][$groupByRole[$role]] ?? []) as $slug) {
-        if (isset($pageBySlug[$slug])) {
-            $overviewCards[] = $pageBySlug[$slug];
+    foreach ($groupNames as $groupName) {
+        foreach (($paymentMeta['groups'][$groupName] ?? []) as $slug) {
+            if (isset($pageBySlug[$slug])) {
+                $overviewCards[] = $pageBySlug[$slug];
+            }
         }
     }
 }

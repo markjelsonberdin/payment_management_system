@@ -400,6 +400,11 @@ $researchDirectorNavGroups = [
                         </span>
                     </li>
                     <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'accounting_admin', 'mis_admin', 'cashier'], true); ?>
+                    <?php if (!empty($module['overview_group_label'])): ?>
+                        <li class="nav-item sidebar-group-label">
+                            <span class="nav-link sidebar-group-heading"><?= htmlspecialchars((string) $module['overview_group_label']) ?></span>
+                        </li>
+                    <?php endif; ?>
                     <?php if (!$hasCanonicalPaymentDashboard || $navModuleKey === 'payment'): ?>
                         <li class="nav-item">
                             <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && ($activePage === '' || ($isMisOverview && $activePage === 'mis_admin/dashboard'))) ? 'active' : '' ?>"

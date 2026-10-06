@@ -308,11 +308,13 @@ $MODULES = [
                 'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
-            'MIS ADMIN PORTAL' => [
-                'mis_admin/dashboard',
-                'mis_admin/payment-user-management',
+            'Payment Administration' => ['mis_admin/payment-user-management'],
+            'Integrations' => [
                 'mis_admin/online-payment-integration',
+                'mis_admin/google-ocr-integration',
             ],
+            'Security' => ['mis_admin/security-monitoring'],
+            'Audit' => ['mis_admin/administrative-audit'],
         ],
         'pages' => [
             // Accounting / Cashier Pages
@@ -332,9 +334,12 @@ $MODULES = [
             ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern.review'],
             ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'Transactions', 'permission' => 'payment.walkin_history'],
             
-            ['slug' => 'mis_admin/dashboard', 'title' => 'MIS Admin Overview', 'permission' => 'payment.mis_overview'],
-            ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Personnel Management', 'permission' => 'payment_users.view'],
-            ['slug' => 'mis_admin/online-payment-integration', 'title' => 'Online Payment Configuration', 'permission' => 'integration.paymongo.manage'],
+            ['slug' => 'mis_admin/dashboard', 'title' => 'Overview', 'permission' => 'payment.mis_overview'],
+            ['slug' => 'mis_admin/security-monitoring', 'title' => 'Security Monitoring', 'permission' => 'payment.security.view'],
+            ['slug' => 'mis_admin/administrative-audit', 'title' => 'Administrative Audit', 'permission' => 'payment.audit.view'],
+            ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Users', 'permission' => 'payment_users.view'],
+            ['slug' => 'mis_admin/online-payment-integration', 'title' => 'PayMongo Integration', 'permission' => 'integration.paymongo.manage'],
+            ['slug' => 'mis_admin/google-ocr-integration', 'title' => 'Google OCR Integration', 'permission' => 'integration.ocr.manage'],
         ],
     ],
     'faculty' => [

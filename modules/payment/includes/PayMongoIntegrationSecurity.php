@@ -5,7 +5,7 @@ declare(strict_types=1);
 final class PayMongoIntegrationSecurity
 {
     /** @return array{id:int,name:string,role:string} */
-    public static function requireActiveMisActor(PDO $corePdo): array
+    public static function requireActiveMisActor(PDO $corePdo, string $permission = 'integration.paymongo.manage'): array
     {
         $userId = getCurrentUserId();
         if ($userId === null) throw new DomainException('AUTHENTICATION_REQUIRED');
@@ -18,7 +18,7 @@ final class PayMongoIntegrationSecurity
             || ($actor['role_key'] ?? '') !== getCurrentUserRoleKey()) {
             throw new DomainException('ACTOR_SESSION_STALE');
         }
-        requirePaymentPermission('integration.paymongo.manage');
+        requirePaymentPermission($permission);
         return ['id' => (int) $actor['id'], 'name' => (string) $actor['full_name'], 'role' => 'mis_admin'];
     }
 }
