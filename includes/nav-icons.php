@@ -11,7 +11,6 @@ if (!function_exists('smsNavPageIcon')) {
             'mis_admin/online-payment-integration' => 'fa-credit-card',
             'mis_admin/google-ocr-integration' => 'fa-file-image',
             'mis_admin/security-monitoring' => 'fa-shield-alt',
-            'mis_admin/administrative-audit' => 'fa-clipboard-check',
             'cashier/walk-in-transaction-history' => 'fa-receipt',
             'user-accounts' => 'fa-user-cog',
             'role-permissions' => 'fa-shield-alt',

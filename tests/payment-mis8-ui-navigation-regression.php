@@ -19,20 +19,18 @@ $pages = [
     'paymongo' => $read('modules/payment/pages/mis_admin/online-payment-integration.php'),
     'ocr' => $read('modules/payment/pages/mis_admin/google-ocr-integration.php'),
     'security' => $read('modules/payment/pages/mis_admin/security-monitoring.php'),
-    'audit' => $read('modules/payment/pages/mis_admin/administrative-audit.php'),
 ];
 $expectedGroups = [
     'Payment Administration' => 'mis_admin/payment-user-management',
     'Integrations' => 'mis_admin/online-payment-integration',
     'Security' => 'mis_admin/security-monitoring',
-    'Audit' => 'mis_admin/administrative-audit',
 ];
 foreach ($expectedGroups as $group => $slug) {
     mis8check(str_contains($config, "'{$group}'") && str_contains($config, "'{$slug}'"), "{$group} navigation group");
 }
 mis8check(str_contains($auth, "\$visible['payment']['label'] = 'MIS Admin'"), 'MIS-only module label');
 mis8check(str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "module['overview_group_label']"), 'Optional Dashboard group metadata');
-mis8check(str_contains($index, "'mis_admin' => ['Payment Administration', 'Integrations', 'Security', 'Audit']"), 'Payment index supports MIS group list');
+mis8check(str_contains($index, "'mis_admin' => ['Payment Administration', 'Integrations', 'Security']"), 'Payment index supports MIS group list');
 mis8check(str_contains($sidebar, 'foreach ($module[\'groups\'] as $groupLabel => $groupSlugs)'), 'Existing generic sidebar grouping preserved');
 $mappings = [
     'mis_admin/dashboard' => 'payment.mis_overview',
@@ -40,32 +38,27 @@ $mappings = [
     'mis_admin/online-payment-integration' => 'integration.paymongo.manage',
     'mis_admin/google-ocr-integration' => 'integration.ocr.manage',
     'mis_admin/security-monitoring' => 'payment.security.view',
-    'mis_admin/administrative-audit' => 'payment.audit.view',
 ];
 foreach ($mappings as $slug => $permission) {
     mis8check((bool) preg_match("/'slug' => '" . preg_quote($slug, '/') . "'.*'permission' => '" . preg_quote($permission, '/') . "'/", $config), "{$slug} permission mapping");
 }
-$labels = ['Overview', 'Payment Users', 'PayMongo Integration', 'Google OCR Integration', 'Security Monitoring', 'Administrative Audit'];
+$labels = ['Overview', 'Payment Users', 'PayMongo Integration', 'Google OCR Integration', 'Security Monitoring'];
 foreach ($labels as $label) mis8check(str_contains($config, "'title' => '{$label}'"), "{$label} canonical label");
 foreach ($pages as $name => $page) {
     mis8check((bool) preg_match('/<h1\b[^>]*>.*?<\/h1>/s', $page), "{$name} uses H1");
     mis8check(str_contains($page, 'payment-mis-admin.css'), "{$name} loads shared MIS CSS");
     mis8check(str_contains($page, "['label' => 'MIS Admin'") || str_contains($page, "['label'=>'MIS Admin'"), "{$name} MIS breadcrumb");
 }
-foreach (['users', 'security', 'audit'] as $name) {
+foreach (['users', 'security'] as $name) {
     mis8check(str_contains($pages[$name], 'scope="col"'), "{$name} table header semantics");
     mis8check(str_contains($pages[$name], 'table-responsive'), "{$name} responsive table");
 }
 mis8check(str_contains($pages['security'], 'personnelReset') && str_contains($pages['security'], 'eventReset'), 'Security reset controls');
-mis8check(str_contains($pages['audit'], 'auditReset'), 'Audit reset control');
 $securityJs = $read('modules/payment/assets/js/payment-security-monitoring.js');
-$auditJs = $read('modules/payment/assets/js/payment-administrative-audit.js');
 mis8check(str_contains($securityJs, "byId('personnelReset')") && str_contains($securityJs, "byId('eventReset')"), 'Security reset behavior');
-mis8check(str_contains($auditJs, "byId('auditReset')") && str_contains($auditJs, 'resetFilters'), 'Audit bounded reset behavior');
-mis8check(str_contains($pages['audit'], 'aria-label="Close audit event detail"'), 'Audit modal close accessible');
 mis8check(substr_count($pages['users'], 'aria-label="Close dialog"') >= 2, 'Payment user modal closes accessible');
 mis8check(str_contains($pages['overview'], 'MIS_OVERVIEW_LINKS'), 'Overview drill-down allowlist');
-foreach (['payment-user-management.php', 'security-monitoring.php', 'online-payment-integration.php', 'google-ocr-integration.php', 'administrative-audit.php'] as $route) {
+foreach (['payment-user-management.php', 'security-monitoring.php', 'online-payment-integration.php', 'google-ocr-integration.php'] as $route) {
     mis8check(str_contains($pages['overview'], $route), "Overview link {$route}");
 }
 $legacyUi = implode("\n", $pages);
@@ -73,7 +66,7 @@ foreach (['MIS Admin Overview', 'Payment Personnel Management', 'Online Payment 
     mis8check(!str_contains($legacyUi, $legacy), "Legacy UI label removed: {$legacy}");
 }
 foreach (['Fee Setup', 'Student Billing', 'Payment Approval', 'Payment Ledger', 'Accounts Receivable', 'Collection Reporting', 'School Sales', 'Refund', 'Void'] as $financial) {
-    mis8check(!str_contains(implode("\n", array_intersect_key($pages, array_flip(['overview','users','security','audit']))), $financial), "No financial MIS navigation: {$financial}");
+    mis8check(!str_contains(implode("\n", array_intersect_key($pages, array_flip(['overview','users','security']))), $financial), "No financial MIS navigation: {$financial}");
 }
 mis8check(is_file($root . '/modules/payment/assets/css/payment-mis-admin.css'), 'Shared MIS CSS exists');
 echo "PASS: {$checks} MIS-8 UI and navigation checks.\n";

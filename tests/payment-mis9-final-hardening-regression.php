@@ -23,7 +23,6 @@ $pages = [
     'online-payment-integration.php' => 'integration.paymongo.manage',
     'google-ocr-integration.php' => 'integration.ocr.manage',
     'security-monitoring.php' => 'payment.security.view',
-    'administrative-audit.php' => 'payment.audit.view',
 ];
 $misUi = '';
 foreach ($pages as $file => $permission) {
@@ -37,7 +36,6 @@ $apiMap = [
     'modules/payment/api/mis_admin/overview.php' => 'payment.mis_overview',
     'modules/payment/api/mis_admin/payment-users.php' => 'payment_users.view',
     'modules/payment/api/mis_admin/security-monitoring.php' => 'payment.security.view',
-    'modules/payment/api/mis_admin/administrative-audit.php' => 'payment.audit.view',
     'modules/payment/api/paymongo/status.php' => 'requireActiveMisActor',
     'modules/payment/api/paymongo/channels.php' => 'requireActiveMisActor',
     'modules/payment/api/paymongo/test-connection.php' => 'requireActiveMisActor',
@@ -56,7 +54,7 @@ mis9check(str_contains($overview, "!== 'GET'") && str_contains($overview, '405')
 
 $deniedRoles = ['accounting_admin', 'accounting_officer', 'cashier', 'student', 'finance', 'payment_admin', 'superadmin', 'unknown_role'];
 $misPermissions = ['payment.mis_overview', 'payment_users.view', 'integration.paymongo.manage',
-    'integration.ocr.manage', 'payment.security.view', 'payment.audit.view'];
+    'integration.ocr.manage', 'payment.security.view'];
 foreach ($deniedRoles as $role) foreach ($misPermissions as $permission) {
     mis9check(!paymentRoleAllowsPermission($role, $permission), "$role denied $permission");
 }
@@ -69,7 +67,7 @@ foreach ($financial as $permission) {
 $misBundle = ['payment.mis_overview', 'payment_users.view', 'payment_users.create', 'payment_users.update',
     'payment_users.role.assign', 'payment_users.activate', 'payment_users.deactivate', 'payment_users.unlock',
     'payment_users.password.reset', 'integration.paymongo.manage', 'integration.ocr.manage',
-    'payment.security.view', 'payment.audit.view'];
+    'payment.security.view'];
 foreach ($misBundle as $permission) mis9check(paymentRoleAllowsPermission('mis_admin', $permission), "MIS owns $permission");
 
 $personnelApi = $read('modules/payment/api/mis_admin/payment-users.php');
@@ -111,22 +109,11 @@ mis9check(str_contains($processor, "guard->begin") && str_contains($processor, "
     && str_contains($processor, 'markProviderCalled'), 'OCR cache and quota reservation');
 mis9check(!preg_match('/(?:approve|reject).*(?:payment|concern)/i', $processor), 'OCR makes no financial decision');
 
-$auditApi = $read('modules/payment/api/mis_admin/administrative-audit.php');
-$audit = $read('modules/payment/includes/PaymentAdministrativeAuditService.php');
-mis9check(!preg_match('/\b(?:INSERT|UPDATE|DELETE|TRUNCATE)\b/i', $auditApi), 'Audit API is read only');
-foreach (['password', 'secret', 'token', 'private_key', 'access_token', 'refresh_token', 'session_id', 'receipt_path'] as $key) {
-    mis9check(str_contains($audit, $key), "Audit redacts $key");
-}
-mis9check(str_contains($audit, 'OCR_SAFE_KEYS') && !preg_match('/OCR_SAFE_KEYS[^;]*(?:ocr_text|amount|reference|receipt_path)/s', $audit),
-    'OCR audit allowlist excludes private financial evidence');
-mis9check(str_contains($audit, 'activity_logs'), 'Core activity logs are canonical');
-mis9check(!str_contains($audit, 'payment_audit_outbox'), 'Outbox is not public audit source');
-
 foreach (['AUB Bank Reconciliation', 'Fee Setup', 'Student Billing', 'Payment Approval', 'Payment Ledger',
     'Accounts Receivable', 'Collection Reporting', 'School Sales', 'Refund', 'Void'] as $forbidden) {
     mis9check(!str_contains($misUi, $forbidden), "MIS UI excludes $forbidden");
 }
-foreach (['Payment Administration', 'Integrations', 'Security', 'Audit'] as $group) {
+foreach (['Payment Administration', 'Integrations', 'Security'] as $group) {
     mis9check(str_contains($config, "'$group'"), "Navigation group $group");
 }
 mis9check(str_contains($auth, "overview_group_label'] = 'Dashboard'"), 'Dashboard hierarchy');
@@ -135,11 +122,10 @@ mis9check(!str_contains($config, "'MIS ADMIN PORTAL'"), 'Legacy flat MIS group a
 
 $frontend = $read('modules/payment/assets/js/payment-admin-dashboard.js')
     . $read('modules/payment/assets/js/accounting-user-management.js')
-    . $read('modules/payment/assets/js/payment-security-monitoring.js')
-    . $read('modules/payment/assets/js/payment-administrative-audit.js');
-mis9check(substr_count($frontend, 'const esc') >= 4, 'Frontend output escaping retained');
+    . $read('modules/payment/assets/js/payment-security-monitoring.js');
+mis9check(substr_count($frontend, 'const esc') >= 3, 'Frontend output escaping retained');
 mis9check(!preg_match('/(?:private_key|BEGIN PRIVATE KEY|client_secret|access_token|refresh_token)/i', $frontend), 'No frontend credential material');
-$releaseSource = $auth . $config . $sidebar . $misUi . $frontend . $overview . $personnelApi . $auditApi;
+$releaseSource = $auth . $config . $sidebar . $misUi . $frontend . $overview . $personnelApi;
 mis9check(!str_contains($releaseSource, 'BEGIN PRIVATE KEY'), 'No embedded private key');
 mis9check(!preg_match('/(?:sk_live_|sk_test_|whsec_)[A-Za-z0-9]{8,}/', $releaseSource), 'No embedded PayMongo credential');
 mis9check(!preg_match('/var_dump\s*\(|print_r\s*\(|TODO\s*(?:bypass|disable auth)/i', $releaseSource), 'No debug or auth bypass marker');

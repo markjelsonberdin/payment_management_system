@@ -1696,7 +1696,7 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
             'payment.cashier_dashboard', 'billing.individual.review',
         ],
         'mis_admin' => [
-            'payment.mis_overview', 'payment.security.view', 'payment.audit.view',
+            'payment.mis_overview', 'payment.security.view',
             'payment_users.view', 'payment_users.create', 'payment_users.update',
             'payment_users.role.assign', 'payment_users.activate', 'payment_users.deactivate',
             'payment_users.unlock', 'payment_users.password.reset',

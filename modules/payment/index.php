@@ -12,7 +12,7 @@ $groupByRole = [
     'accounting_officer' => 'ACCOUNTING PORTAL',
     'accounting_admin' => 'ACCOUNTING ADMIN PORTAL',
     'cashier' => 'CASHIER PORTAL',
-    'mis_admin' => ['Payment Administration', 'Integrations', 'Security', 'Audit'],
+    'mis_admin' => ['Payment Administration', 'Integrations', 'Security'],
 ];
 $paymentMeta = $MODULES['payment'] ?? ['groups' => [], 'pages' => []];
 $configuredGroups = $groupByRole[$role] ?? array_keys($paymentMeta['groups']);

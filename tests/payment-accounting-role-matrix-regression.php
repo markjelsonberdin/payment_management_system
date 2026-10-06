@@ -32,7 +32,7 @@ allowRole('accounting_admin', ['fee.view','fee.manage','fee.activate','billing.i
 denyRole('accounting_admin', ['billing.individual.process','billing.bulk.process','billing.bulk.retry','billing.bulk.resume','payment_users.view','integration.paymongo.manage']);
 allowRole('cashier', ['payment.collection','payment.walkin_history','payment.cashier_dashboard','billing.individual.review']);
 denyRole('cashier', ['fee.manage','billing.bulk.view','billing.bulk.approve','payment_users.view','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
-allowRole('mis_admin', ['payment.security.view','payment.audit.view','payment_users.view','payment_users.create','payment_users.update','payment_users.role.assign','payment_users.activate','payment_users.deactivate','payment_users.unlock','payment_users.password.reset','payment_users.reset_password','integration.paymongo.manage','integration.ocr.manage']);
+allowRole('mis_admin', ['payment.security.view','payment_users.view','payment_users.create','payment_users.update','payment_users.role.assign','payment_users.activate','payment_users.deactivate','payment_users.unlock','payment_users.password.reset','payment_users.reset_password','integration.paymongo.manage','integration.ocr.manage']);
 denyRole('mis_admin', ['integration.aub.manage']);
 denyRole('mis_admin', ['fee.manage','billing.individual.process','ledger.view','billing.bulk.approve','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
 denyRole('superadmin', ['billing.individual.process','billing.bulk.process','billing.bulk.approve','fee.manage','payment_users.view','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
@@ -40,7 +40,7 @@ denyRole('finance', ['integration.paymongo.manage','billing.bulk.approve','schoo
 denyRole('payment_admin', ['integration.paymongo.manage','billing.bulk.approve','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
 allowRole('mis_admin', ['payment.mis_overview']);
 foreach (['accounting_admin', 'accounting_officer', 'cashier', 'student', 'superadmin', 'finance', 'payment_admin', 'unknown'] as $role) {
-    denyRole($role, ['payment.mis_overview', 'payment.security.view', 'payment.audit.view']);
+    denyRole($role, ['payment.mis_overview', 'payment.security.view']);
 }
 denyRole('mis_admin', ['report.view', 'report.export', 'payment.unknown_permission']);
 $overviewEndpoint = (string) file_get_contents(ROOT_PATH . '/modules/payment/api/mis_admin/overview.php');

@@ -314,7 +314,6 @@ $MODULES = [
                 'mis_admin/google-ocr-integration',
             ],
             'Security' => ['mis_admin/security-monitoring'],
-            'Audit' => ['mis_admin/administrative-audit'],
         ],
         'pages' => [
             // Accounting / Cashier Pages
@@ -336,7 +335,6 @@ $MODULES = [
             
             ['slug' => 'mis_admin/dashboard', 'title' => 'Overview', 'permission' => 'payment.mis_overview'],
             ['slug' => 'mis_admin/security-monitoring', 'title' => 'Security Monitoring', 'permission' => 'payment.security.view'],
-            ['slug' => 'mis_admin/administrative-audit', 'title' => 'Administrative Audit', 'permission' => 'payment.audit.view'],
             ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Users', 'permission' => 'payment_users.view'],
             ['slug' => 'mis_admin/online-payment-integration', 'title' => 'PayMongo Integration', 'permission' => 'integration.paymongo.manage'],
             ['slug' => 'mis_admin/google-ocr-integration', 'title' => 'Google OCR Integration', 'permission' => 'integration.ocr.manage'],

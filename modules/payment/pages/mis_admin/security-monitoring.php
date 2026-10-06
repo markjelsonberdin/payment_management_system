@@ -19,8 +19,6 @@ renderBreadcrumbs($breadcrumbs);
 <main class="container-fluid py-4" id="paymentSecurityApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php', ENT_QUOTES, 'UTF-8') ?>"
  data-personnel-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
- data-audit-url="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/mis_admin/administrative-audit.php', ENT_QUOTES, 'UTF-8') ?>"
- data-can-view-audit="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.audit.view') ? '1' : '0' ?>"
  data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
  data-can-unlock="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.unlock') ? '1' : '0' ?>">
   <div class="mis-page-header">

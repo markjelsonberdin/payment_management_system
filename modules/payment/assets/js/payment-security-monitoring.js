@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEvents(data) {
     byId('securityEventRows').innerHTML = data.items.length ? data.items.map(event =>
       `<tr><td>${dateTime(event.created_at)}</td><td>${esc(event.event)}</td><td>${esc(event.actor)}</td><td>${esc(event.target)}</td><td>${esc(roleLabel(event.role_key))}</td>` +
-      `<td>${badge(event.result, event.result === 'SUCCESS' ? 'success' : event.result === 'LOCKED' ? 'danger' : 'warning text-dark')}</td><td>${esc(event.safe_context)}${app.dataset.canViewAudit === '1' ? ` <a href="${esc(app.dataset.auditUrl)}?event_id=${Number(event.id)}">Audit detail</a>` : ''}</td><td><code>${esc(event.correlation_id || '—')}</code></td></tr>`
+      `<td>${badge(event.result, event.result === 'SUCCESS' ? 'success' : event.result === 'LOCKED' ? 'danger' : 'warning text-dark')}</td><td>${esc(event.safe_context)}</td><td><code>${esc(event.correlation_id || '—')}</code></td></tr>`
     ).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No security events found for the selected filters.</td></tr>';
     state.eventPages = data.pages; state.eventPage = data.page;
     byId('eventCount').textContent = `${data.total} event(s) · Page ${data.page} of ${data.pages}`;

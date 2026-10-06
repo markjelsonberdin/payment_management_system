@@ -28,9 +28,6 @@ renderBreadcrumbs($breadcrumbs);
     <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.security.view')): ?>
     <a class="btn btn-outline-danger" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/security-monitoring.php">Security Monitoring</a>
     <?php endif; ?>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.audit.view')): ?>
-    <a class="btn btn-outline-secondary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/administrative-audit.php">Administrative Audit</a>
-    <?php endif; ?>
     <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.paymongo.manage')): ?>
     <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/online-payment-integration.php">PayMongo Integration</a>
     <?php endif; ?>
@@ -65,11 +62,8 @@ renderBreadcrumbs($breadcrumbs);
       <thead><tr><th scope="col">Date &amp; Time</th><th scope="col">Administrative Event</th></tr></thead>
       <tbody id="recentActivityRows"><tr><td colspan="2">—</td></tr></tbody>
     </table></div>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.audit.view')): ?>
-    <a class="small d-inline-block mt-3" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/administrative-audit.php">View Administrative Audit</a>
-    <?php endif; ?>
   </div></section>
 </main>
-<script>window.MIS_OVERVIEW_API = <?= json_encode(BASE_URL . '/modules/payment/api/mis_admin/overview.php') ?>; window.MIS_OVERVIEW_LINKS = <?= json_encode(['users' => BASE_URL . '/modules/payment/pages/mis_admin/payment-user-management.php', 'security' => BASE_URL . '/modules/payment/pages/mis_admin/security-monitoring.php', 'paymongo' => BASE_URL . '/modules/payment/pages/mis_admin/online-payment-integration.php', 'ocr' => BASE_URL . '/modules/payment/pages/mis_admin/google-ocr-integration.php', 'audit' => BASE_URL . '/modules/payment/pages/mis_admin/administrative-audit.php']) ?>;</script>
+<script>window.MIS_OVERVIEW_API = <?= json_encode(BASE_URL . '/modules/payment/api/mis_admin/overview.php') ?>; window.MIS_OVERVIEW_LINKS = <?= json_encode(['users' => BASE_URL . '/modules/payment/pages/mis_admin/payment-user-management.php', 'security' => BASE_URL . '/modules/payment/pages/mis_admin/security-monitoring.php', 'paymongo' => BASE_URL . '/modules/payment/pages/mis_admin/online-payment-integration.php', 'ocr' => BASE_URL . '/modules/payment/pages/mis_admin/google-ocr-integration.php']) ?>;</script>
 <script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=5"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>
