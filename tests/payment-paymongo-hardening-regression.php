@@ -49,6 +49,8 @@ $legacy = file_get_contents($root . '/modules/payment/api/payment-webhook.php');
 checkPayMongo(str_contains($page, 'verifyCsrfToken') && str_contains($page, 'PayMongoIntegrationSecurity::requireActiveMisActor'), 'configuration save enforces CSRF and active MIS actor');
 checkPayMongo((bool) preg_match('/name=["\']fee_policy["\']/', $page), 'validated processing-fee choices are available');
 checkPayMongo(str_contains($page, 'pass_to_student') && str_contains($page, 'absorb_by_school'), 'processing-fee choices are allowlisted');
+checkPayMongo(substr_count($page, 'type="password"') >= 1 && str_contains($page, 'readonly') && str_contains($page, 'Keys stay masked'), 'credential fields are visible but masked and read-only');
+checkPayMongo(!str_contains($page, 'Payment gateway settings updated successfully.'), 'successful save has no passive green update banner');
 checkPayMongo(!str_contains($page, 'sk_test_') && !str_contains($page, 'sk_live_') && !str_contains($page, 'whsec_'), 'HTML source contains no PayMongo key fragments');
 checkPayMongo(str_contains($test, 'REQUEST_METHOD') && str_contains($test, "!== 'POST'") && str_contains($test, 'verifyCsrfToken'), 'connection test requires POST and CSRF');
 checkPayMongo(str_contains($status, 'PayMongoIntegrationSecurity::requireActiveMisActor') && str_contains($channels, 'PayMongoIntegrationSecurity::requireActiveMisActor'), 'MIS status endpoints enforce current active actor');

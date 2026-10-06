@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
     try {
         $configurationService->update($_POST, $actor);
         unset($_SESSION['paymongo_status_cache']);
-        header('Location: online-payment-integration.php?result=updated');
+        header('Location: online-payment-integration.php');
         exit();
     } catch (DomainException|InvalidArgumentException $e) {
         $safeCode = in_array($e->getMessage(), ['GATEWAY_MODE_INVALID', 'FEE_POLICY_INVALID'], true)
@@ -116,14 +116,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div><h1 class="h3"><i class="ti ti-world text-primary me-2" aria-hidden="true"></i>PayMongo Integration</h1><p>Manage and monitor the Payment Management System's PayMongo technical integration.</p></div>
     </div>
 
-    <!-- Alerts -->
-    <?php if (($_GET['result'] ?? '') === 'updated'): ?>
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> Payment gateway settings updated successfully.
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
-        </div>
-    <?php endif; ?>
-    
+    <!-- Validation errors remain visible; successful saves return silently. -->
     <?php if (isset($_GET['error_code'])): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
             <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= e($errorMessages[$_GET['error_code']] ?? 'The PayMongo request could not be completed.') ?>
@@ -218,20 +211,28 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <small class="text-muted d-block mt-1">This dropdown dictates which set of keys below will be used by the system during checkout.</small>
                         </div>
 
-                        <!-- Presence-only credential status; values never enter HTML or JavaScript. -->
+                        <!-- Masked presence fields; credential values never enter HTML or JavaScript. -->
                         <div class="p-3 rounded-3 border" id="keyDisplayBox">
                             <?php foreach (['test' => 'Test', 'live' => 'Live'] as $modeKey => $modeLabel): ?>
-                                <h6 class="fw-bold <?= $modeKey === 'live' ? 'text-danger' : 'text-primary' ?>"><?= e($modeLabel) ?> credentials</h6>
+                                <h6 class="fw-bold <?= $modeKey === 'live' ? 'text-danger' : 'text-primary' ?><?= $modeKey === 'live' ? ' mt-4' : '' ?>"><?= e($modeLabel) ?> credentials</h6>
                                 <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Secret'] as $credentialKey => $credentialLabel): ?>
-                                    <div class="d-flex justify-content-between border-bottom py-2">
-                                        <span><?= e($credentialLabel) ?></span>
-                                        <span class="badge <?= $credentialStatus[$modeKey][$credentialKey] ? 'text-bg-success' : 'text-bg-secondary' ?>">
-                                            <?= $credentialStatus[$modeKey][$credentialKey] ? 'CONFIGURED' : 'NOT CONFIGURED' ?>
-                                        </span>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold mb-1" for="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"><?= e($credentialLabel) ?></label>
+                                        <input
+                                            type="password"
+                                            class="form-control font-monospace"
+                                            id="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"
+                                            value="<?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '' ?>"
+                                            placeholder="<?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'Not configured' ?>"
+                                            aria-label="<?= e($modeLabel . ' ' . $credentialLabel) ?>"
+                                            readonly
+                                            autocomplete="off"
+                                        >
+                                        <div class="form-text"><?= $credentialStatus[$modeKey][$credentialKey] ? 'Configured' : 'Not configured' ?></div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endforeach; ?>
-                            <small class="d-block mt-3 text-muted"><i class="ti ti-info-circle me-1"></i>Credential values are managed only through protected server environment variables.</small>
+                            <small class="d-block mt-2 text-muted"><i class="ti ti-lock me-1"></i>Keys stay masked and are managed through protected server environment variables.</small>
                         </div>
                     </div>
                 </div>
