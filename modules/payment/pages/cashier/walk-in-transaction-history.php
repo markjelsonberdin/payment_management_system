@@ -95,15 +95,17 @@ $renderPagination = static function (string $label) use ($historyPage, $totalPag
     $href = static function (int $page) use ($filters, $pageSize): string {
         return '?' . htmlspecialchars(http_build_query(array_merge($filters, ['per_page' => $pageSize, 'page' => $page])), ENT_QUOTES, 'UTF-8');
     };
-    $pageLink = static function (int $page, string $label, bool $current = false) use ($href): string {
+    $pageLink = static function (int $page, string $label, bool $current = false, ?string $ariaLabel = null) use ($href): string {
         $ariaCurrent = $current ? ' aria-current="page"' : '';
+        $accessibleLabel = $ariaLabel !== null ? ' aria-label="' . htmlspecialchars($ariaLabel, ENT_QUOTES, 'UTF-8') . '"' : '';
         $classes = 'page-item' . ($current ? ' active' : '');
-        return '<li class="' . $classes . '"><a class="page-link" href="' . $href($page) . '"' . $ariaCurrent . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a></li>';
+        return '<li class="' . $classes . '"><a class="page-link" href="' . $href($page) . '"' . $ariaCurrent . $accessibleLabel . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a></li>';
+    };
+    $disabledArrow = static function (string $label, string $symbol): string {
+        return '<li class="page-item disabled"><span class="page-link" aria-label="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" aria-disabled="true">' . htmlspecialchars($symbol, ENT_QUOTES, 'UTF-8') . '</span></li>';
     };
     echo '<nav class="cashier-history-pagination" aria-label="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '"><ul class="pagination pagination-sm mb-0">';
-    if ($historyPage > 1) {
-        echo $pageLink(1, 'First') . $pageLink($historyPage - 1, 'Previous');
-    }
+    echo $historyPage > 1 ? $pageLink($historyPage - 1, '<', false, 'Previous page') : $disabledArrow('Previous page', '<');
     $startPage = max(1, $historyPage - 2);
     $endPage = min($totalPages, $historyPage + 2);
     if ($startPage > 1) {
@@ -115,9 +117,7 @@ $renderPagination = static function (string $label) use ($historyPage, $totalPag
         if ($endPage < $totalPages - 1) echo '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>';
         echo $pageLink($totalPages, (string) $totalPages);
     }
-    if ($historyPage < $totalPages) {
-        echo $pageLink($historyPage + 1, 'Next') . $pageLink($totalPages, 'Last');
-    }
+    echo $historyPage < $totalPages ? $pageLink($historyPage + 1, '>', false, 'Next page') : $disabledArrow('Next page', '>');
     echo '</ul></nav>';
 };
 
