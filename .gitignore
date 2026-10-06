@@ -10,6 +10,7 @@ payment_db_production.sql
 
 # Production database dumps (local backups only; never commit or deploy)
 /modules/payment/database/payment_db.sql
+/modules/payment/database/payment_db-*.sql
 /database/migrations/sms2_db.sql
 
 # Payment runtime logs (created automatically by active writers)

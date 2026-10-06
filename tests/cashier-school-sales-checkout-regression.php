@@ -13,7 +13,8 @@ function checkoutCheck(bool $condition, string $message): void
 }
 
 $service = (string) file_get_contents(ROOT_PATH . '/modules/payment/includes/CashSaleService.php');
-$page = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/cashier/school-sales.php');
+$legacyPage = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/cashier/school-sales.php');
+$panel = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/cashier/school-items-panel.php');
 $collection = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/cashier/payment-collection-portal.php');
 
 checkoutCheck(str_contains($service, 'sale_variant_id'), 'Checkout must use authoritative catalog variants.');
@@ -22,9 +23,11 @@ checkoutCheck(str_contains($service, 'cashier_transactions'), 'Checkout must cre
 checkoutCheck(str_contains($service, 'idempotency_key'), 'Checkout must be idempotent per Cashier request.');
 checkoutCheck(str_contains($service, 'FOR UPDATE'), 'Checkout must lock authoritative records while validating a sale.');
 checkoutCheck(str_contains($service, "'SCHOOL_SALE'"), 'Checkout must classify the transaction as a school sale.');
-checkoutCheck(str_contains($page, 'cashier-school-sales-catalog.php'), 'Cashier UI must load the normalized catalog API.');
-checkoutCheck(str_contains($page, 'sale_variant_id'), 'Cashier UI must submit variant IDs rather than legacy item prices.');
-checkoutCheck(str_contains($page, 'idempotency_key'), 'Cashier UI must submit a server-generated idempotency key.');
+checkoutCheck(str_contains($legacyPage, "query['view'] = 'school-items'"), 'Legacy Cashier route must redirect to the unified School Items view.');
+checkoutCheck(str_contains($collection, "require __DIR__ . '/school-items-panel.php'"), 'Unified Cashier portal must load the School Items panel.');
+checkoutCheck(str_contains($panel, 'cashier-school-sales-catalog.php'), 'Cashier UI must load the normalized catalog API.');
+checkoutCheck(str_contains($panel, 'sale_variant_id'), 'Cashier UI must submit variant IDs rather than legacy item prices.');
+checkoutCheck(str_contains($panel, 'idempotency_key'), 'Cashier UI must submit a server-generated idempotency key.');
 checkoutCheck(str_contains($collection, 'School Items'), 'Academic collection must expose the School Items switcher.');
 
 echo "PASS: {$checks} Cashier School Sales checkout integration checks.\n";

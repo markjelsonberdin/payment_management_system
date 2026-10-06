@@ -54,11 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return `<tr><td class="ps-4 fw-semibold">${esc(user.full_name)}</td>` +
         `<td><span class="badge bg-light text-dark border">${esc(roleLabel(user.role_key))}</span></td>` +
         `<td>${esc(user.username)}</td><td>${esc(user.email)}</td>` +
-        `<td><span class="badge ${user.status === 'active' ? 'bg-success' : 'bg-secondary'}">${esc(user.status)}</span></td>` +
-        `<td>${locked ? '<span class="badge bg-danger">Locked</span>' : '<span class="text-muted">Normal</span>'}</td>` +
+        `<td><span class="badge ${user.status === 'active' ? 'bg-success' : 'bg-secondary'}">${esc(user.status === 'active' ? 'Active' : 'Inactive')}</span></td>` +
+        `<td>${locked ? '<span class="badge bg-danger">Locked</span>' : '<span class="badge bg-success">Unlocked</span>'}</td>` +
         `<td>${Number(user.must_change_password) ? 'Yes' : 'No'}</td>` +
         `<td class="text-end pe-4"><div class="d-inline-flex flex-wrap justify-content-end gap-1">${actions.join('')}</div></td></tr>`;
-    }).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No Payment personnel accounts.</td></tr>';
+    }).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No Payment users found.</td></tr>';
   }
   async function load() { users = await call('list'); render(); }
 

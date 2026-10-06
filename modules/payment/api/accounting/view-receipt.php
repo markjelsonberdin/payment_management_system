@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
+require_once ROOT_PATH . '/modules/payment/includes/ocr/PrivateReceiptStorageService.php';
 
 // Authentication
 requireAuth();
@@ -40,32 +41,27 @@ try {
         exit;
     }
     
-    // Resolve absolute path
-    // receipt_path in DB is like 'uploads/receipts/filename.jpg'
-    $absolutePath = realpath(ROOT_PATH . '/' . $concern['receipt_path']);
-    $receiptsDir = realpath(ROOT_PATH . '/uploads/receipts');
-    
-    // Ensure the file exists and is within the receipts directory (prevent directory traversal)
-    if (!$absolutePath || strpos($absolutePath, $receiptsDir) !== 0 || !file_exists($absolutePath)) {
-        http_response_code(404);
-        echo "File not found on server.";
-        exit;
-    }
-    
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mimeType = finfo_file($finfo, $absolutePath);
-    finfo_close($finfo);
+    $resolved = (new PrivateReceiptStorageService())->resolve((string) $concern['receipt_path']);
+    $absolutePath = $resolved['path'];
+    $mimeType = $resolved['mime'];
     
     header('Content-Type: ' . $mimeType);
     header('Content-Length: ' . filesize($absolutePath));
     // Provide a random or generic filename to hide actual DB path just in case
-    header('Content-Disposition: inline; filename="receipt_' . $concernId . '"');
+    header('Content-Disposition: inline; filename="receipt_' . $concernId . '.' . $resolved['extension'] . '"');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store, max-age=0');
+    header('Pragma: no-cache');
     
     readfile($absolutePath);
     exit;
 
-} catch (Exception $e) {
+} catch (ReceiptStorageException $e) {
+    http_response_code($e->getMessage() === 'RECEIPT_NOT_FOUND' ? 404 : 503);
+    echo 'Receipt is unavailable.';
+    exit;
+} catch (Throwable $e) {
     http_response_code(403);
-    echo "Access Denied: " . htmlspecialchars($e->getMessage());
+    echo 'Access denied.';
     exit;
 }

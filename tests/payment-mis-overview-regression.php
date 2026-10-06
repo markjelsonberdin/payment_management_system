@@ -21,6 +21,8 @@ foreach (['mis_admin', 'superadmin', 'student', 'faculty', 'registrar', 'finance
 $core->exec('CREATE TABLE activity_logs (id INTEGER PRIMARY KEY, action TEXT, created_at TEXT, role_key TEXT, module_key TEXT, detail TEXT)');
 $log = $core->prepare('INSERT INTO activity_logs (action,created_at,role_key,module_key,detail) VALUES (?, ?, ?, ?, ?)');
 $log->execute(['accounting_user_create', '2026-10-04 10:00:00', 'mis_admin', 'payment', 'secret must never appear']);
+$log->execute(['PAYMENT_USER_UNLOCKED', '2026-10-04 10:30:00', 'mis_admin', 'payment', 'new secret must never appear']);
+$log->execute(['PAYMONGO_MODE_CHANGED', '2026-10-04 10:45:00', 'mis_admin', 'payment', 'integration secret must never appear']);
 $log->execute(['payment_verify', '2026-10-04 11:00:00', 'mis_admin', 'payment', 'financial data']);
 $log->execute(['accounting_user_edit', '2026-10-04 12:00:00', 'superadmin', 'payment', 'outside actor']);
 $log->execute(['accounting_user_status', '2026-10-04 13:00:00', 'mis_admin', 'registrar', 'outside module']);
@@ -34,12 +36,18 @@ checkMis($data['accounts']['active'] === 2 && $data['accounts']['inactive'] === 
 checkMis($data['accounts']['locked'] === 1, 'Only unexpired managed-account locks counted');
 checkMis($data['accounts']['failed_attempts'] === 6, 'Only managed failed attempt counters summed');
 checkMis($data['accounts']['by_role'] === ['accounting_admin' => 1, 'accounting_officer' => 1, 'cashier' => 1], 'Fixed role counts');
-checkMis(count($data['activity']) === 1 && $data['activity'][0]['event'] === 'Payment user created', 'Only known MIS Payment personnel events exposed');
+checkMis(count($data['activity']) === 3 && $data['activity'][0]['event'] === 'PayMongo mode changed'
+    && $data['activity'][1]['event'] === 'Payment user unlocked'
+    && $data['activity'][2]['event'] === 'Payment user created', 'Canonical integration and legacy MIS events exposed');
 checkMis(!str_contains(json_encode($data), 'secret must never appear'), 'Raw audit details excluded');
+checkMis(!str_contains(json_encode($data), 'new secret must never appear'), 'Canonical audit details excluded');
+checkMis(!str_contains(json_encode($data), 'integration secret must never appear'), 'Integration audit details excluded');
 checkMis(!str_contains(json_encode($data), 'private-financial-policy'), 'Financial settings excluded');
 checkMis($data['paymongo']['environment'] === 'live' && $data['paymongo']['api_credentials'] === true && $data['paymongo']['webhook_secret'] === false, 'Only selected-environment presence flags');
 checkMis(!array_key_exists('connected', $data['paymongo']), 'Configuration does not claim connectivity');
-checkMis($data['integrations']['ocr'] === 'Technical configuration page unavailable' && !array_key_exists('aub', $data['integrations']), 'Missing integration modules remain honest');
+checkMis($data['integrations']['ocr'] === 'Configuration incomplete' && !array_key_exists('aub', $data['integrations']), 'OCR status remains honest and AUB remains deferred');
+$technical->exec("INSERT INTO payment_gateway_settings VALUES ('ocr_enabled', '0'), ('ocr_project_id', 'bcp-payment-management-system'), ('ocr_mode', 'DOCUMENT_TEXT_DETECTION'), ('ocr_monthly_limit', '900')");
+checkMis($service->load()['integrations']['ocr'] === 'Technical configuration saved', 'OCR overview reports saved non-secret configuration');
 $technical->exec("UPDATE payment_gateway_settings SET setting_value='invalid' WHERE setting_key='gateway_mode'");
 checkMis($service->load()['paymongo']['environment'] === null, 'Invalid mode cannot silently become test or live');
 $partial = (new MisOverviewService($core))->load();

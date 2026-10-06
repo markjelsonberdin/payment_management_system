@@ -4,6 +4,23 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+
+function misOverviewRespond(array $body, int $status = 200): never
+{
+    http_response_code($status);
+    echo json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+if (!isAuthenticated()) {
+    misOverviewRespond(['ok' => false, 'error' => 'AUTHENTICATION_REQUIRED',
+        'message' => 'Authentication is required.'], 401);
+}
+if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.mis_overview')
+    || !userCanAccessModule('payment.mis_overview')) {
+    misOverviewRespond(['ok' => false, 'error' => 'NOT_AUTHORIZED',
+        'message' => 'You are not authorized to view the MIS Overview.'], 403);
+}
 requireAuth();
 requirePaymentPermission('payment.mis_overview');
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
@@ -16,6 +33,14 @@ require_once __DIR__ . '/../../includes/MisOverviewService.php';
 try {
     $core = db();
     if (!$core) throw new RuntimeException('Core database unavailable');
+    $actor = $core->prepare('SELECT role_key, status FROM users WHERE id = ? LIMIT 1');
+    $actor->execute([getCurrentUserId()]);
+    $actorRow = $actor->fetch(PDO::FETCH_ASSOC);
+    if (!$actorRow || $actorRow['status'] !== 'active' || $actorRow['role_key'] !== 'mis_admin'
+        || $actorRow['role_key'] !== getCurrentUserRoleKey()) {
+        misOverviewRespond(['ok' => false, 'error' => 'ACTOR_SESSION_STALE',
+            'message' => 'Your account authority changed. Sign in again.'], 403);
+    }
     require_once __DIR__ . '/../../config/env_loader.php';
     payment_load_env(__DIR__ . '/../../.env');
     $technical = null;

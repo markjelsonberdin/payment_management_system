@@ -51,9 +51,14 @@ schoolSalesCheck(str_contains($catalogService, 'JOIN school_sale_item_types'), '
 schoolSalesCheck(!str_contains($catalogService, 'unit_price'), 'Catalog read service must not use the obsolete unit_price field.');
 
 $salePage = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/cashier/school-sales.php');
-$pageGate = sourcePosition($salePage, 'paymentSchoolSalesSellingEnabled()');
-schoolSalesCheck($pageGate < sourcePosition($salePage, 'database/db_connect.php'), 'Cashier page gate must precede Payment DB loading.');
-schoolSalesCheck($pageGate < sourcePosition($salePage, 'includes/CashSaleService.php'), 'Cashier page gate must precede CashSaleService loading.');
+if (str_contains($salePage, "query['view'] = 'school-items'")) {
+    schoolSalesCheck(str_contains($salePage, "header('Location: payment-collection-portal.php?"), 'Legacy School Sales route must redirect to the unified Cashier portal.');
+    schoolSalesCheck(!str_contains($salePage, 'database/db_connect.php') && !str_contains($salePage, 'includes/CashSaleService.php'), 'Legacy redirect must not load Payment mutation infrastructure.');
+} else {
+    $pageGate = sourcePosition($salePage, 'paymentSchoolSalesSellingEnabled()');
+    schoolSalesCheck($pageGate < sourcePosition($salePage, 'database/db_connect.php'), 'Cashier page gate must precede Payment DB loading.');
+    schoolSalesCheck($pageGate < sourcePosition($salePage, 'includes/CashSaleService.php'), 'Cashier page gate must precede CashSaleService loading.');
+}
 
 $lookupApi = (string) file_get_contents(ROOT_PATH . '/modules/payment/api/fetch_cash_sale_student.php');
 $apiGate = sourcePosition($lookupApi, 'paymentSchoolSalesSellingEnabled()');

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
+require_once ROOT_PATH . '/includes/audit.php';
 
 requireAuth();
 if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_portal')) {
@@ -18,6 +19,7 @@ if (getCurrentUserRoleKey() !== 'student' || !userCanAccessModule('student_porta
 
 require_once __DIR__ . '/../../payment/database/db_connect.php';
 require_once __DIR__ . '/../../payment/includes/PaymentConcernService.php';
+require_once __DIR__ . '/../../payment/includes/ocr/PrivateReceiptStorageService.php';
 $studentLookup = $pdo->prepare('SELECT student_number FROM students WHERE user_id = :user_id LIMIT 1');
 $studentLookup->execute([':user_id' => (int) getCurrentUserId()]);
 $studentId = (string) ($studentLookup->fetchColumn() ?: '');
@@ -54,34 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
         
         // File Upload Handling
         if (isset($_FILES['receipt_image']) && $_FILES['receipt_image']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['receipt_image']['tmp_name'];
-            $fileName = $_FILES['receipt_image']['name'];
-            $fileSize = $_FILES['receipt_image']['size'];
-            $fileType = $_FILES['receipt_image']['type'];
-
-            // Allowed extensions and MIME types
-            $allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-
-            if (!in_array($fileType, $allowedMimeTypes) || !in_array($fileExtension, $allowedExtensions)) {
-                $errorMsg = "Invalid file type. Only JPG, PNG, and PDF files are allowed.";
-            } elseif ($fileSize > 2 * 1024 * 1024) { // 2MB limit
-                $errorMsg = "File size exceeds the 2MB limit.";
-            } else {
-                // Secure file renaming to prevent overriding or malicious script execution
-                $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
-                $uploadFileDir = ROOT_PATH . '/uploads/receipts/';
-                
-                if (!is_dir($uploadFileDir)) {
-                    mkdir($uploadFileDir, 0755, true);
-                }
-                
-                $dest_path = $uploadFileDir . $newFileName;
-                $relativePath = 'uploads/receipts/' . $newFileName;
-
-                if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    try {
+            $receiptStorage = new PrivateReceiptStorageService();
+            $relativePath = '';
+            try {
+                    $relativePath = $receiptStorage->store($_FILES['receipt_image']);
                         global $pdo;
                         $concernService = new PaymentConcernService($pdo);
                         $concernId = $concernService->submitConcern(
@@ -93,12 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_concern'])) {
                         );
 
                         $successMsg = "Your support ticket #$concernId has been submitted successfully!";
-                    } catch (Exception $e) {
-                        $errorMsg = "Submission Error: " . $e->getMessage();
-                    }
-                } else {
-                    $errorMsg = "Error moving the uploaded file to destination folder.";
-                }
+                        logActivity('RECEIPT_UPLOADED','Private receipt uploaded for payment concern #'.(int)$concernId,'payment',(int)getCurrentUserId());
+            } catch (ReceiptStorageException $e) {
+                $messages = [
+                    'PRIVATE_RECEIPT_STORAGE_NOT_CONFIGURED' => 'Receipt upload is temporarily unavailable while secure storage is being configured.',
+                    'PRIVATE_RECEIPT_STORAGE_UNAVAILABLE' => 'Secure receipt storage is temporarily unavailable.',
+                    'PRIVATE_RECEIPT_STORAGE_UNSAFE' => 'Secure receipt storage configuration needs administrator attention.',
+                    'RECEIPT_SIZE_INVALID' => 'The receipt must be an image no larger than 5 MB.',
+                    'RECEIPT_TYPE_INVALID' => 'Only JPG, PNG, and WEBP receipt images are accepted.',
+                    'RECEIPT_IMAGE_INVALID' => 'The uploaded file is not a valid receipt image.',
+                ];
+                $errorMsg = $messages[$e->getMessage()] ?? 'The receipt could not be stored securely.';
+            } catch (Throwable $e) {
+                if ($relativePath !== '') $receiptStorage->discardNew($relativePath);
+                $errorMsg = 'The concern could not be submitted. Please try again.';
             }
         } else {
             $errorMsg = "Please upload a valid receipt or screenshot.";
@@ -179,8 +165,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-muted">Upload Receipt / Screenshot</label>
-                            <input type="file" class="form-control shadow-sm" name="receipt_image" id="receiptImageInput" accept="image/png, image/jpeg, application/pdf" required>
-                            <small class="text-muted" style="font-size: 0.75rem;">Accepted formats: JPG, PNG, PDF. Max size: 2MB. Accounting will scan the saved receipt for review.</small>
+                            <input type="file" class="form-control shadow-sm" name="receipt_image" id="receiptImageInput" accept="image/jpeg,image/png,image/webp" required>
+                            <small class="text-muted" style="font-size: 0.75rem;">Accepted formats: JPG, PNG, WEBP. Max size: 5MB. Accounting will review the saved receipt.</small>
                         </div>
 
                         <div class="mb-4">

@@ -91,12 +91,12 @@ $errorMessages = [
     'PAYMONGO_CONFIG_SAVE_FAILED' => 'The PayMongo configuration could not be saved.',
 ];
 
-$pageTitle    = 'Online Payment Integration';
+$pageTitle    = 'PayMongo Integration';
 $activeModule = 'payment';
 $activePage   = 'mis_admin/online-payment-integration';
 $breadcrumbs  = [
-    ['label' => 'Payment Management', 'url' => BASE_URL . '/modules/payment/index.php'],
-    ['label' => 'Online Payment Integration', 'url' => null],
+    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'],
+    ['label' => 'PayMongo Integration', 'url' => null],
 ];
 
 require_once __DIR__ . '/../../../../includes/breadcrumbs.php';
@@ -105,36 +105,34 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 ?>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
 <div class="container-fluid py-4">
     
     <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-6">
-            <h2 class="mb-1 fw-bolder"><i class="ti ti-world text-primary me-2"></i>Online Payment Integration</h2>
-            <p class="text-muted mb-0 fs-6">Monitor PayMongo credentials and manage technical environment and channel availability.</p>
-        </div>
+    <div class="mis-page-header">
+        <div><h1 class="h3"><i class="ti ti-world text-primary me-2" aria-hidden="true"></i>PayMongo Integration</h1><p>Manage and monitor the Payment Management System's PayMongo technical integration.</p></div>
     </div>
 
     <!-- Alerts -->
     <?php if (($_GET['result'] ?? '') === 'updated'): ?>
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
             <i class="ti ti-circle-check me-2"></i> <strong>Success!</strong> Payment gateway settings updated successfully.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
     <?php endif; ?>
     
     <?php if (isset($_GET['error_code'])): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
             <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= e($errorMessages[$_GET['error_code']] ?? 'The PayMongo request could not be completed.') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
     <?php endif; ?>
 
     <!-- Dashboard Status Cards Header -->
-    <div class="d-flex justify-content-between align-items-end mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
         <h5 class="fw-bold mb-0 text-dark">Integration Health</h5>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-success fw-bold shadow-sm" id="btnTestConnection">
@@ -150,7 +148,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <div class="row g-3 mb-4">
         <!-- Gateway Status -->
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-secondary border-4" id="gatewayStatusCard">
+            <div class="card mis-card" id="gatewayStatusCard">
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Online Payment Gateway</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="gatewayStatusText">
@@ -163,7 +161,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
       <!-- Connection Status -->
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-secondary border-4" id="apiConnectionCard">
+            <div class="card mis-card" id="apiConnectionCard">
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">PayMongo API Connection</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="apiConnectionText">
@@ -176,7 +174,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
         <!-- Webhook Status -->
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-secondary border-4" id="webhookStatusCard">
+            <div class="card mis-card" id="webhookStatusCard">
                 <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
                     <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Webhook Status</span>
                     <h4 class="fw-bolder text-secondary mb-0" id="webhookStatusText">
@@ -205,14 +203,14 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="row">
             <!-- Left Column: API Credentials & Mode -->
             <div class="col-lg-7 mb-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card mis-card">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-key me-2"></i>PayMongo API Configuration</h5>
                     </div>
                     <div class="card-body p-4">
                         
                         <div class="mb-4 pb-3 border-bottom">
-                            <label class="form-label fw-bold text-dark">Active Environment Mode</label>
+                            <label class="form-label fw-bold text-dark" for="gatewayModeSelect">Active Environment Mode</label>
                             <select class="form-select shadow-sm border-primary" id="gatewayModeSelect" name="gateway_mode" style="border-width: 2px;">
                                 <option value="test" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'test') ? 'selected' : '' ?>>Test Mode (Sandbox / Mock Transactions)</option>
                                 <option value="live" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'live') ? 'selected' : '' ?>>Live Mode (Production / Real Payments)</option>
@@ -243,7 +241,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             <div class="col-lg-5 mb-4">
                 
                 <!-- Payment Channels Card -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card mis-card mb-4">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-toggle-right me-2"></i>Active Payment Channels</h5>
                     </div>
@@ -280,7 +278,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-4">
+                <div class="card mis-card">
                     <div class="card-body p-4">
                         <p class="text-muted small">Saving changes updates technical PayMongo configuration only. Processing-fee policy remains Accounting-owned.</p>
                         <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">

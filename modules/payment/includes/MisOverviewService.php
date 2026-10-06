@@ -6,6 +6,17 @@ final class MisOverviewService
 {
     private const ROLES = ['accounting_admin', 'accounting_officer', 'cashier'];
     private const ACTIONS = [
+        'PAYMENT_USER_CREATED' => 'Payment user created',
+        'PAYMENT_USER_UPDATED' => 'Payment user updated',
+        'PAYMENT_USER_ROLE_CHANGED' => 'Payment user role changed',
+        'PAYMENT_USER_ACTIVATED' => 'Payment user activated',
+        'PAYMENT_USER_DEACTIVATED' => 'Payment user deactivated',
+        'PAYMENT_USER_UNLOCKED' => 'Payment user unlocked',
+        'PAYMENT_USER_PASSWORD_RESET' => 'Payment user password reset',
+        'PAYMONGO_CONFIGURATION_UPDATED' => 'PayMongo configuration updated',
+        'PAYMONGO_MODE_CHANGED' => 'PayMongo mode changed',
+        'PAYMONGO_CONNECTION_TESTED' => 'PayMongo connection tested',
+        'OCR_CONFIGURATION_UPDATED' => 'Google OCR configuration updated',
         'accounting_user_create' => 'Payment user created',
         'accounting_user_edit' => 'Payment user updated',
         'accounting_user_status' => 'Payment user status changed',
@@ -49,10 +60,11 @@ final class MisOverviewService
         $this->section($result, 'activity', function (): array {
             // Allowlist actor, module, and event type. Never return raw detail,
             // which can contain historical usernames, secrets, or other data.
-            $stmt = $this->core->prepare("SELECT action, created_at FROM activity_logs WHERE role_key = 'mis_admin' AND module_key = 'payment' AND action IN (?, ?, ?, ?) ORDER BY created_at DESC, id DESC LIMIT 12");
+            $placeholders = implode(', ', array_fill(0, count(self::ACTIONS), '?'));
+            $stmt = $this->core->prepare("SELECT id, action, created_at FROM activity_logs WHERE role_key = 'mis_admin' AND module_key = 'payment' AND action IN ($placeholders) ORDER BY created_at DESC, id DESC LIMIT 12");
             $stmt->execute(array_keys(self::ACTIONS));
             return array_map(static fn(array $row): array => [
-                'event' => self::ACTIONS[$row['action']], 'created_at' => $row['created_at'],
+                'id' => (int) $row['id'], 'event' => self::ACTIONS[$row['action']], 'created_at' => $row['created_at'],
             ], $stmt->fetchAll(PDO::FETCH_ASSOC));
         });
         $this->section($result, 'paymongo', function (): array {
@@ -66,8 +78,20 @@ final class MisOverviewService
                 'api_credentials' => !empty($this->credentials[$mode]['api']),
                 'webhook_secret' => !empty($this->credentials[$mode]['webhook'])];
         });
+        $this->section($result, 'ocr', function (): array {
+            if (!$this->technical) throw new RuntimeException('Technical configuration unavailable');
+            $stmt = $this->technical->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key IN ('ocr_enabled', 'ocr_project_id', 'ocr_mode', 'ocr_monthly_limit')");
+            $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            $configured = ($settings['ocr_project_id'] ?? '') !== ''
+                && ($settings['ocr_mode'] ?? '') === 'DOCUMENT_TEXT_DETECTION'
+                && (int) ($settings['ocr_monthly_limit'] ?? 0) >= 1;
+            return [
+                'enabled' => ($settings['ocr_enabled'] ?? '0') === '1',
+                'status' => $configured ? 'Technical configuration saved' : 'Configuration incomplete',
+            ];
+        });
         $result['integrations'] = [
-            'ocr' => 'Technical configuration page unavailable',
+            'ocr' => $result['ocr']['status'] ?? 'Configuration unavailable',
 
         ];
         return $result;
