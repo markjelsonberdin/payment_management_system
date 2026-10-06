@@ -109,6 +109,8 @@ mis6Check(str_contains($api, "requirePaymentPermission('payment.security.view')"
 mis6Check(str_contains($api, "'AUTHENTICATION_REQUIRED'") && str_contains($api, "'NOT_AUTHORIZED'"), 'API returns safe 401/403 responses');
 mis6Check(str_contains($api, "actorRow['status'] !== 'active'") && str_contains($api, "actorRow['role_key'] !== 'mis_admin'"), 'API revalidates active current MIS actor');
 mis6Check(str_contains($js, "action: 'unlock'") && str_contains($js, 'app.dataset.personnelApi'), 'Canonical unlock endpoint reused');
+mis6Check(!str_contains($js, 'Security monitoring updated.') && !str_contains($page, 'Loading security information'), 'Passive refresh and loading banners stay hidden');
+mis6Check(str_contains($page, 'id="securityNotice" class="d-none"') && str_contains($js, "alert alert-danger"), 'Only actionable failures use the compact notice component');
 mis6Check(!str_contains($api, 'UPDATE ') && !str_contains($api, 'DELETE ') && !str_contains($api, 'INSERT '), 'Monitoring API is read-only');
 mis6Check(!str_contains($page, 'active sessions') && str_contains($page, 'Active-session counts are unavailable'), 'No active-session inventory claim');
 

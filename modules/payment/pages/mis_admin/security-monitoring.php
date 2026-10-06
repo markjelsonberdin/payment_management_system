@@ -26,7 +26,7 @@ renderBreadcrumbs($breadcrumbs);
       <p>Monitor Payment personnel authentication and security conditions.</p></div>
     <button class="btn btn-outline-primary" id="securityRefresh" type="button">Refresh</button>
   </div>
-  <div id="securityNotice" class="mis-async-state small text-muted mb-3" role="status" aria-live="polite">Loading security information…</div>
+  <div id="securityNotice" class="d-none" role="alert" aria-live="assertive"></div>
   <section class="mb-4" aria-labelledby="securityOverviewHeading">
     <h2 class="h5" id="securityOverviewHeading">Security Overview</h2>
     <div class="row g-3" id="securitySummaryCards"></div>
@@ -42,7 +42,7 @@ renderBreadcrumbs($breadcrumbs);
       <div class="col-md-2"><label class="form-label" for="failedAttempts">Failed attempts</label><select class="form-select" id="failedAttempts" name="failed_attempts"><option value="">All</option><option value="present">Current attempts &gt; 0</option></select></div>
       <div class="col-md-2 mis-filter-actions"><button class="btn btn-primary" type="submit">Apply</button><button class="btn btn-outline-secondary" id="personnelReset" type="button">Reset</button></div>
     </form>
-    <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Name</th><th scope="col">Payment Role</th><th scope="col">Administrative</th><th scope="col">Security</th><th scope="col">Current Failed Attempts</th><th scope="col">Locked Until</th><th scope="col">Last Security Activity</th><th scope="col">Action</th></tr></thead><tbody id="personnelSecurityRows"><tr><td colspan="8" class="text-center py-4 text-muted">Loading security information…</td></tr></tbody></table></div>
+    <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Name</th><th scope="col">Payment Role</th><th scope="col">Administrative</th><th scope="col">Security</th><th scope="col">Current Failed Attempts</th><th scope="col">Locked Until</th><th scope="col">Last Security Activity</th><th scope="col">Action</th></tr></thead><tbody id="personnelSecurityRows"></tbody></table></div>
     <div class="mis-pagination"><small id="personnelCount" class="text-muted"></small><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="personnelPrev">Previous</button><button type="button" class="btn btn-sm btn-outline-secondary" id="personnelNext">Next</button></div></div>
   </div></section>
   <section class="card mis-card"><div class="card-body">
@@ -55,9 +55,9 @@ renderBreadcrumbs($breadcrumbs);
       <div class="col-md-2"><label class="form-label" for="pageSize">Rows</label><select class="form-select" id="pageSize" name="page_size"><option>25</option><option>50</option><option>100</option></select></div>
       <div class="col-md-2 mis-filter-actions"><button class="btn btn-primary" type="submit">Apply</button><button class="btn btn-outline-secondary" id="eventReset" type="button">Reset</button></div>
     </form>
-    <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Timestamp</th><th scope="col">Event</th><th scope="col">Actor</th><th scope="col">Target</th><th scope="col">Role</th><th scope="col">Result</th><th scope="col">Safe Context</th><th scope="col">Correlation ID</th></tr></thead><tbody id="securityEventRows"><tr><td colspan="8" class="text-center py-4 text-muted">Loading security information…</td></tr></tbody></table></div>
+    <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Timestamp</th><th scope="col">Event</th><th scope="col">Actor</th><th scope="col">Target</th><th scope="col">Role</th><th scope="col">Result</th><th scope="col">Safe Context</th><th scope="col">Correlation ID</th></tr></thead><tbody id="securityEventRows"></tbody></table></div>
     <div class="mis-pagination"><small id="eventCount" class="text-muted"></small><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="eventPrev">Previous</button><button type="button" class="btn btn-sm btn-outline-secondary" id="eventNext">Next</button></div></div>
   </div></section>
 </main>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=2"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=3"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

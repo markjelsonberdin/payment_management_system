@@ -21,8 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function badge(value, kind) { return `<span class="badge mis-status-badge bg-${kind}">${esc(displayLabel(value))}</span>`; }
   function roleLabel(role) { return role === 'accounting_admin' ? 'Accounting Admin' : role === 'cashier' ? 'Cashier' : 'Accounting Officer'; }
   function dateTime(value) { return value ? new Date(String(value).replace(' ', 'T') + '+08:00').toLocaleString() : '—'; }
-  function notice(text, type = '') {
-    const el = byId('securityNotice'); el.className = type ? `alert alert-${type} mb-3` : 'small text-muted mb-3'; el.textContent = text;
+  function notice(text = '') {
+    const el = byId('securityNotice');
+    if (!text) {
+      el.className = 'd-none';
+      el.textContent = '';
+      return;
+    }
+    el.className = 'alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-3';
+    el.innerHTML = `<span aria-hidden="true">&#9888;</span><span>${esc(text)}</span>`;
   }
 
   function renderSummary(summary) {
@@ -63,17 +70,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function load() {
-    notice('Loading security information…');
+    notice();
+    app.setAttribute('aria-busy', 'true');
+    byId('securityRefresh').disabled = true;
     try {
       const response = await fetch(`${app.dataset.api}?${query()}`, {credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'}});
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.message || 'Security monitoring is unavailable.');
       renderSummary(body.data.summary); renderPersonnel(body.data.personnel); renderEvents(body.data.events);
-      notice('Security monitoring updated.', 'success');
+      notice();
     } catch (error) {
-      notice(error.message || 'Security monitoring is unavailable.', 'danger');
+      notice(error.message || 'Security monitoring is unavailable.');
       byId('personnelSecurityRows').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Unable to load account security data.</td></tr>';
       byId('securityEventRows').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Unable to load security events.</td></tr>';
+    } finally {
+      app.removeAttribute('aria-busy');
+      byId('securityRefresh').disabled = false;
     }
   }
 
@@ -84,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const body = await response.json();
     if (!response.ok || !body.ok) throw new Error(body.message || 'Unable to unlock the account.');
     if (body.csrf_token) app.dataset.csrf = body.csrf_token;
-    notice('Account security lock cleared. Administrative status was preserved.', 'success');
     await load();
   }
 
@@ -100,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('personnelSecurityRows').addEventListener('click', event => {
     const button = event.target.closest('.unlock-account'); if (!button) return;
     const user = currentPersonnel.find(item => Number(item.id) === Number(button.dataset.id));
-    if (user) unlock(user).catch(error => notice(error.message, 'danger'));
+    if (user) unlock(user).catch(error => notice(error.message));
   });
   byId('securitySummaryCards').addEventListener('click', event => {
     const button = event.target.closest('.summary-filter'); if (!button) return;
