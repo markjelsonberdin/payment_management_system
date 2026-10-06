@@ -34,13 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderSummary(summary) {
     const cards = [
-      ['Locked Payment Accounts', summary.locked_accounts, 'danger', 'lock_state=locked'],
-      ['Accounts With Failed Attempts', summary.accounts_with_failed_attempts, 'warning', 'failed_attempts=present'],
-      ['Disabled Payment Accounts', summary.disabled_accounts, 'secondary', 'administrative_status=inactive'],
-      ['Recent Session Revocations', summary.recent_session_revocations, 'info', ''],
+      ['Locked Accounts', summary.locked_accounts, 'danger', 'Temporarily blocked after failed sign-ins.'],
+      ['Failed Sign-ins', summary.accounts_with_failed_attempts, 'warning', 'Accounts with current failed login attempts.'],
+      ['Disabled Accounts', summary.disabled_accounts, 'secondary', 'Accounts disabled by an administrator.'],
+      ['Revoked Sessions', summary.recent_session_revocations, 'info', 'Sessions ended within the last 30 days.'],
     ];
-    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, filter]) =>
-      `<div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div>${filter ? `<button class="btn btn-link btn-sm p-0 summary-filter" data-filter="${esc(filter)}">View accounts</button>` : '<span class="small text-muted">Last 30 days</span>'}</div></div></div>`
+    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, description]) =>
+      `<div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small fw-semibold">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div><p class="small text-muted mb-0">${esc(description)}</p></div></div></div>`
     ).join('');
   }
 
@@ -112,11 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const button = event.target.closest('.unlock-account'); if (!button) return;
     const user = currentPersonnel.find(item => Number(item.id) === Number(button.dataset.id));
     if (user) unlock(user).catch(error => notice(error.message));
-  });
-  byId('securitySummaryCards').addEventListener('click', event => {
-    const button = event.target.closest('.summary-filter'); if (!button) return;
-    const [key, value] = button.dataset.filter.split('='); const field = byId(key === 'lock_state' ? 'lockState' : key === 'failed_attempts' ? 'failedAttempts' : 'adminState');
-    if (field) field.value = value; state.personnelPage = 1; load();
   });
   const initial = new URLSearchParams(location.search);
   if (initial.get('state') === 'locked') byId('lockState').value = 'locked';
