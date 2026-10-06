@@ -16,9 +16,9 @@ $filters = [
     'period_month' => (string) ($_GET['period_month'] ?? ''),
     'period_year' => (string) ($_GET['period_year'] ?? ''),
 ];
-$allowedPageSizes = [25, 50, 100];
-$requestedPageSize = filter_var($_GET['per_page'] ?? 50, FILTER_VALIDATE_INT);
-$pageSize = in_array($requestedPageSize, $allowedPageSizes, true) ? $requestedPageSize : 50;
+$allowedPageSizes = [10, 25, 50, 100];
+$requestedPageSize = filter_var($_GET['per_page'] ?? 10, FILTER_VALIDATE_INT);
+$pageSize = in_array($requestedPageSize, $allowedPageSizes, true) ? $requestedPageSize : 10;
 $historyPage = max(1, (int) ($_GET['page'] ?? 1));
 $totalRows = 0;
 $totalPages = 1;
@@ -90,7 +90,7 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { error_log('Cashier history query failed: ' . $e->getMessage()); $error = 'Cashier transaction history is temporarily unavailable.'; }
 
-$renderPagination = static function () use ($historyPage, $totalPages, $filters, $pageSize): void {
+$renderPagination = static function (string $label) use ($historyPage, $totalPages, $filters, $pageSize): void {
     if ($totalPages <= 1) return;
     $href = static function (int $page) use ($filters, $pageSize): string {
         return '?' . htmlspecialchars(http_build_query(array_merge($filters, ['per_page' => $pageSize, 'page' => $page])), ENT_QUOTES, 'UTF-8');
@@ -100,7 +100,7 @@ $renderPagination = static function () use ($historyPage, $totalPages, $filters,
         $classes = 'page-item' . ($current ? ' active' : '');
         return '<li class="' . $classes . '"><a class="page-link" href="' . $href($page) . '"' . $ariaCurrent . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a></li>';
     };
-    echo '<nav class="cashier-history-pagination" aria-label="Transaction history pages"><ul class="pagination pagination-sm mb-0">';
+    echo '<nav class="cashier-history-pagination" aria-label="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '"><ul class="pagination pagination-sm mb-0">';
     if ($historyPage > 1) {
         echo $pageLink(1, 'First') . $pageLink($historyPage - 1, 'Previous');
     }
@@ -155,12 +155,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
   <div class="cashier-history-filter cashier-history-filter--page-size"><label for="historyPageSize">Rows per page</label><select class="form-select" id="historyPageSize" name="per_page"><?php foreach ($allowedPageSizes as $size): ?><option value="<?=$size?>" <?=$pageSize===$size?'selected':''?>><?=$size?> rows</option><?php endforeach;?></select></div>
   <div class="cashier-history-filter cashier-history-filter--actions"><button class="btn btn-primary"><i class="ti ti-adjustments me-1" aria-hidden="true"></i>Apply filters</button><a class="btn btn-outline-secondary" href="walk-in-transaction-history.php">Reset</a></div>
  </div></div></form>
- <div class="cashier-history-results"><p class="small text-muted mb-0">Showing <strong><?= $totalRows ? (($historyPage-1)*$pageSize+1) : 0 ?>–<?= min($historyPage*$pageSize,$totalRows) ?></strong> of <strong><?= number_format($totalRows) ?></strong> transactions</p></div>
+ <div class="cashier-history-results"><p class="small text-muted mb-0">Showing <strong><?= $totalRows ? (($historyPage-1)*$pageSize+1) : 0 ?>–<?= min($historyPage*$pageSize,$totalRows) ?></strong> of <strong><?= number_format($totalRows) ?></strong> transactions</p><?php $renderPagination('Transaction history pages'); ?></div>
  <div class="card border-0 shadow-sm payment-operational-table"><div class="card-body p-0"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Date / Time</th><th>OR / Reference</th><th>Student</th><th>Type</th><th>Category / Items</th><th>Academic Context</th><th class="text-end">Amount</th><th>Action</th></tr></thead><tbody>
  <?php if(!$rows): ?><tr><td colspan="8" class="payment-table-empty">No cashier transactions found for the selected filters.</td></tr><?php endif; foreach($rows as $row): $receiptUrl = $row['transaction_type']==='School Sale' ? 'print-receipt.php?cash_sale_id='.(int)$row['record_id'] : 'print-receipt.php?payment_id='.(int)$row['record_id']; $allocationMismatch=(int)$row['allocation_mismatch']===1; ?>
  <tr><td><span class="payment-table-primary"><?=htmlspecialchars($row['recorded_at'])?></span></td><td class="payment-table-primary"><?=htmlspecialchars($row['receipt'])?></td><td><span class="payment-table-primary"><?=htmlspecialchars($row['full_name'])?></span><small class="payment-table-secondary"><?=htmlspecialchars($row['student_number'])?></small></td><td><span class="badge <?=$row['transaction_type']==='School Sale'?'bg-info':'bg-primary'?>"><?=htmlspecialchars($row['transaction_type'])?></span></td><td class="payment-table-secondary"><?=htmlspecialchars($row['details'] ?: '—')?></td><td><span class="payment-table-primary"><?=htmlspecialchars(trim(($row['academic_year'] ?: '') . ' ' . ($row['semester'] ?: '')) ?: '—')?></span><small class="payment-table-secondary"><?=htmlspecialchars($row['billing_type'] ?: '')?></small></td><td class="payment-table-money">PHP <?=number_format((float)$row['total'],2)?><?php if($allocationMismatch): ?><small class="d-block text-danger"><span class="badge bg-danger">Allocation mismatch</span><br>Header: PHP <?=number_format((float)$row['header_amount'],2)?><br>Allocated: PHP <?=number_format((float)$row['total'],2)?><br>Difference: PHP <?=number_format((float)$row['amount_difference'],2)?></small><?php endif; ?></td><td><div class="payment-table-actions"><a class="btn btn-sm btn-outline-primary" title="Print receipt" aria-label="Print receipt" target="_blank" href="<?=$receiptUrl?>"><i class="ti ti-printer"></i></a></div></td></tr>
  <?php endforeach; ?></tbody></table></div></div></div>
- <div class="cashier-history-footer"><p class="small text-muted mb-0">Page <?= $historyPage ?> of <?= $totalPages ?></p><?php $renderPagination(); ?></div>
+ <div class="cashier-history-footer"><p class="small text-muted mb-0">Page <?= $historyPage ?> of <?= $totalPages ?></p><?php $renderPagination('Transaction history pages, bottom'); ?></div>
 </div>
 <script>
 (()=>{const period=document.getElementById('historyPeriod'),month=document.getElementById('historyMonthWrap'),year=document.getElementById('historyYearWrap');function update(){month.classList.toggle('d-none',period.value!=='month');year.classList.toggle('d-none',!['month','year'].includes(period.value));}period.addEventListener('change',update);update();})();
