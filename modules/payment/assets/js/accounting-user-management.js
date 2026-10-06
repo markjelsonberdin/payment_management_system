@@ -138,10 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    form.classList.add('was-validated');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
     const data = new FormData(form); const id = Number(data.get('user_id') || 0);
     try {
       if (!id) {
         if (data.get('password') !== data.get('password_confirm')) throw new Error('Password confirmation does not match.');
+        if (!Object.values(createPolicy()).every(Boolean)) throw new Error('Complete all temporary-password requirements.');
         await call('create', {role_key: data.get('role_key'), full_name: data.get('full_name'),
           username: data.get('username'), email: data.get('email'), password: data.get('password'),
           password_confirm: data.get('password_confirm')});
@@ -157,8 +163,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   resetForm.addEventListener('submit', async event => {
     event.preventDefault(); const data = new FormData(resetForm);
+    resetForm.classList.add('was-validated');
+    if (!resetForm.checkValidity()) {
+      resetForm.reportValidity();
+      return;
+    }
     try {
       if (data.get('password') !== data.get('password_confirm')) throw new Error('Password confirmation does not match.');
+      if (!Object.values(resetPolicy()).every(Boolean)) throw new Error('Complete all temporary-password requirements.');
       await call('reset_password', {user_id: Number(data.get('user_id')), password: data.get('password'),
         password_confirm: data.get('password_confirm')});
       resetModal.hide(); show('Temporary password saved and existing sessions revoked.'); await load();

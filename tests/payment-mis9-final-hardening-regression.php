@@ -93,7 +93,7 @@ $paymongoPage = $read('modules/payment/pages/mis_admin/online-payment-integratio
 $paymongoTest = $read('modules/payment/api/paymongo/test-connection.php');
 mis9check(str_contains($paymongoPage, 'verifyCsrfToken'), 'PayMongo configuration CSRF');
 mis9check(str_contains($paymongoTest, 'verifyCsrfToken'), 'PayMongo test CSRF');
-mis9check(!preg_match('/name=["\']fee_policy["\']/', $paymongoPage), 'No MIS fee policy control');
+mis9check((bool) preg_match('/name=["\']fee_policy["\']/', $paymongoPage), 'Validated MIS processing fee control');
 mis9check(!preg_match('/(?:sk_live_|sk_test_|whsec_)[A-Za-z0-9]{8,}/', $paymongoPage . $paymongoTest), 'No PayMongo secret literal');
 
 $ocrPage = $read('modules/payment/pages/mis_admin/google-ocr-integration.php');

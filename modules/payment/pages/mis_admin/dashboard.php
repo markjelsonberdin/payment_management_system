@@ -38,13 +38,13 @@ renderBreadcrumbs($breadcrumbs);
     <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/google-ocr-integration.php">Google OCR Integration</a>
     <?php endif; ?>
   </div>
-  <div id="dashboardNotice" class="mis-async-state small text-muted mb-3" role="status" aria-live="polite">Loading technical overview…</div>
+  <div id="dashboardNotice" class="d-none" role="status" aria-live="polite"></div>
   <small id="adminLastUpdated" class="text-muted d-block mb-3"></small>
   <div class="row g-3 mb-4" id="adminKpis" aria-live="polite"></div>
   <div class="row g-3 mb-4">
     <div class="col-lg-6"><section class="card mis-card"><div class="card-body">
       <h2 class="h5">Payment Roles &amp; Account Security</h2>
-      <div id="roleCounts">Loading account counts…</div>
+      <div id="roleCounts">—</div>
       <p id="securitySummary" class="small text-muted mt-3 mb-0"></p>
       <p class="small text-muted mt-2 mb-0">Active status and temporary locks are counted separately. Failed attempts are current account counters, not a time-based login history.</p>
       <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.security.view')): ?>
@@ -54,7 +54,7 @@ renderBreadcrumbs($breadcrumbs);
     </div></section></div>
     <div class="col-lg-6"><section class="card mis-card"><div class="card-body">
       <h2 class="h5">Integration Configuration</h2>
-      <div id="integrationSummary">Loading configuration status…</div>
+      <div id="integrationSummary">—</div>
       <p class="small text-muted mt-3 mb-0">Configuration presence does not confirm provider connectivity, webhook registration, or successful delivery.</p>
     </div></section></div>
   </div>
@@ -63,7 +63,7 @@ renderBreadcrumbs($breadcrumbs);
     <p class="small text-muted">Recorded MIS personnel changes. Use Security Monitoring for the scoped account-security event feed.</p>
     <div class="table-responsive"><table class="table align-middle mb-0">
       <thead><tr><th scope="col">Date &amp; Time</th><th scope="col">Administrative Event</th></tr></thead>
-      <tbody id="recentActivityRows"><tr><td colspan="2">Loading administrative activity…</td></tr></tbody>
+      <tbody id="recentActivityRows"><tr><td colspan="2">—</td></tr></tbody>
     </table></div>
     <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.audit.view')): ?>
     <a class="small d-inline-block mt-3" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/administrative-audit.php">View Administrative Audit</a>

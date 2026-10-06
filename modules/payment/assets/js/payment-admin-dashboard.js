@@ -42,15 +42,15 @@
       : activity.length ? activity.map(row => '<tr><td>' + esc(row.created_at) + ' (UTC+08:00)</td><td>' + esc(row.event) + '</td></tr>').join('')
       : '<tr><td colspan="2">No recorded MIS personnel activity.</td></tr>';
     const partial = Object.values(data.section_status).includes('error');
-    byId('dashboardNotice').className = 'alert ' + (partial ? 'alert-warning' : 'alert-success');
-    byId('dashboardNotice').textContent = partial ? 'Some technical overview information is unavailable.' : 'Technical overview updated.';
+    byId('dashboardNotice').className = partial ? 'alert alert-warning' : 'd-none';
+    byId('dashboardNotice').textContent = partial ? 'Some dashboard information is currently unavailable.' : '';
     byId('adminLastUpdated').textContent = 'Last updated: ' + new Date(data.generated_at).toLocaleString();
   }
   async function load() {
     const current = ++version;
     clear();
-    byId('dashboardNotice').className = 'small text-muted mb-3';
-    byId('dashboardNotice').textContent = 'Loading technical overview…';
+    byId('dashboardNotice').className = 'd-none';
+    byId('dashboardNotice').textContent = '';
     try {
       const response = await fetch(window.MIS_OVERVIEW_API, {credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'}});
       const data = await response.json();

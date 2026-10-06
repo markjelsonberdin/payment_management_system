@@ -371,12 +371,13 @@ $researchDirectorNavGroups = [
                         $dashboardOverviewUrl = BASE_URL . '/modules/payment/pages/accounting_admin/dashboard.php';
                     }
                     ?>
-                    <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || $isPaymentDashboardPage) ? 'active' : '' ?>"
+                    <?php $dashboardLabel = $paymentRoleKey === 'mis_admin' ? 'Module Shortcuts' : 'Overview'; ?>
+                    <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || ($isPaymentDashboardPage && $paymentRoleKey !== 'mis_admin')) ? 'active' : '' ?>"
                        href="<?= htmlspecialchars($dashboardOverviewUrl) ?>"
-                       data-title="Overview"
-                       title="Overview">
-                        <i class="fas fa-th-large" aria-hidden="true"></i>
-                        <span>Overview</span>
+                       data-title="<?= htmlspecialchars($dashboardLabel) ?>"
+                       title="<?= htmlspecialchars($dashboardLabel) ?>">
+                        <i class="fas <?= $paymentRoleKey === 'mis_admin' ? 'fa-th' : 'fa-th-large' ?>" aria-hidden="true"></i>
+                        <span><?= htmlspecialchars($dashboardLabel) ?></span>
                     </a>
                 </li>
 

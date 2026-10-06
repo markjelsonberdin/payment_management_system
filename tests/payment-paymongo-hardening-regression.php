@@ -27,10 +27,10 @@ try {
 }
 
 try {
-    $service->update(['gateway_mode' => 'test', 'fee_policy' => 'absorb_by_school', 'correlation_id' => CatalogCorrelationId::generate()], $actor);
-    checkPayMongo(false, 'MIS fee-policy manipulation rejected');
-} catch (DomainException $e) {
-    checkPayMongo($e->getMessage() === 'FINANCIAL_SETTING_FORBIDDEN', 'MIS fee-policy manipulation rejected');
+    $service->update(['gateway_mode' => 'test', 'fee_policy' => 'arbitrary_fee_policy', 'correlation_id' => CatalogCorrelationId::generate()], $actor);
+    checkPayMongo(false, 'arbitrary fee policy rejected');
+} catch (InvalidArgumentException $e) {
+    checkPayMongo($e->getMessage() === 'FEE_POLICY_INVALID', 'arbitrary fee policy rejected');
 }
 
 checkPayMongo(
@@ -47,7 +47,8 @@ $channels = file_get_contents($root . '/modules/payment/api/paymongo/channels.ph
 $legacy = file_get_contents($root . '/modules/payment/api/payment-webhook.php');
 
 checkPayMongo(str_contains($page, 'verifyCsrfToken') && str_contains($page, 'PayMongoIntegrationSecurity::requireActiveMisActor'), 'configuration save enforces CSRF and active MIS actor');
-checkPayMongo(!preg_match('/name=["\']fee_policy["\']/', $page), 'financial fee-policy control removed from MIS form');
+checkPayMongo((bool) preg_match('/name=["\']fee_policy["\']/', $page), 'validated processing-fee choices are available');
+checkPayMongo(str_contains($page, 'pass_to_student') && str_contains($page, 'absorb_by_school'), 'processing-fee choices are allowlisted');
 checkPayMongo(!str_contains($page, 'sk_test_') && !str_contains($page, 'sk_live_') && !str_contains($page, 'whsec_'), 'HTML source contains no PayMongo key fragments');
 checkPayMongo(str_contains($test, 'REQUEST_METHOD') && str_contains($test, "!== 'POST'") && str_contains($test, 'verifyCsrfToken'), 'connection test requires POST and CSRF');
 checkPayMongo(str_contains($status, 'PayMongoIntegrationSecurity::requireActiveMisActor') && str_contains($channels, 'PayMongoIntegrationSecurity::requireActiveMisActor'), 'MIS status endpoints enforce current active actor');

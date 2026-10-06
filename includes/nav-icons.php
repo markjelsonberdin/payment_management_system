@@ -6,6 +6,12 @@ if (!function_exists('smsNavPageIcon')) {
     function smsNavPageIcon(string $slug): string
     {
         static $map = [
+            'mis_admin/dashboard' => 'fa-tachometer-alt',
+            'mis_admin/payment-user-management' => 'fa-users-cog',
+            'mis_admin/online-payment-integration' => 'fa-credit-card',
+            'mis_admin/google-ocr-integration' => 'fa-file-image',
+            'mis_admin/security-monitoring' => 'fa-shield-alt',
+            'mis_admin/administrative-audit' => 'fa-clipboard-check',
             'cashier/walk-in-transaction-history' => 'fa-receipt',
             'user-accounts' => 'fa-user-cog',
             'role-permissions' => 'fa-shield-alt',

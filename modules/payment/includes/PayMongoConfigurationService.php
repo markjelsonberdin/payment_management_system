@@ -8,6 +8,7 @@ final class PayMongoConfigurationService
 {
     private const MODES = ['test', 'live'];
     private const CHANNELS = ['gcash', 'maya', 'card', 'qrph'];
+    private const FEE_POLICIES = ['pass_to_student', 'absorb_by_school'];
 
     public function __construct(
         private readonly PDO $paymentPdo,
@@ -18,13 +19,13 @@ final class PayMongoConfigurationService
     /** @param array<string,mixed> $input @param array{id:int,name:string,role:string} $actor */
     public function update(array $input, array $actor): array
     {
-        if (array_key_exists('fee_policy', $input)) {
-            throw new DomainException('FINANCIAL_SETTING_FORBIDDEN');
-        }
-
         $mode = strtolower(trim((string) ($input['gateway_mode'] ?? '')));
         if (!in_array($mode, self::MODES, true)) {
             throw new InvalidArgumentException('GATEWAY_MODE_INVALID');
+        }
+        $feePolicy = strtolower(trim((string) ($input['fee_policy'] ?? '')));
+        if (!in_array($feePolicy, self::FEE_POLICIES, true)) {
+            throw new InvalidArgumentException('FEE_POLICY_INVALID');
         }
 
         $channels = [];
@@ -34,9 +35,9 @@ final class PayMongoConfigurationService
 
         $correlationId = trim((string) ($input['correlation_id'] ?? ''));
         CatalogCorrelationId::assertValid($correlationId);
-        $request = ['gateway_mode' => $mode, 'channels' => $channels];
+        $request = ['gateway_mode' => $mode, 'channels' => $channels, 'fee_policy' => $feePolicy];
         $before = $this->currentTechnicalState();
-        $after = ['gateway_mode' => $mode, $mode . '_channels' => $channels];
+        $after = ['gateway_mode' => $mode, $mode . '_channels' => $channels, 'fee_policy' => $feePolicy];
         $modeChanged = ($before['gateway_mode'] ?? null) !== $mode;
 
         return $this->mutations->execute($correlationId, $request, [
@@ -45,8 +46,8 @@ final class PayMongoConfigurationService
             'entity_type' => 'paymongo_configuration',
             'entity_id' => null,
             'detail' => $modeChanged
-                ? 'PayMongo technical mode and channel configuration updated.'
-                : 'PayMongo technical channel configuration updated.',
+                ? 'PayMongo mode, channel, and processing-fee configuration updated.'
+                : 'PayMongo channel and processing-fee configuration updated.',
             'before_state' => $before,
             'after_state' => $after,
             'actor_user_id' => $actor['id'],
@@ -54,7 +55,7 @@ final class PayMongoConfigurationService
             'actor_role_key' => $actor['role'],
             'actor_ip_address' => function_exists('smsClientIp') ? smsClientIp() : null,
             'actor_user_agent' => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
-        ], function (PDO $pdo) use ($mode, $channels): array {
+        ], function (PDO $pdo) use ($mode, $channels, $feePolicy): array {
             $stmt = $pdo->prepare(
                 'INSERT INTO payment_gateway_settings (setting_key, setting_value) VALUES (?, ?)
                  ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
@@ -63,8 +64,9 @@ final class PayMongoConfigurationService
             foreach ($channels as $channel => $enabled) {
                 $stmt->execute([$mode . '_channel_' . $channel, $enabled ? '1' : '0']);
             }
+            $stmt->execute(['fee_policy', $feePolicy]);
             $stmt->execute(['paymongo_last_config_update', gmdate('c')]);
-            return ['gateway_mode' => $mode, 'channels' => $channels];
+            return ['gateway_mode' => $mode, 'channels' => $channels, 'fee_policy' => $feePolicy];
         });
     }
 
@@ -101,9 +103,9 @@ final class PayMongoConfigurationService
     /** @return array<string,mixed> */
     public function currentTechnicalState(): array
     {
-        $stmt = $this->paymentPdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key = 'gateway_mode' OR setting_key LIKE 'test_channel_%' OR setting_key LIKE 'live_channel_%'");
+        $stmt = $this->paymentPdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key IN ('gateway_mode','fee_policy') OR setting_key LIKE 'test_channel_%' OR setting_key LIKE 'live_channel_%'");
         $rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        $state = ['gateway_mode' => $rows['gateway_mode'] ?? null];
+        $state = ['gateway_mode' => $rows['gateway_mode'] ?? null, 'fee_policy' => $rows['fee_policy'] ?? null];
         foreach (self::MODES as $mode) {
             foreach (self::CHANNELS as $channel) {
                 $state[$mode . '_channels'][$channel] = ($rows[$mode . '_channel_' . $channel] ?? '1') === '1';

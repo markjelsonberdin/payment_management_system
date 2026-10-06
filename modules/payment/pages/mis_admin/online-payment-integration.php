@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_gateway_settings
         header('Location: online-payment-integration.php?result=updated');
         exit();
     } catch (DomainException|InvalidArgumentException $e) {
-        $safeCode = in_array($e->getMessage(), ['FINANCIAL_SETTING_FORBIDDEN', 'GATEWAY_MODE_INVALID'], true)
+        $safeCode = in_array($e->getMessage(), ['GATEWAY_MODE_INVALID', 'FEE_POLICY_INVALID'], true)
             ? $e->getMessage() : 'PAYMONGO_CONFIG_INVALID';
         header('Location: online-payment-integration.php?error_code=' . rawurlencode($safeCode));
         exit();
@@ -85,8 +85,8 @@ $credentialStatus = [
 ];
 $formCorrelationId = CatalogCorrelationId::generate();
 $errorMessages = [
-    'FINANCIAL_SETTING_FORBIDDEN' => 'Financial fee policy cannot be changed from MIS administration.',
     'GATEWAY_MODE_INVALID' => 'Select a supported PayMongo environment.',
+    'FEE_POLICY_INVALID' => 'Select a supported processing-fee policy.',
     'PAYMONGO_CONFIG_INVALID' => 'The PayMongo configuration request is invalid.',
     'PAYMONGO_CONFIG_SAVE_FAILED' => 'The PayMongo configuration could not be saved.',
 ];
@@ -279,8 +279,16 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 </div>
 
                 <div class="card mis-card">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-cash me-2"></i>Processing Fee</h5>
+                    </div>
                     <div class="card-body p-4">
-                        <p class="text-muted small">Saving changes updates technical PayMongo configuration only. Processing-fee policy remains Accounting-owned.</p>
+                        <label class="form-label fw-semibold" for="feePolicySelect">Who pays the PayMongo processing fee?</label>
+                        <select class="form-select mb-3" id="feePolicySelect" name="fee_policy" required>
+                            <option value="pass_to_student" <?= ($settings['fee_policy'] ?? 'pass_to_student') === 'pass_to_student' ? 'selected' : '' ?>>Pass Processing Fee to Student</option>
+                            <option value="absorb_by_school" <?= ($settings['fee_policy'] ?? '') === 'absorb_by_school' ? 'selected' : '' ?>>Absorb Processing Fee by School</option>
+                        </select>
+                        <p class="text-muted small">This choice is validated and recorded in the administrative audit trail.</p>
                         <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
                             <i class="ti ti-device-floppy me-1"></i> Save Gateway Configuration
                         </button>
