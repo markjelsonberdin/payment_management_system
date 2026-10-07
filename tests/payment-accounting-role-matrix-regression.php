@@ -54,6 +54,14 @@ roleCheck(str_contains($landing, "'mis_admin' => '/modules/payment/pages/mis_adm
 roleCheck(str_contains($landing, "'accounting_admin' => '/modules/payment/pages/accounting_admin/dashboard.php'"), 'Accounting Admin must land on its canonical dashboard');
 roleCheck(str_contains($landing, "'accounting_officer' => '/modules/payment/pages/accounting/dashboard-integrated.php'"), 'Accounting Officer must land on its operational dashboard');
 roleCheck(str_contains($landing, 'smsNormalizeRoleKey(getCurrentUserRoleKey())'), 'Dashboard routing must normalize the authenticated role key');
+$paymentConfig = (string) file_get_contents(ROOT_PATH . '/config/config.php');
+roleCheck(str_contains($paymentConfig, "'accounting/collection-reporting-analytics',"), 'Accounting Officer navigation must include its report.view collection analytics module');
+$officerReport = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting/collection-reporting-integrated.php');
+roleCheck(str_contains($officerReport, "requirePaymentPermission('report.view')"), 'Accounting Officer analytics must keep server-side report permission enforcement');
+$officerGroupStart = strpos($paymentConfig, "'ACCOUNTING PORTAL' => [");
+$officerGroupEnd = strpos($paymentConfig, "'ACCOUNTING ADMIN PORTAL' => [", $officerGroupStart);
+$officerGroup = substr($paymentConfig, $officerGroupStart, $officerGroupEnd - $officerGroupStart);
+roleCheck(!str_contains($officerGroup, "'accounting_admin/managed-bulk-approval'") && !str_contains($officerGroup, "'accounting_admin/school-sales-catalog'"), 'Accounting Officer navigation must not expose Accounting Admin-only modules');
 $adminDashboard = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting_admin/dashboard.php');
 roleCheck(str_contains($adminDashboard, "requirePaymentPermission('billing.bulk.approve')"), 'Accounting Admin dashboard must remain outside Officer report access');
 roleCheck(smsPostLoginRedirectUrl() === BASE_URL . '/dashboard/index.php', 'Post-login helper must use canonical landing dispatcher');

@@ -143,12 +143,14 @@
 .payment-status.is-info { color: #075985; background: #f0f9ff; border-color: #bae6fd; }
 .payment-status.is-muted { color: #475569; background: #f1f5f9; border-color: #cbd5e1; }
 
-.payment-page .pagination {
+.payment-page .pagination,
+.payment-pagination .pagination {
     flex-wrap: wrap;
     gap: .25rem;
 }
 
-.payment-page .pagination .page-link {
+.payment-page .pagination .page-link,
+.payment-pagination .pagination .page-link {
     display: inline-flex;
     min-width: 2.25rem;
     min-height: 2.25rem;
@@ -163,27 +165,40 @@
     text-decoration: none;
 }
 
-.payment-page .pagination .page-item.active .page-link {
+.payment-page .pagination .page-item.active .page-link,
+.payment-pagination .pagination .page-item.active .page-link {
     border-color: var(--sms-primary, #1d4ed8);
     background: var(--sms-primary, #1d4ed8);
     color: #fff;
 }
 
-.payment-page .pagination .page-link:hover {
+.payment-page .pagination .page-link:hover,
+.payment-pagination .pagination .page-link:hover {
     border-color: var(--sms-primary, #1d4ed8);
     color: var(--sms-primary, #1d4ed8);
 }
 
-.payment-page .pagination .page-item.disabled .page-link {
+.payment-page .pagination .page-item.disabled .page-link,
+.payment-pagination .pagination .page-item.disabled .page-link {
     border-color: transparent;
     background: var(--sms-surface-solid, #fff);
     color: var(--sms-text-faint, #94a3b8);
 }
 
-.payment-page .pagination .page-link:focus-visible {
+.payment-page .pagination .page-link:focus-visible,
+.payment-pagination .pagination .page-link:focus-visible {
     outline: 3px solid rgba(37, 99, 235, .3);
     outline-offset: 2px;
     box-shadow: none;
+}
+
+.payment-page .mis-pagination,
+.payment-page .payment-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
 }
 
 .payment-chart-frame {

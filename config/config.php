@@ -292,6 +292,7 @@ $MODULES = [
                 'accounting/payment-history-ledger-system',
                 'accounting/payment-concern-portal',
                 'accounting/bank-reconciliation',
+                'accounting/collection-reporting-analytics',
             ],
             'ACCOUNTING ADMIN PORTAL' => [
                 'accounting_admin/dashboard',

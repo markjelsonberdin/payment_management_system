@@ -376,7 +376,7 @@ $researchDirectorNavGroups = [
                        href="<?= htmlspecialchars($dashboardOverviewUrl) ?>"
                        data-title="<?= htmlspecialchars($dashboardLabel) ?>"
                        title="<?= htmlspecialchars($dashboardLabel) ?>">
-                        <i class="fas <?= $paymentRoleKey === 'mis_admin' ? 'fa-tachometer-alt' : 'fa-th-large' ?>" aria-hidden="true"></i>
+                        <i class="fas fa-th-large" aria-hidden="true"></i>
                         <span><?= htmlspecialchars($dashboardLabel) ?></span>
                     </a>
                 </li>

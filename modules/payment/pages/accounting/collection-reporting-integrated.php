@@ -35,6 +35,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 <?php renderBreadcrumbs($breadcrumbs); ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/reporting-period-controls.css">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 <main class="container-fluid payment-page py-4">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
@@ -159,13 +160,15 @@ require_once ROOT_PATH . '/includes/layout-start.php';
       <?php endforeach; ?>
       <?php if (empty($report['recent_collections'])): ?><tr><td colspan="10" class="payment-table-empty">No collection records found for the selected filters.</td></tr><?php endif; ?>
       </tbody></table></div>
-      <?php $pagination = $report['recent_collections_pagination'] ?? null; if ($pagination && $pagination['total_pages'] > 1): $pageQuery = static function (int $page) use ($pagination): string { return '?' . http_build_query(array_merge($_GET, ['page' => $page, 'page_size' => $pagination['page_size']])); }; ?>
+      <?php $pagination = $report['recent_collections_pagination'] ?? null; if ($pagination && $pagination['total_pages'] > 1): $pageQuery = static function (int $page) use ($pagination): string { return '?' . http_build_query(array_merge($_GET, ['page' => $page, 'page_size' => $pagination['page_size']])); }; $page = (int) $pagination['page']; $pages = (int) $pagination['total_pages']; $firstPage = max(1, $page - 2); $lastPage = min($pages, $page + 2); ?>
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3">
           <small class="text-muted">Showing <?= number_format((($pagination['page'] - 1) * $pagination['page_size']) + 1) ?>–<?= number_format(min($pagination['page'] * $pagination['page_size'], $pagination['total_records'])) ?> of <?= number_format($pagination['total_records']) ?> records</small>
-          <nav aria-label="Detailed official collections pages"><ul class="pagination pagination-sm mb-0">
-            <li class="page-item <?= $pagination['has_previous'] ? '' : 'disabled' ?>"><a class="page-link" href="<?= $pagination['has_previous'] ? htmlspecialchars($pageQuery($pagination['page'] - 1), ENT_QUOTES, 'UTF-8') : '#' ?>">Previous</a></li>
-            <li class="page-item disabled"><span class="page-link">Page <?= number_format($pagination['page']) ?> of <?= number_format($pagination['total_pages']) ?></span></li>
-            <li class="page-item <?= $pagination['has_next'] ? '' : 'disabled' ?>"><a class="page-link" href="<?= $pagination['has_next'] ? htmlspecialchars($pageQuery($pagination['page'] + 1), ENT_QUOTES, 'UTF-8') : '#' ?>">Next</a></li>
+          <nav class="payment-pagination" aria-label="Detailed official collections pages"><ul class="pagination pagination-sm mb-0">
+            <?php if ($pagination['has_previous']): ?><li class="page-item"><a class="page-link" href="<?= htmlspecialchars($pageQuery($page - 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Previous page">‹ Previous</a></li><?php else: ?><li class="page-item disabled"><span class="page-link" aria-disabled="true">‹ Previous</span></li><?php endif; ?>
+            <?php if ($firstPage > 1): ?><li class="page-item"><a class="page-link" href="<?= htmlspecialchars($pageQuery(1), ENT_QUOTES, 'UTF-8') ?>">1</a></li><?php if ($firstPage > 2): ?><li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li><?php endif; ?><?php endif; ?>
+            <?php for ($pageNumber = $firstPage; $pageNumber <= $lastPage; $pageNumber++): ?><li class="page-item <?= $pageNumber === $page ? 'active' : '' ?>"><?php if ($pageNumber === $page): ?><span class="page-link" aria-current="page"><?= $pageNumber ?></span><?php else: ?><a class="page-link" href="<?= htmlspecialchars($pageQuery($pageNumber), ENT_QUOTES, 'UTF-8') ?>"><?= $pageNumber ?></a><?php endif; ?></li><?php endfor; ?>
+            <?php if ($lastPage < $pages): ?><?php if ($lastPage < $pages - 1): ?><li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li><?php endif; ?><li class="page-item"><a class="page-link" href="<?= htmlspecialchars($pageQuery($pages), ENT_QUOTES, 'UTF-8') ?>"><?= $pages ?></a></li><?php endif; ?>
+            <?php if ($pagination['has_next']): ?><li class="page-item"><a class="page-link" href="<?= htmlspecialchars($pageQuery($page + 1), ENT_QUOTES, 'UTF-8') ?>" aria-label="Next page">Next ›</a></li><?php else: ?><li class="page-item disabled"><span class="page-link" aria-disabled="true">Next ›</span></li><?php endif; ?>
           </ul></nav>
         </div>
       <?php endif; ?>
