@@ -308,7 +308,7 @@ $MODULES = [
                 'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
-            'Payment Administration' => ['mis_admin/payment-user-management'],
+            'MIS Admin Staffs' => ['mis_admin/payment-user-management'],
             'Integrations' => [
                 'mis_admin/online-payment-integration',
                 'mis_admin/google-ocr-integration',
@@ -333,7 +333,7 @@ $MODULES = [
             ['slug' => 'accounting/bank-reconciliation', 'title' => 'AUB Bank Reconciliation', 'permission' => 'payment.concern.review'],
             ['slug' => 'cashier/walk-in-transaction-history', 'title' => 'Transactions', 'permission' => 'payment.walkin_history'],
             
-            ['slug' => 'mis_admin/dashboard', 'title' => 'Overview', 'permission' => 'payment.mis_overview'],
+            ['slug' => 'mis_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.mis_overview'],
             ['slug' => 'mis_admin/security-monitoring', 'title' => 'Security Monitoring', 'permission' => 'payment.security.view'],
             ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Users', 'permission' => 'payment_users.view'],
             ['slug' => 'mis_admin/online-payment-integration', 'title' => 'PayMongo Integration', 'permission' => 'integration.paymongo.manage'],

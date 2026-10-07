@@ -95,7 +95,7 @@ $pageTitle    = 'PayMongo Integration';
 $activeModule = 'payment';
 $activePage   = 'mis_admin/online-payment-integration';
 $breadcrumbs  = [
-    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'],
+    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/overview.php'],
     ['label' => 'PayMongo Integration', 'url' => null],
 ];
 

@@ -388,7 +388,7 @@ $researchDirectorNavGroups = [
                     $overviewUrl = BASE_URL . '/modules/' . $moduleFolder . '/index.php';
                     $isMisOverview = $navModuleKey === 'payment' && smsNormalizeRoleKey($roleKey) === 'mis_admin';
                     if ($isMisOverview) {
-                        $overviewUrl = BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php';
+                        $overviewUrl = BASE_URL . '/modules/payment/pages/mis_admin/overview.php';
                     }
                     $moduleInMaint = smsIsModuleInMaintenance((string) $navModuleKey);
                     ?>
@@ -408,7 +408,7 @@ $researchDirectorNavGroups = [
                     <?php endif; ?>
                     <?php if (!$hasCanonicalPaymentDashboard || $navModuleKey === 'payment'): ?>
                         <li class="nav-item">
-                            <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && ($activePage === '' || ($isMisOverview && $activePage === 'mis_admin/dashboard'))) ? 'active' : '' ?>"
+                            <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && ($activePage === '' || ($isMisOverview && $activePage === 'mis_admin/overview'))) ? 'active' : '' ?>"
                                href="<?= htmlspecialchars($overviewUrl) ?>">
                                 <i class="fas fa-th-large" aria-hidden="true"></i>
                                 <span>Overview</span>

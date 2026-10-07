@@ -52,7 +52,7 @@ $messages = [
 ];
 $pageTitle = 'Google OCR Integration'; $activeModule = 'payment'; $activePage = 'mis_admin/google-ocr-integration';
 $breadcrumbs = [
-    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'],
+    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/overview.php'],
     ['label' => 'Google OCR Integration', 'url' => null],
 ];
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
