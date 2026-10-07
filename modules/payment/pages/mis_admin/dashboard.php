@@ -3,12 +3,12 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 requireAuth();
 requirePaymentPermission('payment.mis_overview');
-$pageTitle = 'Overview';
+$pageTitle = 'Dashboard';
 $activeModule = 'payment';
 $activePage = 'mis_admin/dashboard';
 $breadcrumbs = [
-    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'],
-    ['label' => 'Overview', 'url' => null],
+    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/overview.php'],
+    ['label' => 'Dashboard', 'url' => null],
 ];
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
@@ -17,26 +17,9 @@ renderBreadcrumbs($breadcrumbs);
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
 <main class="container-fluid py-4" id="misOverview">
   <div class="mis-page-header">
-    <div><h1 class="h3">Overview</h1>
+    <div><h1 class="h3">Dashboard</h1>
       <p>Monitor Payment personnel, integrations, security, and recent administrative activity.</p></div>
     <button id="refreshDashboard" class="btn btn-outline-primary" type="button">Refresh</button>
-  </div>
-  <div class="d-flex flex-wrap gap-2 mb-3">
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.view')): ?>
-    <a class="btn btn-primary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/payment-user-management.php">Payment Users</a>
-    <?php endif; ?>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.security.view')): ?>
-    <a class="btn btn-outline-danger" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/security-monitoring.php">Security Monitoring</a>
-    <?php endif; ?>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment.audit.view')): ?>
-    <a class="btn btn-outline-secondary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/administrative-audit.php">Administrative Audit</a>
-    <?php endif; ?>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.paymongo.manage')): ?>
-    <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/online-payment-integration.php">PayMongo Integration</a>
-    <?php endif; ?>
-    <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'integration.ocr.manage')): ?>
-    <a class="btn btn-outline-primary" href="<?= BASE_URL ?>/modules/payment/pages/mis_admin/google-ocr-integration.php">Google OCR Integration</a>
-    <?php endif; ?>
   </div>
   <div id="dashboardNotice" class="mis-async-state small text-muted mb-3" role="status" aria-live="polite">Loading technical overview…</div>
   <small id="adminLastUpdated" class="text-muted d-block mb-3"></small>

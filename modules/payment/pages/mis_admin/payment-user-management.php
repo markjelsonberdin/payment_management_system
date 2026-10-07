@@ -7,7 +7,7 @@ requirePaymentPermission('payment_users.view');
 $pageTitle = 'Payment Users';
 $activeModule = 'payment';
 $activePage = 'mis_admin/payment-user-management';
-$breadcrumbs = [['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'], ['label' => 'Payment Users', 'url' => null]];
+$breadcrumbs = [['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/overview.php'], ['label' => 'Payment Users', 'url' => null]];
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);

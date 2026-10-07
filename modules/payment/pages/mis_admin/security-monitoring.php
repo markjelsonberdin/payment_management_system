@@ -8,7 +8,7 @@ $pageTitle = 'Security Monitoring';
 $activeModule = 'payment';
 $activePage = 'mis_admin/security-monitoring';
 $breadcrumbs = [
-    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/dashboard.php'],
+    ['label' => 'MIS Admin', 'url' => BASE_URL . '/modules/payment/pages/mis_admin/overview.php'],
     ['label' => 'Security Monitoring', 'url' => null],
 ];
 require_once ROOT_PATH . '/includes/breadcrumbs.php';

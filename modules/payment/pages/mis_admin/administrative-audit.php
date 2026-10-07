@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 requireAuth();requirePaymentPermission('payment.audit.view');
 $pageTitle='Administrative Audit';$activeModule='payment';$activePage='mis_admin/administrative-audit';
-$breadcrumbs=[['label'=>'MIS Admin','url'=>BASE_URL.'/modules/payment/pages/mis_admin/dashboard.php'],['label'=>'Administrative Audit','url'=>null]];
+$breadcrumbs=[['label'=>'MIS Admin','url'=>BASE_URL.'/modules/payment/pages/mis_admin/overview.php'],['label'=>'Administrative Audit','url'=>null]];
 require_once ROOT_PATH.'/includes/breadcrumbs.php';require_once ROOT_PATH.'/includes/layout-start.php';renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
