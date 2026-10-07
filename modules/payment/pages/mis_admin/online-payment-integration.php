@@ -294,7 +294,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <option value="pass_to_student" <?= ($settings['fee_policy'] ?? 'pass_to_student') === 'pass_to_student' ? 'selected' : '' ?>>Pass Processing Fee to Student</option>
                             <option value="absorb_by_school" <?= ($settings['fee_policy'] ?? '') === 'absorb_by_school' ? 'selected' : '' ?>>Absorb Processing Fee by School</option>
                         </select>
-                        <p class="text-muted small">This choice is validated and recorded in the administrative audit trail.</p>
+                        <p class="text-muted small">This choice is validated and recorded in the payment security activity log.</p>
                         <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
                             <i class="ti ti-device-floppy me-1"></i> Save Gateway Configuration
                         </button>
