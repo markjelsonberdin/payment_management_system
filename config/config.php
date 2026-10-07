@@ -308,7 +308,7 @@ $MODULES = [
                 'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
-            'MIS Admin Staffs' => ['mis_admin/payment-user-management'],
+            'MIS Admin Staffs' => ['mis_admin/payment-user-management', 'mis_admin/roles-permissions'],
             'Integrations' => [
                 'mis_admin/online-payment-integration',
                 'mis_admin/google-ocr-integration',
@@ -336,6 +336,7 @@ $MODULES = [
             ['slug' => 'mis_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.mis_overview'],
             ['slug' => 'mis_admin/security-monitoring', 'title' => 'Security Monitoring', 'permission' => 'payment.security.view'],
             ['slug' => 'mis_admin/payment-user-management', 'title' => 'Payment Users', 'permission' => 'payment_users.view'],
+            ['slug' => 'mis_admin/roles-permissions', 'title' => 'Roles & Permissions', 'permission' => 'payment.mis_overview'],
             ['slug' => 'mis_admin/online-payment-integration', 'title' => 'PayMongo Integration', 'permission' => 'integration.paymongo.manage'],
             ['slug' => 'mis_admin/google-ocr-integration', 'title' => 'Google OCR Integration', 'permission' => 'integration.ocr.manage'],
         ],

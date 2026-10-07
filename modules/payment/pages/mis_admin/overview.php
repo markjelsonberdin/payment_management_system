@@ -7,6 +7,7 @@ $pageTitle='Overview'; $activeModule='payment'; $activePage='mis_admin/overview'
 $breadcrumbs=[['label'=>'MIS Admin','url'=>BASE_URL.'/modules/payment/pages/mis_admin/overview.php'],['label'=>'Overview','url'=>null]];
 $shortcuts=[
  ['title'=>'MIS Admin Staffs','description'=>'Manage authorized MIS Admin personnel accounts and access.','icon'=>'fa-users','permission'=>'payment_users.view','href'=>'payment-user-management.php'],
+ ['title'=>'Roles & Permissions','description'=>'Review role-based access for Payment Management users.','icon'=>'fa-user-shield','permission'=>'payment.mis_overview','href'=>'roles-permissions.php'],
  ['title'=>'PayMongo Integration','description'=>'Configure online payment provider settings.','icon'=>'fa-credit-card','permission'=>'integration.paymongo.manage','href'=>'online-payment-integration.php'],
  ['title'=>'Google OCR Integration','description'=>'Configure receipt OCR processing.','icon'=>'fa-file-image','permission'=>'integration.ocr.manage','href'=>'google-ocr-integration.php'],
  ['title'=>'Security Monitoring','description'=>'Review account security events and status.','icon'=>'fa-shield-alt','permission'=>'payment.security.view','href'=>'security-monitoring.php'],
