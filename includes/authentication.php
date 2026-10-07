@@ -36,8 +36,19 @@ function smsNeedsSetup(): bool
  */
 function smsNormalizeRoleKey(string $roleKey): string
 {
+    $roleKey = strtolower(trim($roleKey));
+    $roleKey = preg_replace('/\s+/', '_', $roleKey) ?? $roleKey;
     if ($roleKey === 'admin') {
         return 'superadmin';
+    }
+    if (in_array($roleKey, ['accountingadmin', 'accounting_admin'], true)) {
+        return 'accounting_admin';
+    }
+    if (in_array($roleKey, ['accountingofficer', 'accounting_officer'], true)) {
+        return 'accounting_officer';
+    }
+    if (in_array($roleKey, ['misadmin', 'mis_admin'], true)) {
+        return 'mis_admin';
     }
     if ($roleKey === 'crad') {
         return 'crad_officer';
@@ -1664,7 +1675,6 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
     $aliases = [
         'payment.billing' => 'billing.individual.process',
         'payment.fee_setup' => 'fee.manage',
-        'payment.discount' => 'ar.manage',
         'payment.ledger' => 'ledger.view',
         'payment.concern_review' => 'payment.concern.review',
         'payment.managed_bulk_operate' => 'billing.bulk.process',
@@ -1682,13 +1692,14 @@ function paymentRoleAllowsPermission(string $role, string $permission): bool
         'accounting_officer' => [
             'billing.individual.process', 'billing.bulk.create', 'billing.bulk.preview',
             'billing.bulk.process', 'billing.bulk.retry', 'billing.bulk.resume', 'billing.bulk.view',
-            'billing.individual.review', 'ar.view',
+            'billing.individual.review', 'ar.view', 'payment.discount', 'ledger.view',
+            'payment.concern.review', 'report.view',
         ],
         'accounting_admin' => [
             'fee.view', 'fee.manage', 'fee.activate', 'billing.individual.review',
             'billing.bulk.view', 'billing.bulk.approve', 'payment.verify',
             'payment.concern.review', 'ledger.view', 'ar.view', 'ar.manage',
-            'report.view', 'report.export',
+            'payment.discount', 'report.view', 'report.export',
             'school_sales.catalog.view', 'school_sales.catalog.manage', 'school_sales.catalog.activate',
         ],
         'cashier' => [

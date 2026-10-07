@@ -15,7 +15,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<main class="container-fluid py-4" id="misOverview">
+<main class="container-fluid payment-page py-4" id="misOverview">
   <div class="mis-page-header">
     <div><h1 class="h3">Dashboard</h1>
       <p>Monitor Payment personnel, integrations, security, and recent administrative activity.</p></div>

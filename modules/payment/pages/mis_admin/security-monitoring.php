@@ -16,7 +16,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<main class="container-fluid py-4" id="paymentSecurityApp"
+<main class="container-fluid payment-page py-4" id="paymentSecurityApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php', ENT_QUOTES, 'UTF-8') ?>"
  data-personnel-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
  data-audit-url="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/mis_admin/administrative-audit.php', ENT_QUOTES, 'UTF-8') ?>"
@@ -45,7 +45,7 @@ renderBreadcrumbs($breadcrumbs);
       <div class="col-md-2 mis-filter-actions"><button class="btn btn-primary" type="submit">Apply</button><button class="btn btn-outline-secondary" id="personnelReset" type="button">Reset</button></div>
     </form>
     <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Name</th><th scope="col">Payment Role</th><th scope="col">Administrative</th><th scope="col">Security</th><th scope="col">Current Failed Attempts</th><th scope="col">Locked Until</th><th scope="col">Last Security Activity</th><th scope="col">Action</th></tr></thead><tbody id="personnelSecurityRows"><tr><td colspan="8" class="text-center py-4 text-muted">Loading security information…</td></tr></tbody></table></div>
-    <div class="mis-pagination"><small id="personnelCount" class="text-muted"></small><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="personnelPrev">Previous</button><button type="button" class="btn btn-sm btn-outline-secondary" id="personnelNext">Next</button></div></div>
+    <div class="mis-pagination"><small id="personnelCount" class="text-muted"></small><nav class="payment-pagination" aria-label="Payment account pages"><ul class="pagination pagination-sm mb-0" id="personnelPagination"></ul></nav></div>
   </div></section>
   <section class="card mis-card"><div class="card-body">
     <div class="mb-3"><h2 class="h5 mb-1">Recent Security Events</h2><p class="small text-muted mb-0">Payment-scoped persisted events only. Historical events without a reliable managed-user target are omitted.</p></div>
@@ -58,7 +58,7 @@ renderBreadcrumbs($breadcrumbs);
       <div class="col-md-2 mis-filter-actions"><button class="btn btn-primary" type="submit">Apply</button><button class="btn btn-outline-secondary" id="eventReset" type="button">Reset</button></div>
     </form>
     <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Timestamp</th><th scope="col">Event</th><th scope="col">Actor</th><th scope="col">Target</th><th scope="col">Role</th><th scope="col">Result</th><th scope="col">Safe Context</th><th scope="col">Correlation ID</th></tr></thead><tbody id="securityEventRows"><tr><td colspan="8" class="text-center py-4 text-muted">Loading security information…</td></tr></tbody></table></div>
-    <div class="mis-pagination"><small id="eventCount" class="text-muted"></small><div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="eventPrev">Previous</button><button type="button" class="btn btn-sm btn-outline-secondary" id="eventNext">Next</button></div></div>
+    <div class="mis-pagination"><small id="eventCount" class="text-muted"></small><nav class="payment-pagination" aria-label="Security event pages"><ul class="pagination pagination-sm mb-0" id="eventPagination"></ul></nav></div>
   </div></section>
 </main>
 <script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=2"></script>

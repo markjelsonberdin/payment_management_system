@@ -8,7 +8,7 @@ $breadcrumbs=[['label'=>'MIS Admin','url'=>BASE_URL.'/modules/payment/pages/mis_
 require_once ROOT_PATH.'/includes/breadcrumbs.php';require_once ROOT_PATH.'/includes/layout-start.php';renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<main class="container-fluid py-4" id="administrativeAuditApp" data-api="<?= htmlspecialchars(BASE_URL.'/modules/payment/api/mis_admin/administrative-audit.php',ENT_QUOTES,'UTF-8') ?>">
+<main class="container-fluid payment-page py-4" id="administrativeAuditApp" data-api="<?= htmlspecialchars(BASE_URL.'/modules/payment/api/mis_admin/administrative-audit.php',ENT_QUOTES,'UTF-8') ?>">
  <div class="mis-page-header"><div><h1 class="h3">Administrative Audit</h1><p>Review historical Payment administrative activity and configuration changes.</p></div><button class="btn btn-outline-primary" id="auditRefresh" type="button">Refresh</button></div>
  <div id="auditNotice" class="mis-async-state small text-muted mb-3" role="status" aria-live="polite">Loading audit records…</div>
  <section class="mb-4" aria-labelledby="auditSummaryHeading"><h2 class="h5" id="auditSummaryHeading">Audit Summary</h2><div class="row g-3" id="auditSummaryCards"></div><p class="small text-muted mt-2 mb-0">Summary uses the current 30-day audit window. Administrative records are read-only.</p></section>
@@ -27,7 +27,7 @@ require_once ROOT_PATH.'/includes/breadcrumbs.php';require_once ROOT_PATH.'/incl
    <div class="col-lg-2 col-md-4"><label class="form-label" for="auditTarget">Target ID</label><input class="form-control" id="auditTarget" name="target" type="number" min="1"></div>
   </form>
   <div class="table-responsive mis-table-card"><table class="table table-hover align-middle mb-0"><thead><tr><th scope="col">Timestamp</th><th scope="col">Event</th><th scope="col">Category</th><th scope="col">Actor</th><th scope="col">Target</th><th scope="col">Result</th><th scope="col">Correlation ID</th><th scope="col">Details</th></tr></thead><tbody id="auditRows"><tr><td colspan="8" class="text-center py-4 text-muted">Loading…</td></tr></tbody></table></div>
-  <div class="mis-pagination"><small id="auditCount" class="text-muted"></small><div class="btn-group"><button class="btn btn-sm btn-outline-secondary" id="auditPrev" type="button">Previous</button><button class="btn btn-sm btn-outline-secondary" id="auditNext" type="button">Next</button></div></div>
+  <div class="mis-pagination"><small id="auditCount" class="text-muted"></small><nav class="payment-pagination" aria-label="Administrative audit pages"><ul class="pagination pagination-sm mb-0" id="auditPagination"></ul></nav></div>
  </div></section>
  <div class="modal fade" id="auditDetailModal" tabindex="-1" aria-labelledby="auditDetailTitle" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h2 class="modal-title h5" id="auditDetailTitle">Audit Event Detail</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close audit event detail"></button></div><div class="modal-body" id="auditDetailBody"></div><div class="modal-footer"><button class="btn btn-outline-primary" id="viewRelatedEvents" type="button">View Related Events</button><button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button></div></div></div></div>
 </main>

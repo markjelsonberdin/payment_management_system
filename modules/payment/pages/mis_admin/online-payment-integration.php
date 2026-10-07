@@ -109,7 +109,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid payment-page py-4">
     
     <!-- Header -->
     <div class="mis-page-header">

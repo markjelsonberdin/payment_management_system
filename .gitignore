@@ -17,3 +17,7 @@ payment_db_production.sql
 /modules/payment/includes/sync_error.log
 /modules/payment/api/paymongo/webhook_error.log
 /tests/.session-*
+
+# Legacy webroot receipt directory: keep access control only; never track receipt evidence
+/uploads/receipts/*
+!/uploads/receipts/.htaccess

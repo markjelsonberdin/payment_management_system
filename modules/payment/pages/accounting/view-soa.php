@@ -47,7 +47,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid payment-page py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             

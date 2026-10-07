@@ -24,16 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
   function notice(text, type = '') {
     const el = byId('securityNotice'); el.className = type ? `alert alert-${type} mb-3` : 'small text-muted mb-3'; el.textContent = text;
   }
+  function renderPager(id, page, pages, change) {
+    const host = byId(id);
+    const item = (number, text, current = false, label = '') => `<li class="page-item${current ? ' active' : ''}"><a class="page-link" href="#" data-page="${number}"${current ? ' aria-current="page"' : ''}${label ? ` aria-label="${label}"` : ''}>${text}</a></li>`;
+    const disabled = (text, label) => `<li class="page-item disabled"><span class="page-link" aria-disabled="true" aria-label="${label}">${text}</span></li>`;
+    let html = page > 1 ? item(page - 1, '‹', false, 'Previous page') : disabled('‹', 'Previous page');
+    const start = Math.max(1, page - 2), end = Math.min(pages, page + 2);
+    if (start > 1) { html += item(1, '1'); if (start > 2) html += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>'; }
+    for (let number = start; number <= end; number++) html += item(number, String(number), number === page);
+    if (end < pages) { if (end < pages - 1) html += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>'; html += item(pages, String(pages)); }
+    html += page < pages ? item(page + 1, '›', false, 'Next page') : disabled('›', 'Next page');
+    host.innerHTML = html;
+    host.querySelectorAll('[data-page]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); change(Number(link.dataset.page)); }));
+  }
 
   function renderSummary(summary) {
     const cards = [
-      ['Locked Payment Accounts', summary.locked_accounts, 'danger', 'lock_state=locked'],
-      ['Accounts With Failed Attempts', summary.accounts_with_failed_attempts, 'warning', 'failed_attempts=present'],
-      ['Disabled Payment Accounts', summary.disabled_accounts, 'secondary', 'administrative_status=inactive'],
-      ['Recent Session Revocations', summary.recent_session_revocations, 'info', ''],
+      ['Locked Payment Accounts', summary.locked_accounts, 'danger', 'lock_state=locked', 'ti-lock'],
+      ['Accounts With Failed Attempts', summary.accounts_with_failed_attempts, 'warning', 'failed_attempts=present', 'ti-alert-triangle'],
+      ['Disabled Payment Accounts', summary.disabled_accounts, 'secondary', 'administrative_status=inactive', 'ti-user-off'],
+      ['Recent Session Revocations', summary.recent_session_revocations, 'info', '', 'ti-logout'],
     ];
-    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, filter]) =>
-      `<div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div>${filter ? `<button class="btn btn-link btn-sm p-0 summary-filter" data-filter="${esc(filter)}">View accounts</button>` : '<span class="small text-muted">Last 30 days</span>'}</div></div></div>`
+    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, filter, icon]) =>
+      `<div class="col-sm-6 col-xl-3"><div class="card payment-card h-100"><div class="card-body d-flex align-items-start gap-3"><span class="payment-metric-icon" aria-hidden="true"><i class="ti ${icon}"></i></span><div><div class="text-muted small">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div>${filter ? `<button class="btn btn-link btn-sm p-0 summary-filter" data-filter="${esc(filter)}">View accounts</button>` : '<span class="small text-muted">Last 30 days</span>'}</div></div></div></div>`
     ).join('');
   }
 
@@ -49,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No Payment users found.</td></tr>';
     state.personnelPages = data.pages; state.personnelPage = data.page;
     byId('personnelCount').textContent = `${data.total} account(s) · Page ${data.page} of ${data.pages}`;
-    byId('personnelPrev').disabled = data.page <= 1; byId('personnelNext').disabled = data.page >= data.pages;
+    renderPager('personnelPagination', data.page, data.pages, page => { state.personnelPage = page; load(); });
   }
 
   function renderEvents(data) {
@@ -59,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No security events found for the selected filters.</td></tr>';
     state.eventPages = data.pages; state.eventPage = data.page;
     byId('eventCount').textContent = `${data.total} event(s) · Page ${data.page} of ${data.pages}`;
-    byId('eventPrev').disabled = data.page <= 1; byId('eventNext').disabled = data.page >= data.pages;
+    renderPager('eventPagination', data.page, data.pages, page => { state.eventPage = page; load(); });
   }
 
   async function load() {
@@ -93,10 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('eventFilters').addEventListener('submit', event => { event.preventDefault(); state.eventPage = 1; load(); });
   byId('personnelReset').addEventListener('click', () => { byId('personnelFilters').reset(); state.personnelPage = 1; load(); });
   byId('eventReset').addEventListener('click', () => { byId('eventFilters').reset(); state.eventPage = 1; load(); });
-  byId('personnelPrev').addEventListener('click', () => { if (state.personnelPage > 1) { state.personnelPage--; load(); } });
-  byId('personnelNext').addEventListener('click', () => { if (state.personnelPage < state.personnelPages) { state.personnelPage++; load(); } });
-  byId('eventPrev').addEventListener('click', () => { if (state.eventPage > 1) { state.eventPage--; load(); } });
-  byId('eventNext').addEventListener('click', () => { if (state.eventPage < state.eventPages) { state.eventPage++; load(); } });
   byId('personnelSecurityRows').addEventListener('click', event => {
     const button = event.target.closest('.unlock-account'); if (!button) return;
     const user = currentPersonnel.find(item => Number(item.id) === Number(button.dataset.id));

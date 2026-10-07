@@ -12,7 +12,7 @@ $groupByRole = [
     'accounting_officer' => 'ACCOUNTING PORTAL',
     'accounting_admin' => 'ACCOUNTING ADMIN PORTAL',
     'cashier' => 'CASHIER PORTAL',
-    'mis_admin' => ['MIS Admin Staffs', 'Integrations', 'Security', 'Audit'],
+    'mis_admin' => ['Payment Administration', 'Integrations', 'Security', 'Audit'],
 ];
 $paymentMeta = $MODULES['payment'] ?? ['groups' => [], 'pages' => []];
 $configuredGroups = $groupByRole[$role] ?? array_keys($paymentMeta['groups']);
@@ -41,25 +41,12 @@ foreach ($allowedSlugs as $slug) {
     $overviewCards[] = $page;
 }
 
-// A role-visible sidebar group must always have matching overview shortcuts.
-// This fallback protects the UI from incomplete legacy permission metadata;
-// it does not change the page-level authorization checks.
-if ($overviewCards === [] && isset($groupByRole[$role])) {
-    foreach ($groupNames as $groupName) {
-        foreach (($paymentMeta['groups'][$groupName] ?? []) as $slug) {
-            if (isset($pageBySlug[$slug])) {
-                $overviewCards[] = $pageBySlug[$slug];
-            }
-        }
-    }
-}
-
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/nav-icons.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<main class="container-fluid py-4">
+<main class="container-fluid py-4 payment-page">
     <div class="page-header">
         <h1><i class="fas fa-credit-card text-sms-primary me-2" aria-hidden="true"></i>Payment Management</h1>
         <p>Select a payment module to get started.</p>
@@ -79,7 +66,7 @@ renderBreadcrumbs($breadcrumbs);
                             <div class="card-icon"><i class="fas <?= htmlspecialchars(smsNavPageIcon($slug), ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i></div>
                             <div class="min-w-0">
                                 <h6 class="mb-0 fw-semibold"><?= htmlspecialchars($page['title'], ENT_QUOTES, 'UTF-8') ?></h6>
-                                <small class="text-muted">Open submodule</small>
+                                <small class="text-muted">Open <?= htmlspecialchars(strtolower($page['title']), ENT_QUOTES, 'UTF-8') ?></small>
                             </div>
                         </div>
                     </div>

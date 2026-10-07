@@ -21,6 +21,61 @@
 .mis-card-label { color: var(--bs-secondary-color); font-size: .875rem; font-weight: 600; }
 .mis-card-value { margin-top: .4rem; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
 
+/* ---- Stat cards (dashboard-style summary row) ---------------------------- */
+.mis-stat-card {
+    height: 100%;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .85rem;
+    background: var(--bs-body-bg);
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 .125rem .35rem rgba(15, 23, 42, .05);
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.mis-stat-card:hover {
+    box-shadow: 0 .4rem .85rem rgba(15, 23, 42, .08);
+    transform: translateY(-1px);
+}
+.mis-stat-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .95rem;
+    margin-bottom: .6rem;
+}
+.mis-stat-icon-primary { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
+.mis-stat-icon-success { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
+.mis-stat-icon-danger  { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
+.mis-stat-icon-info    { background: rgba(var(--bs-info-rgb), .15);    color: var(--bs-info-text-emphasis, var(--bs-info)); }
+
+.mis-stat-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.mis-stat-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-top: .2rem;
+}
+.mis-stat-sub {
+    margin-top: .35rem;
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.mis-stat-dot {
+    display: inline-block;
+    width: .4rem;
+    height: .4rem;
+    border-radius: 50%;
+    margin-right: .3rem;
+}
+
 .mis-filter-bar {
     padding: 1rem;
     border: 1px solid var(--bs-border-color);
@@ -28,10 +83,58 @@
     background: var(--bs-tertiary-bg);
 }
 
+/* ---- Table card ------------------------------------------------------------ */
 .mis-table-card { overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: .75rem; }
 .mis-table-card .table-responsive { margin-bottom: 0; }
 .mis-table-card thead th { white-space: nowrap; background: var(--bs-tertiary-bg); }
 .mis-table-card tbody td { vertical-align: middle; }
+
+.mis-table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    background: var(--bs-body-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mis-users-table tbody tr {
+    transition: background-color .15s ease;
+}
+.mis-users-table tbody tr:hover {
+    background-color: rgba(var(--bs-primary-rgb), .035);
+}
+.mis-users-table tbody tr.mis-row-attention {
+    background-color: rgba(var(--bs-danger-rgb), .035);
+}
+.mis-users-table tbody tr.mis-row-attention:hover {
+    background-color: rgba(var(--bs-danger-rgb), .06);
+}
+
+.mis-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), .12);
+}
+.mis-user-handle {
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+
+.mis-status-badge { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; }
+.mis-async-state { min-height: 1.5rem; }
+.mis-code { display: inline-block; max-width: 18rem; overflow-wrap: anywhere; }
+
+.mis-last-login-date { font-size: .82rem; }
+.mis-last-login-ip { font-size: .72rem; color: var(--bs-secondary-color); }
 
 .mis-pagination {
     display: flex;
@@ -41,17 +144,15 @@
     gap: .75rem;
     padding-top: 1rem;
 }
-
-.mis-status-badge { display: inline-flex; align-items: center; gap: .3rem; }
-.mis-async-state { min-height: 1.5rem; }
-.mis-code { display: inline-block; max-width: 18rem; overflow-wrap: anywhere; }
+.mis-pagination .payment-pagination { margin-left: auto; }
 
 @media (max-width: 767.98px) {
     .mis-page-header > * { width: 100%; }
     .mis-page-header .btn { width: 100%; }
     .mis-filter-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .mis-table-card-header { flex-wrap: wrap; }
     .mis-pagination { align-items: stretch; }
-    .mis-pagination .btn-group { width: 100%; }
-    .mis-pagination .btn { flex: 1 1 auto; }
+    .mis-pagination .payment-pagination { width: 100%; margin-left: 0; }
+    .mis-pagination .pagination { justify-content: center; }
     .modal-dialog { margin: .75rem; }
 }

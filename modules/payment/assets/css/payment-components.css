@@ -82,6 +82,18 @@
 .payment-stat-card.is-info { border-left-color: var(--sms-info, #0284c7); }
 .payment-stat-card.is-accent { border-left-color: #0891b2; }
 
+.payment-metric-icon {
+    display: inline-grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+    place-items: center;
+    border-radius: .75rem;
+    background: var(--sms-primary-xlight, #eff6ff);
+    color: var(--sms-primary, #1e40af);
+    font-size: 1.15rem;
+}
+
 .payment-filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -123,6 +135,55 @@
     font-size: 0.78rem;
     padding: 0.28rem 0.7rem;
     border: 1px solid transparent;
+}
+
+.payment-status.is-success { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+.payment-status.is-warning { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.payment-status.is-danger { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+.payment-status.is-info { color: #075985; background: #f0f9ff; border-color: #bae6fd; }
+.payment-status.is-muted { color: #475569; background: #f1f5f9; border-color: #cbd5e1; }
+
+.payment-page .pagination {
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+
+.payment-page .pagination .page-link {
+    display: inline-flex;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    padding: .35rem .65rem;
+    border: 1px solid var(--sms-border, #dbe3ee);
+    border-radius: .55rem !important;
+    background: var(--sms-surface-solid, #fff);
+    color: var(--sms-text, #334155);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.payment-page .pagination .page-item.active .page-link {
+    border-color: var(--sms-primary, #1d4ed8);
+    background: var(--sms-primary, #1d4ed8);
+    color: #fff;
+}
+
+.payment-page .pagination .page-link:hover {
+    border-color: var(--sms-primary, #1d4ed8);
+    color: var(--sms-primary, #1d4ed8);
+}
+
+.payment-page .pagination .page-item.disabled .page-link {
+    border-color: transparent;
+    background: var(--sms-surface-solid, #fff);
+    color: var(--sms-text-faint, #94a3b8);
+}
+
+.payment-page .pagination .page-link:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .3);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 .payment-chart-frame {

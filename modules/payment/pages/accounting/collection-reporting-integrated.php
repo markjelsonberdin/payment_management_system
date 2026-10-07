@@ -36,7 +36,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <?php renderBreadcrumbs($breadcrumbs); ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/reporting-period-controls.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
-<main class="container-fluid py-4">
+<main class="container-fluid payment-page py-4">
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <div>
       <h1 class="h3 mb-1"><i class="ti ti-chart-pie text-primary me-2" aria-hidden="true"></i>Collection &amp; Analytics</h1>

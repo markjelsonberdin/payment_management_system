@@ -14,6 +14,7 @@
     --payment-muted: var(--sms-text-muted, #64748b);
     --payment-heading: var(--sms-heading, #0f172a);
     --payment-surface: var(--sms-surface-solid, #fff);
+    padding: 1.5rem clamp(1rem, 2vw, 2rem) !important;
 }
 
 .payment-page .payment-page-inner {
