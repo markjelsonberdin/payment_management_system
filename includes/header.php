@@ -66,7 +66,7 @@ $bodyClass = $bodyClass ?? '';
     if (($activeModule ?? '') === 'payment') {
         $paymentSharedCss = [
             BASE_URL . '/modules/payment/assets/css/payment-base.css?v=1',
-            BASE_URL . '/modules/payment/assets/css/payment-components.css?v=1',
+            BASE_URL . '/modules/payment/assets/css/payment-components.css?v=2',
             BASE_URL . '/modules/payment/assets/css/payment-utilities.css?v=1',
             BASE_URL . '/modules/payment/assets/css/payment-operational-tables.css?v=2',
         ];
