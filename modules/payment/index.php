@@ -32,6 +32,29 @@ foreach ($paymentMeta['pages'] as $page) {
 $routeOverrides = [
     'accounting/collection-reporting-analytics' => 'accounting/collection-reporting-integrated.php',
 ];
+$pageDescriptions = [
+    'accounting/dashboard' => 'Billing workload and operational exceptions.',
+    'accounting_admin/dashboard' => 'Verified collections and financial oversight.',
+    'accounting/fee-setup-configuration' => 'Manage fee definitions and effective versions.',
+    'accounting/student-billing-invoicing' => 'Create individual and managed billing runs.',
+    'accounting/discount-scholarship-application' => 'Review eligible discounts and scholarships.',
+    'accounting/payment-history-ledger-system' => 'Review official payments and student ledgers.',
+    'accounting/payment-concern-portal' => 'Review student payment concerns and evidence.',
+    'accounting/bank-reconciliation' => 'Import and reconcile bank statement records.',
+    'accounting/collection-reporting-analytics' => 'Analyze official collections and receivables.',
+    'accounting_admin/managed-bulk-approval' => 'Review and approve managed billing runs.',
+    'accounting_admin/school-sales-catalog' => 'Manage school sales items and prices.',
+    'cashier/payment-collection-portal' => 'Collect authorized walk-in payments.',
+    'cashier/dashboard' => 'Review collections and cashier activity.',
+    'cashier/school-sales' => 'Sell configured school items.',
+    'cashier/walk-in-transaction-history' => 'Find completed collections and receipts.',
+    'mis_admin/dashboard' => 'Payment system health and operational status.',
+    'mis_admin/payment-user-management' => 'Manage Payment staff access.',
+    'mis_admin/roles-permissions' => 'Review Payment roles and module access.',
+    'mis_admin/online-payment-integration' => 'Configure PayMongo integration.',
+    'mis_admin/google-ocr-integration' => 'Configure receipt OCR integration.',
+    'mis_admin/security-monitoring' => 'Review Payment security events and account state.',
+];
 $overviewCards = [];
 foreach ($allowedSlugs as $slug) {
     $page = $pageBySlug[$slug] ?? null;
@@ -66,7 +89,7 @@ renderBreadcrumbs($breadcrumbs);
                             <div class="card-icon"><i class="fas <?= htmlspecialchars(smsNavPageIcon($slug), ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i></div>
                             <div class="min-w-0">
                                 <h6 class="mb-0 fw-semibold"><?= htmlspecialchars($page['title'], ENT_QUOTES, 'UTF-8') ?></h6>
-                                <small class="text-muted">Open submodule</small>
+                                <small class="text-muted"><?= htmlspecialchars($pageDescriptions[$slug] ?? 'Open this Payment module', ENT_QUOTES, 'UTF-8') ?></small>
                             </div>
                         </div>
                     </div>

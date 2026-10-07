@@ -97,22 +97,22 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <div class="container-fluid payment-page py-4">
     <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-headset text-primary me-2"></i>Payment Concern Portal</h2>
-            <p class="text-muted mb-0 fs-6">Review student-submitted receipts and use Google OCR as supporting evidence.</p>
+    <header class="payment-page-header">
+        <div class="payment-page-header-text">
+            <h1 class="h3 payment-page-title"><i class="fas fa-headset me-2" aria-hidden="true"></i>Payment Concern Portal</h1>
+            <p>Review student-submitted receipts and use Google OCR as supporting evidence.</p>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2">
-            <a href="payment-concern-portal.php" class="btn btn-outline-secondary shadow-sm" title="Refresh review queue">Refresh</a>
-            <a href="bank-reconciliation.php" class="btn btn-outline-primary shadow-sm" title="Bank Reconciliation">
-                <i class="fas fa-university"></i>
+        <div class="payment-page-actions">
+            <a href="payment-concern-portal.php" class="btn btn-outline-secondary" title="Refresh review queue">Refresh</a>
+            <a href="bank-reconciliation.php" class="btn btn-outline-primary" title="Bank Reconciliation" aria-label="Bank Reconciliation">
+                <i class="fas fa-university" aria-hidden="true"></i>
             </a>
             <div class="input-group w-auto shadow-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
-                <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#concernsTable" placeholder="Search...">
+                <input type="text" class="form-control border-start-0 ps-0 table-live-search-input" data-table-target="#concernsTable" placeholder="Search concerns" aria-label="Search payment concerns">
             </div>
         </div>
-    </div>
+    </header>
 
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success alert-dismissible shadow-sm"><i class="ti ti-circle-check me-2"></i> Payment concern successfully updated! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>

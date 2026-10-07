@@ -58,13 +58,43 @@ $paymentConfig = (string) file_get_contents(ROOT_PATH . '/config/config.php');
 roleCheck(str_contains($paymentConfig, "'accounting/collection-reporting-analytics',"), 'Accounting Officer navigation must include its report.view collection analytics module');
 $officerReport = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting/collection-reporting-integrated.php');
 roleCheck(str_contains($officerReport, "requirePaymentPermission('report.view')"), 'Accounting Officer analytics must keep server-side report permission enforcement');
+$officerModules = [
+    'accounting/student-billing-invoicing' => ['billing.individual.process', 'accounting/student-billing-invoicing.php'],
+    'accounting/discount-scholarship-application' => ['payment.discount', 'accounting/discount-scholarship-application.php'],
+    'accounting/payment-history-ledger-system' => ['ledger.view', 'accounting/payment-history-ledger-system.php'],
+    'accounting/payment-concern-portal' => ['payment.concern.review', 'accounting/payment-concern-portal.php'],
+    'accounting/bank-reconciliation' => ['payment.concern.review', 'accounting/bank-reconciliation.php'],
+    'accounting/collection-reporting-analytics' => ['report.view', 'accounting/collection-reporting-integrated.php'],
+];
+foreach ($officerModules as $slug => [$permission, $route]) {
+    roleCheck(str_contains($paymentConfig, "'slug' => '$slug'") && str_contains($paymentConfig, "'permission' => '$permission'"), "{$slug} navigation must use its canonical permission");
+    roleCheck(is_file(ROOT_PATH . '/modules/payment/pages/' . $route), "{$slug} route must exist");
+    $routeSource = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/' . $route);
+    roleCheck(str_contains($routeSource, 'requirePaymentPermission') && str_contains($routeSource, "'$permission'"), "{$slug} must enforce its permission server-side");
+}
 $officerGroupStart = strpos($paymentConfig, "'ACCOUNTING PORTAL' => [");
 $officerGroupEnd = strpos($paymentConfig, "'ACCOUNTING ADMIN PORTAL' => [", $officerGroupStart);
 $officerGroup = substr($paymentConfig, $officerGroupStart, $officerGroupEnd - $officerGroupStart);
 roleCheck(!str_contains($officerGroup, "'accounting_admin/managed-bulk-approval'") && !str_contains($officerGroup, "'accounting_admin/school-sales-catalog'"), 'Accounting Officer navigation must not expose Accounting Admin-only modules');
+$billingPage = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting/student-billing-invoicing.php');
+roleCheck(str_contains($billingPage, 'class="payment-pagination"') && str_contains($billingPage, "['billing_page'=>\$number]"), 'Billing pagination must render numbered server-side links');
+roleCheck(str_contains($billingPage, 'Showing <strong>') && str_contains($billingPage, "'billing_page_size'"), 'Billing pagination must retain the actual record range and page size');
+$historyPage = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting/payment-history-ledger-system.php');
+roleCheck(str_contains($historyPage, 'class="payment-pagination"') && str_contains($historyPage, 'aria-current="page"') && str_contains($historyPage, 'aria-disabled="true"'), 'Payment history pagination must use shared accessible states');
+$studentHistory = (string) file_get_contents(ROOT_PATH . '/modules/student-portal/pages/payment-history.php');
+roleCheck(str_contains($studentHistory, 'payment-components.css') && str_contains($studentHistory, 'class="payment-status <?= $statusTone ?>"') && str_contains($studentHistory, "'is-success'") && str_contains($studentHistory, "'is-danger'"), 'Student Payment History must use shared semantic status badges');
+roleCheck(str_contains($studentHistory, 'aria-label="Print student copy"') && str_contains($studentHistory, 'aria-label="Receipt not yet available"'), 'Student Payment History icon actions must have accessible labels');
 $adminDashboard = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting_admin/dashboard.php');
 roleCheck(str_contains($adminDashboard, "requirePaymentPermission('billing.bulk.approve')"), 'Accounting Admin dashboard must remain outside Officer report access');
+roleCheck(str_contains($adminDashboard, "requirePaymentPermission('report.view')") && str_contains($adminDashboard, 'AccountingReportingPageService'), 'Accounting Admin dashboard must use its authorized canonical reporting service');
+roleCheck(str_contains($adminDashboard, 'official_academic_collections') && str_contains($adminDashboard, 'outstanding_balance') && !str_contains($adminDashboard, 'No verified data yet'), 'Accounting Admin dashboard must render live report-backed financial summaries');
 roleCheck(smsPostLoginRedirectUrl() === BASE_URL . '/dashboard/index.php', 'Post-login helper must use canonical landing dispatcher');
+$loginSource = (string) file_get_contents(ROOT_PATH . '/login/login.php');
+$loginAttemptOffset = strpos($loginSource, '$result = smsLoginAttempt');
+$loginRenderOffset = strpos($loginSource, "\$pageTitle = 'Login';", $loginAttemptOffset ?: 0);
+$loginFailureFlow = $loginAttemptOffset !== false && $loginRenderOffset !== false ? substr($loginSource, $loginAttemptOffset, $loginRenderOffset - $loginAttemptOffset) : '';
+roleCheck($loginFailureFlow !== '' && str_contains($loginFailureFlow, "header('Location: ' . \$loginSelfUrl)") && str_contains($loginFailureFlow, 'exit;'), 'Failed login must return to the login page and stop protected-route processing');
+roleCheck(str_contains($loginFailureFlow, "\$_SESSION['flash_login_error']") && str_contains($loginFailureFlow, 'smsLoginGateSet') && str_contains($loginSource, 'smsCaptchaVerifyRequest()'), 'Failed-login handling must preserve safe feedback, lockout, and CAPTCHA controls');
 $api = (string) file_get_contents(ROOT_PATH . '/modules/payment/api/mis_admin/payment-users.php');
 $service = (string) file_get_contents(ROOT_PATH . '/modules/payment/includes/PaymentPersonnelService.php');
 roleCheck(str_contains($service, "['accounting_admin', 'accounting_officer', 'cashier']"), 'MIS personnel service must whitelist only permitted Payment roles');

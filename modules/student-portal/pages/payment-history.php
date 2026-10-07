@@ -67,6 +67,8 @@ try {
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css?v=3">
+
 <!-- Render Breadcrumbs -->
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
@@ -129,16 +131,12 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                     // Format Date
                                     $dateFormatted = date('M d, Y', strtotime($txn['payment_date']));
                                     
-                                    // Set Badge Colors Based on Status
-                                    $statusBg = match($txn['payment_status']) {
-                                        'Verified' => '#bbf7d0',
-                                        'Pending' => '#fef08a',
-                                        default => '#fecaca' // Rejected or Failed
-                                    };
-                                    $statusText = match($txn['payment_status']) {
-                                        'Verified' => '#15803d',
-                                        'Pending' => '#b45309',
-                                        default => '#b91c1c'
+                                    $statusTone = match($txn['payment_status']) {
+                                        'Verified' => 'is-success',
+                                        'Pending', 'Expired' => 'is-warning',
+                                        'Failed', 'Rejected' => 'is-danger',
+                                        'Cancelled' => 'is-muted',
+                                        default => 'is-info',
                                     };
                                 ?>
                                 <tr class="border-bottom transaction-row" data-status="<?= htmlspecialchars($txn['payment_status']) ?>">
@@ -172,16 +170,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                     <td class="py-3 text-end text-muted">₱ <?= number_format($procFee, 2) ?></td>
                                     <td class="py-3 text-end fw-bolder text-primary">₱ <?= number_format($chkTotal, 2) ?></td>
                                     <td class="py-3 ps-4">
-                                        <span class="badge rounded-pill fw-bold" style="background-color: <?= $statusBg ?>; color: <?= $statusText ?>; padding: 0.5em 0.8em;">
+                                        <span class="payment-status <?= $statusTone ?>">
                                             <?= htmlspecialchars($txn['payment_status']) ?>
                                         </span>
                                     </td>
                                     <td class="py-3 text-end pe-2">
                                         <?php if ($txn['payment_status'] === 'Verified'): ?>
                                             <?php if (($txn['transaction_type'] ?? '') === 'Walk-in' && strtolower((string)($txn['payment_channel'] ?? '')) === 'cash'): ?>
-                                                <a class="btn btn-sm btn-light border text-primary shadow-sm" target="_blank" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?payment_id=' . (int)$txn['payment_id']) ?>" title="Print Student Copy"><i class="ti ti-printer"></i></a>
+                                                <a class="btn btn-sm btn-light border text-primary shadow-sm" target="_blank" rel="noopener" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/cashier/print-receipt.php?payment_id=' . (int)$txn['payment_id']) ?>" title="Print Student Copy" aria-label="Print student copy"><i class="ti ti-printer" aria-hidden="true"></i></a>
                                             <?php else: ?>
-                                                <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Payment posted"><i class="ti ti-circle-check"></i></button>
+                                                <span class="text-success" role="img" title="Payment posted" aria-label="Payment posted"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
                                             <?php endif; ?>
                                         <?php elseif ($txn['payment_status'] === 'Pending'): ?>
                                             <button
@@ -195,8 +193,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                                 <i class="ti ti-credit-card me-1"></i> Resume
                                             </button>
                                         <?php else: ?>
-                                            <button class="btn btn-sm btn-light border text-muted shadow-sm" disabled title="Receipt not yet available">
-                                                <i class="ti ti-download"></i>
+                                            <button class="btn btn-sm btn-light border text-muted shadow-sm" disabled title="Receipt not yet available" aria-label="Receipt not yet available">
+                                                <i class="ti ti-download" aria-hidden="true"></i>
                                             </button>
                                         <?php endif; ?>
                                     </td>

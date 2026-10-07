@@ -56,17 +56,17 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <div class="container-fluid payment-page py-4">
     <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <h2 class="mb-1 fw-bolder"><i class="fas fa-university text-primary me-2"></i>Bank Reconciliation</h2>
-            <p class="text-muted mb-0 fs-6">Upload AUB CSV records for comparison with student payment concerns. Final verification requires staff review.</p>
+    <header class="payment-page-header">
+        <div class="payment-page-header-text">
+            <h1 class="h3 payment-page-title"><i class="fas fa-university me-2" aria-hidden="true"></i>Bank Reconciliation</h1>
+            <p>Upload AUB CSV records for comparison with student payment concerns. Final verification requires staff review.</p>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a href="payment-concern-portal.php" class="btn btn-outline-secondary shadow-sm">
+        <div class="payment-page-actions">
+            <a href="payment-concern-portal.php" class="btn btn-outline-secondary">
                 <i class="ti ti-arrow-left me-1"></i> Back to Concerns
             </a>
         </div>
-    </div>
+    </header>
 
     <!-- Alert Container for AJAX Responses -->
     <div id="alertContainer"></div>

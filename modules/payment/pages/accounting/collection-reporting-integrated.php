@@ -38,18 +38,18 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 <main class="container-fluid payment-page py-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-    <div>
-      <h1 class="h3 mb-1"><i class="ti ti-chart-pie text-primary me-2" aria-hidden="true"></i>Collection &amp; Analytics</h1>
-      <p class="text-muted mb-0">Detailed official collections and allocation-backed reporting.</p>
+  <header class="payment-page-header">
+    <div class="payment-page-header-text">
+      <h1 class="h3 payment-page-title"><i class="ti ti-chart-pie me-2" aria-hidden="true"></i>Collection &amp; Analytics</h1>
+      <p>Detailed official collections and allocation-backed reporting.</p>
     </div>
     <?php if ($report !== null): ?>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="payment-page-actions">
         <button class="btn btn-outline-primary" type="button" onclick="window.print()"><i class="ti ti-printer me-1" aria-hidden="true"></i>Print</button>
         <a class="btn btn-primary" href="<?= BASE_URL ?>/modules/payment/api/export-accounting-collections.php?<?= htmlspecialchars(http_build_query($_GET), ENT_QUOTES, 'UTF-8') ?>"><i class="ti ti-file-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>
       </div>
     <?php endif; ?>
-  </div>
+  </header>
 
   <?php if ($reportError !== null): ?>
     <div class="alert alert-danger" role="alert"><?= htmlspecialchars($reportError, ENT_QUOTES, 'UTF-8') ?></div>

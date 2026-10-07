@@ -413,36 +413,44 @@ $toRow = min($offset + count($paymentList), $totalRows);
                 </table>
             </div>
         </div>
-        <?php if ($totalRows > 0): ?>
             <div class="card-footer bg-white border-top py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div class="text-muted small">
-                    Showing <span class="fw-bold text-dark"><?= $fromRow ?></span> to <span class="fw-bold text-dark"><?= $toRow ?></span> of <span class="fw-bold text-dark"><?= number_format($totalRows) ?></span> entries
+                    Showing <span class="fw-bold text-dark"><?= number_format($fromRow) ?></span>–<span class="fw-bold text-dark"><?= number_format($toRow) ?></span> of <span class="fw-bold text-dark"><?= number_format($totalRows) ?></span> entries
                 </div>
-                <nav aria-label="Payment history pages">
+                <?php if ($totalPages > 1): ?>
+                <nav class="payment-pagination" aria-label="Payment history pages">
                     <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
-                            <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => max(1, $currentPage - 1)])) ?>" aria-label="Previous">
-                                <i class="ti ti-chevron-left"></i>
-                            </a>
-                        </li>
+                        <?php if ($currentPage > 1): ?>
+                            <li class="page-item"><a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => $currentPage - 1])) ?>" aria-label="Previous page">‹ Previous</a></li>
+                        <?php else: ?>
+                            <li class="page-item disabled"><span class="page-link" aria-disabled="true">‹ Previous</span></li>
+                        <?php endif; ?>
                         <?php
                         $windowStart = max(1, $currentPage - 2);
                         $windowEnd = min($totalPages, $currentPage + 2);
-                        for ($i = $windowStart; $i <= $windowEnd; $i++):
+                        if ($windowStart > 1):
                         ?>
+                            <li class="page-item"><a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => 1])) ?>">1</a></li>
+                            <?php if ($windowStart > 2): ?><li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li><?php endif; ?>
+                        <?php endif; ?>
+                        <?php for ($i = $windowStart; $i <= $windowEnd; $i++): ?>
                             <li class="page-item <?= $i === $currentPage ? 'active' : '' ?>">
-                                <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => $i])) ?>"><?= $i ?></a>
+                                <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => $i])) ?>" <?= $i === $currentPage ? 'aria-current="page"' : '' ?>><?= $i ?></a>
                             </li>
                         <?php endfor; ?>
-                        <li class="page-item <?= $currentPage >= $totalPages ? 'disabled' : '' ?>">
-                            <a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => min($totalPages, $currentPage + 1)])) ?>" aria-label="Next">
-                                <i class="ti ti-chevron-right"></i>
-                            </a>
-                        </li>
+                        <?php if ($windowEnd < $totalPages): ?>
+                            <?php if ($windowEnd < $totalPages - 1): ?><li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li><?php endif; ?>
+                            <li class="page-item"><a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => $totalPages])) ?>"><?= $totalPages ?></a></li>
+                        <?php endif; ?>
+                        <?php if ($currentPage < $totalPages): ?>
+                            <li class="page-item"><a class="page-link" href="<?= htmlspecialchars(paymentHistoryQueryUrl($queryBase, ['page' => $currentPage + 1])) ?>" aria-label="Next page">Next ›</a></li>
+                        <?php else: ?>
+                            <li class="page-item disabled"><span class="page-link" aria-disabled="true">Next ›</span></li>
+                        <?php endif; ?>
                     </ul>
                 </nav>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
     </div>
 </div>
 
