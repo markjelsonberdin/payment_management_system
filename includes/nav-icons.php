@@ -6,7 +6,21 @@ if (!function_exists('smsNavPageIcon')) {
     function smsNavPageIcon(string $slug): string
     {
         static $map = [
-            'mis_admin/dashboard' => 'fa-tachometer-alt',
+            'accounting/dashboard' => 'fa-th-large',
+            'accounting_admin/dashboard' => 'fa-th-large',
+            'cashier/dashboard' => 'fa-th-large',
+            'accounting/student-billing-invoicing' => 'fa-file-invoice-dollar',
+            'accounting/discount-scholarship-application' => 'fa-tags',
+            'accounting/payment-history-ledger-system' => 'fa-receipt',
+            'accounting/payment-concern-portal' => 'fa-flag',
+            'accounting/bank-reconciliation' => 'fa-university',
+            'accounting/fee-setup-configuration' => 'fa-list-alt',
+            'accounting/collection-reporting-analytics' => 'fa-chart-bar',
+            'accounting_admin/managed-bulk-approval' => 'fa-clipboard-check',
+            'accounting_admin/school-sales-catalog' => 'fa-store',
+            'cashier/payment-collection-portal' => 'fa-wallet',
+            'cashier/school-sales' => 'fa-store',
+            'mis_admin/dashboard' => 'fa-th-large',
             'mis_admin/payment-user-management' => 'fa-users-cog',
             'mis_admin/online-payment-integration' => 'fa-credit-card',
             'mis_admin/google-ocr-integration' => 'fa-file-image',

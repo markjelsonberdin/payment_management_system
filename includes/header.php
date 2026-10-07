@@ -63,6 +63,15 @@ $bodyClass = $bodyClass ?? '';
     $smsLoadChartJs = $loadChartJs ?? (($activeModule ?? '') !== 'payment');
     $smsLoadResearchCss = $loadResearchMonitoringCss ?? in_array((string) ($activeModule ?? ''), ['crad', 'faculty', 'student-portal', 'accreditation'], true);
     $smsExtraHeadCss = (isset($extraHeadCss) && is_array($extraHeadCss)) ? $extraHeadCss : [];
+    if (($activeModule ?? '') === 'payment') {
+        $paymentSharedCss = [
+            BASE_URL . '/modules/payment/assets/css/payment-base.css?v=1',
+            BASE_URL . '/modules/payment/assets/css/payment-components.css?v=1',
+            BASE_URL . '/modules/payment/assets/css/payment-utilities.css?v=1',
+            BASE_URL . '/modules/payment/assets/css/payment-operational-tables.css?v=2',
+        ];
+        $smsExtraHeadCss = array_values(array_unique(array_merge($paymentSharedCss, $smsExtraHeadCss)));
+    }
     ?>
     <?php if ($smsLoadChartJs): ?>
     <script src="<?= BASE_URL ?>/assets/vendor/chartjs/chart.umd.min.js"></script>

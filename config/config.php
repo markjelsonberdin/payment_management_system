@@ -308,7 +308,7 @@ $MODULES = [
                 'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
-            'MIS Admin Staffs' => ['mis_admin/payment-user-management', 'mis_admin/roles-permissions'],
+            'Payment Administration' => ['mis_admin/payment-user-management', 'mis_admin/roles-permissions'],
             'Integrations' => [
                 'mis_admin/online-payment-integration',
                 'mis_admin/google-ocr-integration',
@@ -318,13 +318,13 @@ $MODULES = [
         'pages' => [
             // Accounting / Cashier Pages
             ['slug' => 'accounting/dashboard', 'title' => 'Dashboard', 'permission' => 'billing.individual.process'],
-            ['slug' => 'accounting_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'report.view'],
+            ['slug' => 'accounting_admin/dashboard', 'title' => 'Dashboard', 'permission' => 'billing.bulk.approve'],
             ['slug' => 'accounting/fee-setup-configuration', 'title' => 'Fee Setup & Configuration', 'permission' => 'fee.manage'],
             ['slug' => 'accounting/student-billing-invoicing', 'title' => 'Student Billing & Invoicing', 'permission' => 'billing.individual.process'],
             ['slug' => 'cashier/payment-collection-portal', 'title' => 'Payment Collection Portal', 'permission' => 'payment.collection'],
             ['slug' => 'cashier/dashboard', 'title' => 'Dashboard', 'permission' => 'payment.cashier_dashboard'],
             ...(paymentSchoolSalesSellingEnabled() ? [['slug' => 'cashier/school-sales', 'title' => 'School Sales', 'permission' => 'payment.school_sales']] : []),
-            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'ar.manage'],
+            ['slug' => 'accounting/discount-scholarship-application', 'title' => 'Discount & Scholarship', 'permission' => 'payment.discount'],
             ['slug' => 'accounting/payment-history-ledger-system', 'title' => 'Payment History & Ledger', 'permission' => 'ledger.view'],
             ['slug' => 'accounting/collection-reporting-analytics', 'title' => 'Collection & Analytics', 'permission' => 'report.view'],
             ['slug' => 'accounting_admin/managed-bulk-approval', 'title' => 'Managed Bulk Run Approval', 'permission' => 'billing.bulk.approve'],

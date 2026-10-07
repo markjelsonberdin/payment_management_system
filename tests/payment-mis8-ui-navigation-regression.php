@@ -42,7 +42,7 @@ $mappings = [
 foreach ($mappings as $slug => $permission) {
     mis8check((bool) preg_match("/'slug' => '" . preg_quote($slug, '/') . "'.*'permission' => '" . preg_quote($permission, '/') . "'/", $config), "{$slug} permission mapping");
 }
-$labels = ['Overview', 'Payment Users', 'PayMongo Integration', 'Google OCR Integration', 'Security Monitoring'];
+$labels = ['Dashboard', 'Payment Users', 'PayMongo Integration', 'Google OCR Integration', 'Security Monitoring'];
 foreach ($labels as $label) mis8check(str_contains($config, "'title' => '{$label}'"), "{$label} canonical label");
 foreach ($pages as $name => $page) {
     mis8check((bool) preg_match('/<h1\b[^>]*>.*?<\/h1>/s', $page), "{$name} uses H1");

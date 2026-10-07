@@ -63,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<div class="mis-last-login-date">${dateText} · ${timeText}</div>${ip}`;
   }
   function actionButton(css, id, label, style) {
-    return `<button class="btn btn-sm btn-outline-${style} ${css}" data-id="${Number(id)}">${label}</button>`;
+    const icons = {edit: 'ti-edit', activate: 'ti-user-check', deactivate: 'ti-user-off', unlock: 'ti-lock-open', reset: 'ti-key'};
+    const variant = css === 'deactivate' ? 'danger' : style;
+    return `<button type="button" class="btn btn-sm btn-outline-${variant} ${css}" data-id="${Number(id)}" title="${label}" aria-label="${label}"><i class="ti ${icons[css] || 'ti-settings'}" aria-hidden="true"></i></button>`;
   }
 
   function filteredUsers() {

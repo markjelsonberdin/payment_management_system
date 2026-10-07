@@ -303,7 +303,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid py-4">
+<div class="container-fluid payment-page py-4">
     <!-- Page Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">

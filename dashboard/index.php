@@ -11,9 +11,9 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/authentication.php';
 requireAuth();
 
-$dashboardRoleKey = getCurrentUserRoleKey();
+$dashboardRoleKey = smsNormalizeRoleKey(getCurrentUserRoleKey());
 $paymentDashboardRoutes = [
-    'accounting_officer' => '/modules/payment/pages/accounting/student-billing-invoicing.php',
+    'accounting_officer' => '/modules/payment/pages/accounting/dashboard-integrated.php',
     'accounting_admin' => '/modules/payment/pages/accounting_admin/dashboard.php',
     'mis_admin' => '/modules/payment/pages/mis_admin/dashboard.php',
     'cashier' => '/modules/payment/pages/cashier/dashboard.php',

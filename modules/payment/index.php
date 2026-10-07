@@ -41,25 +41,12 @@ foreach ($allowedSlugs as $slug) {
     $overviewCards[] = $page;
 }
 
-// A role-visible sidebar group must always have matching overview shortcuts.
-// This fallback protects the UI from incomplete legacy permission metadata;
-// it does not change the page-level authorization checks.
-if ($overviewCards === [] && isset($groupByRole[$role])) {
-    foreach ($groupNames as $groupName) {
-        foreach (($paymentMeta['groups'][$groupName] ?? []) as $slug) {
-            if (isset($pageBySlug[$slug])) {
-                $overviewCards[] = $pageBySlug[$slug];
-            }
-        }
-    }
-}
-
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/nav-icons.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<main class="container-fluid py-4">
+<main class="container-fluid payment-page py-4">
     <div class="page-header">
         <h1><i class="fas fa-credit-card text-sms-primary me-2" aria-hidden="true"></i>Payment Management</h1>
         <p>Select a payment module to get started.</p>

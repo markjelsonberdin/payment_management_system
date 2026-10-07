@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/ScholarshipDiscountService.php';
 
 // I-enforce ang login at module access
 requireAuth();
-requirePaymentPermission('ar.manage');
+requirePaymentPermission('payment.discount');
 
 // ==========================================
 // BACKEND: PROCESS SCHOLARSHIP APPLICATION
@@ -63,7 +63,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 <?php renderBreadcrumbs($breadcrumbs); ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-operational-tables.css">
 
-<div class="container-fluid py-4">
+<div class="container-fluid payment-page py-4">
     <!-- Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">

@@ -60,7 +60,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<main class="container-fluid py-4">
+<main class="container-fluid payment-page py-4">
   <div class="mis-page-header"><div><h1 class="h3">Google OCR Integration</h1><p>Manage and monitor Google OCR configuration, readiness, and usage.</p></div></div>
   <?php if (($_GET['result'] ?? '') === 'updated'): ?><div class="alert alert-success">Google OCR configuration updated.</div><?php endif; ?>
   <?php if ($errorCode !== null): ?><div class="alert alert-danger"><?= e($messages[$errorCode] ?? $messages['OCR_CONFIG_INVALID']) ?></div><?php endif; ?>

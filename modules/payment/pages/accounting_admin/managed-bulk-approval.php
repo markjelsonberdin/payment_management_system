@@ -29,7 +29,7 @@ renderBreadcrumbs($breadcrumbs);
     #bulkApprovalResult article > .d-flex.flex-wrap.justify-content-between.gap-2.mt-4 > .d-flex.gap-2 .btn { width: 100%; }
 }
 </style>
-<main class="container-fluid py-4" id="bulkApprovalApp" data-api="<?= htmlspecialchars(BASE_URL.'/modules/payment/api/accounting/managed-billing-runs.php', ENT_QUOTES, 'UTF-8') ?>" data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+<main class="container-fluid payment-page py-4" id="bulkApprovalApp" data-api="<?= htmlspecialchars(BASE_URL.'/modules/payment/api/accounting/managed-billing-runs.php', ENT_QUOTES, 'UTF-8') ?>" data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
  <div class="mb-4"><h1 class="h3 mb-1">Managed Bulk Run Approval</h1><p class="text-muted mb-0">Review a staff-created Draft. This portal cannot create or process billing.</p></div>
  <section class="card border-0 shadow-sm mb-4"><div class="card-body">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h2 class="h5 mb-1">Pending Bulk Run Approvals</h2><p class="text-muted small mb-0">All Draft runs awaiting Accounting Admin review.</p></div><button class="btn btn-outline-primary btn-sm" id="refreshPendingApprovals" type="button">Refresh</button></div>

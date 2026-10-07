@@ -32,15 +32,30 @@ document.addEventListener('DOMContentLoaded', () => {
     el.innerHTML = `<span aria-hidden="true">&#9888;</span><span>${esc(text)}</span>`;
   }
 
+  function renderPager(id, page, pages, onChange) {
+    const host = byId(id);
+    const link = (number, label = String(number), current = false, ariaLabel = '') =>
+      `<li class="page-item${current ? ' active' : ''}"><a class="page-link" href="#" data-page="${number}"${current ? ' aria-current="page"' : ''} aria-label="${ariaLabel || (current ? `Page ${number}, current page` : `Go to page ${number}`)}">${label}</a></li>`;
+    const disabled = (label, aria) => `<li class="page-item disabled"><span class="page-link" aria-disabled="true" aria-label="${aria}">${label}</span></li>`;
+    let html = page > 1 ? link(page - 1, '‹', false, 'Previous page') : disabled('‹', 'Previous page');
+    const start = Math.max(1, page - 2), end = Math.min(pages, page + 2);
+    if (start > 1) { html += link(1); if (start > 2) html += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>'; }
+    for (let number = start; number <= end; number++) html += link(number, String(number), number === page);
+    if (end < pages) { if (end < pages - 1) html += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>'; html += link(pages); }
+    html += page < pages ? link(page + 1, '›', false, 'Next page') : disabled('›', 'Next page');
+    host.innerHTML = html;
+    host.querySelectorAll('[data-page]').forEach(item => item.addEventListener('click', event => { event.preventDefault(); onChange(Number(item.dataset.page)); }));
+  }
+
   function renderSummary(summary) {
     const cards = [
-      ['Locked Accounts', summary.locked_accounts, 'danger', 'Temporarily blocked after failed sign-ins.'],
-      ['Failed Sign-ins', summary.accounts_with_failed_attempts, 'warning', 'Accounts with current failed login attempts.'],
-      ['Disabled Accounts', summary.disabled_accounts, 'secondary', 'Accounts disabled by an administrator.'],
-      ['Revoked Sessions', summary.recent_session_revocations, 'info', 'Sessions ended within the last 30 days.'],
+      ['Locked Accounts', summary.locked_accounts, 'danger', 'Accounts locked after failed sign-ins.', 'ti-lock'],
+      ['Failed Sign-ins', summary.accounts_with_failed_attempts, 'warning', 'Accounts with failed attempts.', 'ti-alert-triangle'],
+      ['Disabled Accounts', summary.disabled_accounts, 'secondary', 'Accounts disabled by an administrator.', 'ti-user-off'],
+      ['Revoked Sessions', summary.recent_session_revocations, 'info', 'Sessions revoked in the last 30 days.', 'ti-logout'],
     ];
-    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, description]) =>
-      `<div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small fw-semibold">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div><p class="small text-muted mb-0">${esc(description)}</p></div></div></div>`
+    byId('securitySummaryCards').innerHTML = cards.map(([label, value, color, description, icon]) =>
+      `<div class="col-sm-6 col-xl-3"><div class="card payment-card h-100"><div class="card-body d-flex align-items-start gap-3"><span class="payment-metric-icon" aria-hidden="true"><i class="ti ${icon}"></i></span><div><div class="text-muted small fw-semibold">${esc(label)}</div><div class="display-6 fw-semibold text-${color}">${Number(value)}</div><p class="small text-muted mb-0">${esc(description)}</p></div></div></div></div>`
     ).join('');
   }
 
@@ -48,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentPersonnel = data.items;
     byId('personnelSecurityRows').innerHTML = data.items.length ? data.items.map(user => {
       const locked = user.security_state === 'LOCKED';
-      const action = locked && app.dataset.canUnlock === '1' ? `<button class="btn btn-sm btn-outline-info unlock-account" data-id="${Number(user.id)}">Unlock</button>` : '<span class="text-muted">—</span>';
+      const action = locked && app.dataset.canUnlock === '1' ? `<button type="button" class="btn btn-sm btn-outline-info unlock-account" data-id="${Number(user.id)}" title="Unlock account" aria-label="Unlock account for ${esc(user.full_name)}"><i class="ti ti-lock-open" aria-hidden="true"></i></button>` : '<span class="text-muted">—</span>';
       return `<tr><td><div class="fw-semibold">${esc(user.full_name)}</div><small class="text-muted">${esc(user.username)} · ${esc(user.email)}</small></td><td>${esc(roleLabel(user.role_key))}</td>` +
         `<td>${badge(user.administrative_state, user.administrative_state === 'ACTIVE' ? 'success' : 'secondary')}</td>` +
         `<td>${badge(user.security_state, locked ? 'danger' : user.security_state === 'LOCK_EXPIRED' ? 'warning text-dark' : 'success')}</td>` +
@@ -56,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No Payment users found.</td></tr>';
     state.personnelPages = data.pages; state.personnelPage = data.page;
     byId('personnelCount').textContent = `${data.total} account(s) · Page ${data.page} of ${data.pages}`;
-    byId('personnelPrev').disabled = data.page <= 1; byId('personnelNext').disabled = data.page >= data.pages;
+    renderPager('personnelPagination', data.page, data.pages, page => { state.personnelPage = page; load(); });
   }
 
   function renderEvents(data) {
@@ -66,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">No security events found for the selected filters.</td></tr>';
     state.eventPages = data.pages; state.eventPage = data.page;
     byId('eventCount').textContent = `${data.total} event(s) · Page ${data.page} of ${data.pages}`;
-    byId('eventPrev').disabled = data.page <= 1; byId('eventNext').disabled = data.page >= data.pages;
+    renderPager('eventPagination', data.page, data.pages, page => { state.eventPage = page; load(); });
   }
 
   async function load() {
@@ -104,10 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('eventFilters').addEventListener('submit', event => { event.preventDefault(); state.eventPage = 1; load(); });
   byId('personnelReset').addEventListener('click', () => { byId('personnelFilters').reset(); state.personnelPage = 1; load(); });
   byId('eventReset').addEventListener('click', () => { byId('eventFilters').reset(); state.eventPage = 1; load(); });
-  byId('personnelPrev').addEventListener('click', () => { if (state.personnelPage > 1) { state.personnelPage--; load(); } });
-  byId('personnelNext').addEventListener('click', () => { if (state.personnelPage < state.personnelPages) { state.personnelPage++; load(); } });
-  byId('eventPrev').addEventListener('click', () => { if (state.eventPage > 1) { state.eventPage--; load(); } });
-  byId('eventNext').addEventListener('click', () => { if (state.eventPage < state.eventPages) { state.eventPage++; load(); } });
   byId('personnelSecurityRows').addEventListener('click', event => {
     const button = event.target.closest('.unlock-account'); if (!button) return;
     const user = currentPersonnel.find(item => Number(item.id) === Number(button.dataset.id));

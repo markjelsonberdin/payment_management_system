@@ -144,6 +144,7 @@
     gap: .75rem;
     padding-top: 1rem;
 }
+.mis-pagination .payment-pagination { margin-left: auto; }
 
 @media (max-width: 767.98px) {
     .mis-page-header > * { width: 100%; }
@@ -151,7 +152,7 @@
     .mis-filter-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
     .mis-table-card-header { flex-wrap: wrap; }
     .mis-pagination { align-items: stretch; }
-    .mis-pagination .btn-group { width: 100%; }
-    .mis-pagination .btn { flex: 1 1 auto; }
+    .mis-pagination .payment-pagination { width: 100%; margin-left: 0; }
+    .mis-pagination .pagination { justify-content: center; }
     .modal-dialog { margin: .75rem; }
 }

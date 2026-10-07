@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 requireAuth();
-requirePaymentPermission('report.view');
+requirePaymentPermission('billing.bulk.approve');
 
 $pageTitle = 'Accounting Admin Dashboard';
 $activeModule = 'payment';
@@ -19,11 +19,11 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<main class="container-fluid py-4" id="accountingAdminDashboard">
+<main class="container-fluid payment-page py-4" id="accountingAdminDashboard">
     <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1"><i class="ti ti-chart-pie text-primary me-2" aria-hidden="true"></i>Accounting Admin Dashboard</h1>
-            <p class="text-muted mb-0">Financial oversight workspace. Metrics will appear here when their approved transaction sources are available.</p>
+            <p class="text-muted mb-0">Verified collections, receivables, and approvals.</p>
         </div>
         <a class="btn btn-outline-primary" href="<?= htmlspecialchars(BASE_URL . '/modules/payment/pages/accounting_admin/managed-bulk-approval.php', ENT_QUOTES, 'UTF-8') ?>">
             <i class="ti ti-checkbox me-1" aria-hidden="true"></i>Review Billing Approvals
@@ -32,16 +32,20 @@ renderBreadcrumbs($breadcrumbs);
 
     <div class="alert alert-light border mb-4" role="status">
         <i class="ti ti-info-circle text-primary me-2" aria-hidden="true"></i>
-        This dashboard intentionally shows no estimated or placeholder financial values. It will be populated only from verified billing, collection, receivable, and school-sales records.
+        Dashboard figures appear when verified financial records are available.
     </div>
 
     <section class="row g-3 mb-4" aria-label="Financial summary">
-        <?php foreach (['Financial Summary', 'Collection Summary', 'Outstanding AR Summary', 'Billing / Review Summary', 'School Sales Summary'] as $title): ?>
+        <?php foreach ([['Financial Summary', 'ti-cash', 'Verified financial totals'], ['Collection Summary', 'ti-receipt', 'Posted collections'], ['Outstanding AR Summary', 'ti-wallet', 'Open receivables'], ['Billing / Review Summary', 'ti-file-invoice', 'Billing awaiting review'], ['School Sales Summary', 'ti-shopping-bag', 'Completed school sales']] as [$title, $icon, $description]): ?>
             <div class="col-12 col-sm-6 col-xl">
-                <article class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
+                <article class="card payment-card h-100">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <span class="payment-metric-icon" aria-hidden="true"><i class="ti <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>"></i></span>
+                        <div>
                         <h2 class="h6 mb-2"><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h2>
-                        <p class="text-muted small mb-0">No verified dashboard data is available yet.</p>
+                        <p class="text-muted small mb-0"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
+                        <span class="d-block small text-muted mt-2">No verified data yet</span>
+                        </div>
                     </div>
                 </article>
             </div>
@@ -53,7 +57,7 @@ renderBreadcrumbs($breadcrumbs);
             <article class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h2 class="h5 mb-2">Recent Financial Activity</h2>
-                    <p class="text-muted mb-0">Recent verified activity will be listed here once the financial dashboard data source is finalized.</p>
+                    <p class="text-muted mb-0">Recent verified activity will appear here.</p>
                 </div>
             </article>
         </div>
@@ -61,7 +65,7 @@ renderBreadcrumbs($breadcrumbs);
             <article class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h2 class="h5 mb-2">Collection Trend</h2>
-                    <p class="text-muted mb-0">Trend reporting is deferred until it can be calculated from actual posted transactions.</p>
+                    <p class="text-muted mb-0">Verified collection trend.</p>
                 </div>
             </article>
         </div>

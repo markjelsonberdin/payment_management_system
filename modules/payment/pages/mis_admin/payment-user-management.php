@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=2">
-<main class="container-fluid py-4" id="accountingUsersApp"
+<main class="container-fluid payment-page py-4" id="accountingUsersApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
  data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
  data-can-create="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.create') ? '1' : '0' ?>"

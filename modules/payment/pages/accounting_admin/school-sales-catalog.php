@@ -18,7 +18,7 @@ $breadcrumbs = [['label' => 'Payment Management', 'url' => BASE_URL . '/modules/
 require_once ROOT_PATH . '/includes/breadcrumbs.php'; require_once ROOT_PATH . '/includes/layout-start.php'; renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/school-sales-catalog.css?v=1">
-<main class="container-fluid py-4 school-sales-catalog" id="schoolSalesCatalogApp">
+<main class="container-fluid payment-page py-4 school-sales-catalog" id="schoolSalesCatalogApp">
  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"><div><h1 class="h3 fw-bolder mb-1">School Sales Catalog</h1><p class="text-muted mb-0">Manage the items, variants, prices, and applicability shown to Cashiers.</p></div><?php if ($canManage): ?><button class="btn btn-primary" type="button" data-command="create-item"><i class="ti ti-plus me-1"></i>New Draft Item</button><?php endif; ?></div>
  <div id="catalogAlert" class="alert d-none" role="status"><span id="catalogAlertText"></span><button id="catalogRetry" class="btn btn-sm btn-outline-dark ms-2 d-none" type="button">Retry same request</button></div>
  <div class="row g-4">

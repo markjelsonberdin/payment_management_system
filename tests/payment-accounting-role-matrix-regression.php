@@ -25,8 +25,10 @@ $checks = 0;
 function roleCheck(bool $ok, string $message): void { global $checks; $checks++; if (!$ok) throw new RuntimeException($message); }
 function allowRole(string $role, array $permissions): void { foreach ($permissions as $p) roleCheck(paymentRoleAllowsPermission($role, $p), "$role missing $p"); }
 function denyRole(string $role, array $permissions): void { foreach ($permissions as $p) roleCheck(!paymentRoleAllowsPermission($role, $p), "$role unexpectedly has $p"); }
-allowRole('accounting_officer', ['billing.individual.process','billing.individual.review','billing.bulk.preview','billing.bulk.create','billing.bulk.process','billing.bulk.retry','billing.bulk.resume','billing.bulk.view','ar.view']);
-denyRole('accounting_officer', ['payment.verify','payment.concern.review','ledger.view','ar.manage']);
+roleCheck(smsNormalizeRoleKey(' Accounting Admin ') === 'accounting_admin', 'Accounting Admin labels must normalize to the canonical role key');
+roleCheck(smsNormalizeRoleKey('ACCOUNTING_OFFICER') === 'accounting_officer', 'Accounting Officer role keys must normalize case-insensitively');
+allowRole('accounting_officer', ['billing.individual.process','billing.individual.review','billing.bulk.preview','billing.bulk.create','billing.bulk.process','billing.bulk.retry','billing.bulk.resume','billing.bulk.view','ar.view','payment.discount','ledger.view','payment.concern.review','report.view']);
+denyRole('accounting_officer', ['payment.verify','ar.manage']);
 denyRole('accounting_officer', ['fee.activate','billing.bulk.approve','report.export','payment_users.view','integration.paymongo.manage','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
 allowRole('accounting_admin', ['fee.view','fee.manage','fee.activate','billing.individual.review','billing.bulk.view','billing.bulk.approve','payment.verify','payment.concern.review','ledger.view','ar.view','ar.manage','report.view','report.export','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate']);
 denyRole('accounting_admin', ['billing.individual.process','billing.bulk.process','billing.bulk.retry','billing.bulk.resume','payment_users.view','integration.paymongo.manage']);
@@ -49,6 +51,11 @@ $compat = (string) file_get_contents(ROOT_PATH . '/modules/payment/api/payment-a
 roleCheck(str_contains($compat, "'/mis_admin/overview.php'") && !str_contains($compat, 'PaymentAdminReportingService'), 'Legacy data route must retire financial reporting');
 $landing = (string) file_get_contents(ROOT_PATH . '/dashboard/index.php');
 roleCheck(str_contains($landing, "'mis_admin' => '/modules/payment/pages/mis_admin/dashboard.php'"), 'MIS must land on technical Overview');
+roleCheck(str_contains($landing, "'accounting_admin' => '/modules/payment/pages/accounting_admin/dashboard.php'"), 'Accounting Admin must land on its canonical dashboard');
+roleCheck(str_contains($landing, "'accounting_officer' => '/modules/payment/pages/accounting/dashboard-integrated.php'"), 'Accounting Officer must land on its operational dashboard');
+roleCheck(str_contains($landing, 'smsNormalizeRoleKey(getCurrentUserRoleKey())'), 'Dashboard routing must normalize the authenticated role key');
+$adminDashboard = (string) file_get_contents(ROOT_PATH . '/modules/payment/pages/accounting_admin/dashboard.php');
+roleCheck(str_contains($adminDashboard, "requirePaymentPermission('billing.bulk.approve')"), 'Accounting Admin dashboard must remain outside Officer report access');
 roleCheck(smsPostLoginRedirectUrl() === BASE_URL . '/dashboard/index.php', 'Post-login helper must use canonical landing dispatcher');
 $api = (string) file_get_contents(ROOT_PATH . '/modules/payment/api/mis_admin/payment-users.php');
 $service = (string) file_get_contents(ROOT_PATH . '/modules/payment/includes/PaymentPersonnelService.php');
