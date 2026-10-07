@@ -109,12 +109,29 @@ document.addEventListener('DOMContentLoaded', () => {
     paginationSummary.textContent = total
       ? `Showing ${start}–${end} of ${total} payment account${total === 1 ? '' : 's'}`
       : 'Showing 0 of 0 payment accounts';
-    paginationControls.innerHTML = `
-      <button type="button" class="btn btn-outline-secondary btn-sm" id="pagePrev" ${page <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
-      <button type="button" class="btn btn-outline-secondary btn-sm disabled">${page} / ${pageCount}</button>
-      <button type="button" class="btn btn-outline-secondary btn-sm" id="pageNext" ${page >= pageCount ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
-    document.getElementById('pagePrev')?.addEventListener('click', () => { page -= 1; render(); });
-    document.getElementById('pageNext')?.addEventListener('click', () => { page += 1; render(); });
+    const first = Math.max(1, page - 2);
+    const last = Math.min(pageCount, page + 2);
+    const button = (target, label, { active = false, disabled = false, aria = '' } = {}) =>
+      `<li class="page-item${active ? ' active' : ''}${disabled ? ' disabled' : ''}">${disabled || active
+        ? `<span class="page-link"${active ? ' aria-current="page"' : ' aria-disabled="true"'}>${label}</span>`
+        : `<button type="button" class="page-link" data-page="${target}"${aria ? ` aria-label="${aria}"` : ''}>${label}</button>`}</li>`;
+    let controls = button(page - 1, '‹ Previous', { disabled: page <= 1, aria: 'Previous page' });
+    if (first > 1) {
+      controls += button(1, '1');
+      if (first > 2) controls += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>';
+    }
+    for (let current = first; current <= last; current += 1) {
+      controls += button(current, String(current), { active: current === page });
+    }
+    if (last < pageCount) {
+      if (last < pageCount - 1) controls += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>';
+      controls += button(pageCount, String(pageCount));
+    }
+    controls += button(page + 1, 'Next ›', { disabled: page >= pageCount, aria: 'Next page' });
+    paginationControls.innerHTML = `<nav class="payment-pagination" aria-label="Payment user pages"><ul class="pagination pagination-sm mb-0">${controls}</ul></nav>`;
+    paginationControls.querySelectorAll('[data-page]').forEach(control => {
+      control.addEventListener('click', () => { page = Number(control.dataset.page); render(); });
+    });
   }
 
   function render() {

@@ -181,8 +181,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <button type="button" class="btn btn-sm btn-light text-primary shadow-sm" title="Review payment concern" aria-label="Review payment concern #<?= (int)$row['concern_id'] ?>" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
-                                            <i class="ti ti-report-money me-1"></i> Review & Verify
+                                        <button type="button" class="btn btn-sm btn-outline-primary" title="Review payment concern #<?= (int)$row['concern_id'] ?>" aria-label="Review payment concern #<?= (int)$row['concern_id'] ?>" data-bs-toggle="modal" data-bs-target="#reviewModal<?= $row['concern_id'] ?>">
+                                            <i class="ti ti-clipboard-check" aria-hidden="true"></i>
                                         </button>
                                     </td>
                                 </tr>
