@@ -357,12 +357,12 @@ $researchDirectorNavGroups = [
                 <?php endforeach; ?>
 
             <?php else: ?>
+                <?php $paymentRoleKey = smsNormalizeRoleKey($roleKey); ?>
                 <li class="nav-item sidebar-group-label">
-                    <span class="nav-link sidebar-group-heading">Dashboard</span>
+                    <span class="nav-link sidebar-group-heading"><?= $paymentRoleKey === 'mis_admin' ? 'Dashboard Module' : 'Dashboard' ?></span>
                 </li>
                 <li class="nav-item">
                     <?php
-                    $paymentRoleKey = smsNormalizeRoleKey($roleKey);
                     $isPaymentDashboardPage = $activeModule === 'payment' && in_array((string) $activePage, ['accounting/dashboard', 'accounting_admin/dashboard', 'mis_admin/dashboard', 'cashier/dashboard'], true);
                     $dashboardOverviewUrl = BASE_URL . '/dashboard/index.php';
                     if ($paymentRoleKey === 'accounting_officer') {
@@ -371,12 +371,12 @@ $researchDirectorNavGroups = [
                         $dashboardOverviewUrl = BASE_URL . '/modules/payment/pages/accounting_admin/dashboard.php';
                     }
                     ?>
-                    <?php $dashboardLabel = $paymentRoleKey === 'mis_admin' ? 'Module Shortcuts' : 'Overview'; ?>
-                    <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || ($isPaymentDashboardPage && $paymentRoleKey !== 'mis_admin')) ? 'active' : '' ?>"
+                    <?php $dashboardLabel = $paymentRoleKey === 'mis_admin' ? 'Dashboard' : 'Overview'; ?>
+                    <a class="nav-link sidebar-sub <?= ($activeModule === 'dashboard' || $isPaymentDashboardPage) ? 'active' : '' ?>"
                        href="<?= htmlspecialchars($dashboardOverviewUrl) ?>"
                        data-title="<?= htmlspecialchars($dashboardLabel) ?>"
                        title="<?= htmlspecialchars($dashboardLabel) ?>">
-                        <i class="fas <?= $paymentRoleKey === 'mis_admin' ? 'fa-th' : 'fa-th-large' ?>" aria-hidden="true"></i>
+                        <i class="fas <?= $paymentRoleKey === 'mis_admin' ? 'fa-tachometer-alt' : 'fa-th-large' ?>" aria-hidden="true"></i>
                         <span><?= htmlspecialchars($dashboardLabel) ?></span>
                     </a>
                 </li>
@@ -392,6 +392,7 @@ $researchDirectorNavGroups = [
                     }
                     $moduleInMaint = smsIsModuleInMaintenance((string) $navModuleKey);
                     ?>
+                    <?php if (!$isMisOverview): ?>
                     <li class="nav-item sidebar-group-label">
                         <span class="nav-link sidebar-group-heading">
                             <?= htmlspecialchars($module['label']) ?>
@@ -400,6 +401,7 @@ $researchDirectorNavGroups = [
                             <?php endif; ?>
                         </span>
                     </li>
+                    <?php endif; ?>
                     <?php $hasCanonicalPaymentDashboard = $navModuleKey === 'payment' && in_array(smsNormalizeRoleKey($roleKey), ['accounting_officer', 'accounting_admin', 'mis_admin', 'cashier'], true); ?>
                     <?php if (!empty($module['overview_group_label'])): ?>
                         <li class="nav-item sidebar-group-label">
@@ -410,7 +412,7 @@ $researchDirectorNavGroups = [
                         <li class="nav-item">
                             <a class="nav-link sidebar-sub overview-link <?= ($isModuleActive && ($activePage === '' || ($isMisOverview && $activePage === 'mis_admin/overview'))) ? 'active' : '' ?>"
                                href="<?= htmlspecialchars($overviewUrl) ?>">
-                                <i class="fas fa-th-large" aria-hidden="true"></i>
+                                <i class="fas fa-compass" aria-hidden="true"></i>
                                 <span>Overview</span>
                             </a>
                         </li>
@@ -494,7 +496,7 @@ $researchDirectorNavGroups = [
                     <li class="nav-item">
                         <a class="nav-link sidebar-sub <?= ($activePage === 'security-settings') ? 'active' : '' ?>"
                            href="<?= BASE_URL ?>/account/module-security.php?module=<?= urlencode($securitySettingsModule) ?>">
-                            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                            <i class="fas fa-lock" aria-hidden="true"></i>
                             <span>Security Settings</span>
                         </a>
                     </li>
