@@ -359,7 +359,7 @@ function getVisibleModules(array $modules): array
 
     if (smsNormalizeRoleKey(getCurrentUserRoleKey()) === 'mis_admin' && isset($visible['payment'])) {
         $visible['payment']['label'] = 'MIS Admin';
-        $visible['payment']['overview_group_label'] = 'Dashboard';
+        $visible['payment']['overview_group_label'] = 'Overview';
     }
 
     if (getCurrentUserRoleKey() === 'research_coordinator' && isset($visible['crad'])) {
