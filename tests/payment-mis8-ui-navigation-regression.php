@@ -29,7 +29,7 @@ foreach ($expectedGroups as $group => $slug) {
     mis8check(str_contains($config, "'{$group}'") && str_contains($config, "'{$slug}'"), "{$group} navigation group");
 }
 mis8check(str_contains($auth, "\$visible['payment']['label'] = 'MIS Admin'"), 'MIS-only module label');
-mis8check(str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "module['overview_group_label']"), 'Optional Dashboard group metadata');
+mis8check(!str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module"), 'MIS navigation must use one Dashboard Module heading');
 mis8check(str_contains($index, "'mis_admin' => ['Payment Administration', 'Integrations', 'Security']"), 'Payment index supports MIS group list');
 mis8check(str_contains($sidebar, 'foreach ($module[\'groups\'] as $groupLabel => $groupSlugs)'), 'Existing generic sidebar grouping preserved');
 $mappings = [
