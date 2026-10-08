@@ -98,7 +98,10 @@ $config = file_get_contents(__DIR__ . '/../config/config.php');
 $page = file_get_contents(__DIR__ . '/../modules/payment/pages/mis_admin/security-monitoring.php');
 $api = file_get_contents(__DIR__ . '/../modules/payment/api/mis_admin/security-monitoring.php');
 $js = file_get_contents(__DIR__ . '/../modules/payment/assets/js/payment-security-monitoring.js');
-mis6Check(str_contains($auth, "'payment.mis_overview', 'payment.security.view'"), 'MIS permission granted');
+$misStart = strpos($auth, "'mis_admin' => [");
+$misEnd = strpos($auth, '],', $misStart);
+$misBundle = substr($auth, $misStart, $misEnd - $misStart);
+mis6Check(str_contains($misBundle, "'payment.mis_overview'") && str_contains($misBundle, "'payment.security.view'"), 'MIS permission granted');
 foreach (['accounting_admin','accounting_officer','cashier'] as $role) {
     $start = strpos($auth, "'{$role}' => ["); $end = strpos($auth, '],', $start);
     mis6Check(!str_contains(substr($auth, $start, $end - $start), 'payment.security.view'), "{$role} denied monitoring permission");

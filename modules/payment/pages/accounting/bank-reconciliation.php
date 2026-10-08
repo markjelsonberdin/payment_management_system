@@ -9,12 +9,15 @@ require_once __DIR__ . '/../../../../includes/audit.php';
 require_once __DIR__ . '/../../database/db_connect.php';
 
 requireAuth();
-// Assuming same permission as concern review for accounting
-requirePaymentPermission('payment.concern.review');
+requirePaymentPermission('payment.reconciliation.view');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+$canImportStatements = paymentEffectivePermission(
+    getCurrentUserRoleKey(),
+    'payment.reconciliation.import'
+);
 
 // Fetch all uploaded statements
 try {
@@ -76,6 +79,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <div class="row g-4">
         <!-- Upload Card -->
+        <?php if ($canImportStatements): ?>
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 rounded-4 payment-table-toolbar">
                 <div class="card-header bg-white border-0 pt-4 pb-0">
@@ -101,9 +105,10 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- History Card -->
-        <div class="col-lg-8">
+        <div class="<?= $canImportStatements ? 'col-lg-8' : 'col-12' ?>">
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100 payment-operational-table">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0"><i class="fas fa-history text-secondary me-2"></i>Upload History</h6>
@@ -180,6 +185,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     </div>
 </div>
 
+<?php if ($canImportStatements): ?>
 <script>
 document.getElementById('uploadCsvForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -234,5 +240,6 @@ function showAlert(type, message) {
     container.replaceChildren(alert);
 }
 </script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../../../../includes/layout-end.php'; ?>

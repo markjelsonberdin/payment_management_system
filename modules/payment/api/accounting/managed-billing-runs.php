@@ -9,18 +9,18 @@ require_once __DIR__ . '/../../includes/ManagedBillingRunService.php';
 
 function managedRunRespond(array $body, int $status=200): never { http_response_code($status); echo json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE); exit; }
 function managedRunInput(): array { $raw=(string)file_get_contents('php://input'); if($raw==='') return $_POST; $value=json_decode($raw,true,512,JSON_THROW_ON_ERROR); if(!is_array($value)) throw new InvalidArgumentException('Request must be an object.'); return $value; }
-function managedRunCanApprove(): bool { return paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.approve'); }
-function managedRunCanCreateOrProcess(): bool { return paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.process'); }
+function managedRunCanApprove(): bool { return paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.approve'); }
+function managedRunCanCreateOrProcess(): bool { return paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.process'); }
 try {
  if(strtoupper((string)$_SERVER['REQUEST_METHOD'])!=='POST') managedRunRespond(['ok'=>false,'error'=>'METHOD_NOT_ALLOWED','message'=>'Use POST.'],405);
  $input=managedRunInput(); $csrf=(string)($_SERVER['HTTP_X_CSRF_TOKEN']??$input['csrf_token']??''); if(!verifyCsrfToken($csrf)) managedRunRespond(['ok'=>false,'error'=>'CSRF_INVALID','message'=>'Your security token is invalid or expired.'],403);
  $service=new ManagedBillingRunService($pdo); $action=(string)($input['action']??''); $actor=(int)(getCurrentUserId()??0);
- if ($action === 'approve' && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.approve')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_APPROVAL_FORBIDDEN','message'=>'Accounting Admin approval is required.'],403);
- elseif ($action === 'preview' && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.preview')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
- elseif ($action === 'create_draft' && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.create')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
- elseif ($action === 'process_chunk' && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.process')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
- elseif ($action === 'retry' && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.retry')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
- elseif (in_array($action,['detail','list_runs','cohort_bootstrap','cohort_preview'],true) && !paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'billing.bulk.view')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_DETAIL_FORBIDDEN','message'=>'Managed bulk run access is required.'],403);
+ if ($action === 'approve' && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.approve')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_APPROVAL_FORBIDDEN','message'=>'Accounting Admin approval is required.'],403);
+ elseif ($action === 'preview' && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.preview')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
+ elseif ($action === 'create_draft' && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.create')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
+ elseif ($action === 'process_chunk' && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.process')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
+ elseif ($action === 'retry' && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.retry')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_OPERATOR_FORBIDDEN','message'=>'Accounting Officer access is required.'],403);
+ elseif (in_array($action,['detail','list_runs','cohort_bootstrap','cohort_preview'],true) && !paymentEffectivePermission(getCurrentUserRoleKey(), 'billing.bulk.view')) managedRunRespond(['ok'=>false,'error'=>'MANAGED_BULK_DETAIL_FORBIDDEN','message'=>'Managed bulk run access is required.'],403);
  $data=match($action) {
   'preview' => $service->preview($input),
   'create_draft' => $service->createDraft($input,$actor,getCurrentUserName()),

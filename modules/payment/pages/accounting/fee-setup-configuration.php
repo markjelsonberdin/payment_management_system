@@ -4,12 +4,14 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 require_once ROOT_PATH . '/includes/breadcrumbs.php';
 requireAuth();
-requirePaymentPermission('fee.manage');
+requirePaymentPermission('fee.view');
 
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/FeeSetupService.php';
 
-$feeSetupBootstrap = ['taxonomy' => [], 'catalog' => [], 'legacy' => []];
+$canManageFees = paymentEffectivePermission(getCurrentUserRoleKey(), 'fee.manage');
+$canActivateFees = paymentEffectivePermission(getCurrentUserRoleKey(), 'fee.activate');
+$feeSetupBootstrap = ['taxonomy' => [], 'catalog' => [], 'legacy' => [], 'permissions' => ['manage' => $canManageFees, 'activate' => $canActivateFees]];
 $feeSetupBootstrapError = null;
 try {
     $feeSetupService = new FeeSetupService($pdo);
@@ -18,6 +20,7 @@ try {
         'catalog' => $feeSetupService->catalog(),
         'legacy' => $feeSetupService->legacyFees(),
         'csrf_token' => generateCsrfToken(),
+        'permissions' => ['manage' => $canManageFees, 'activate' => $canActivateFees],
     ];
 } catch (Throwable $e) {
     error_log('Fee Setup page bootstrap failed: ' . $e->getMessage());
@@ -49,13 +52,13 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                 <span class="input-group-text bg-white border-end-0"><i class="ti ti-search text-muted"></i></span>
                 <input class="form-control border-start-0 ps-0" id="feeSearch" placeholder="Search fee name or code...">
             </div>
-            <button class="btn btn-light border shadow-sm fw-bold px-4" id="legacyFeesButton" type="button">
+            <button class="btn btn-light border shadow-sm fw-bold px-4" id="legacyFeesButton" type="button" <?= $canManageFees ? '' : 'disabled' ?>>
                 <i class="ti ti-tags me-1"></i> Legacy Classification
             </button>
             <button class="btn btn-light border shadow-sm fw-bold px-4" id="archivesButton" type="button">
                 <i class="ti ti-archive me-1"></i> Archives
             </button>
-            <button class="btn btn-primary shadow-sm fw-bold px-4" id="addFeeButton" type="button">
+            <button class="btn btn-primary shadow-sm fw-bold px-4" id="addFeeButton" type="button" <?= $canManageFees ? '' : 'disabled' ?>>
                 <i class="ti ti-plus me-1"></i> Add Fee
             </button>
         </div>

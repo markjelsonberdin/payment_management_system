@@ -16,19 +16,19 @@ renderBreadcrumbs($breadcrumbs);
 <main class="container-fluid payment-page py-4" id="accountingUsersApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
  data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
- data-can-create="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.create') ? '1' : '0' ?>"
- data-can-update="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.update') ? '1' : '0' ?>"
- data-can-assign-role="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.role.assign') ? '1' : '0' ?>"
- data-can-activate="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.activate') ? '1' : '0' ?>"
- data-can-deactivate="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.deactivate') ? '1' : '0' ?>"
- data-can-unlock="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.unlock') ? '1' : '0' ?>"
- data-can-reset-password="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.password.reset') ? '1' : '0' ?>">
+ data-can-create="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.create') ? '1' : '0' ?>"
+ data-can-update="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.update') ? '1' : '0' ?>"
+ data-can-assign-role="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.role.assign') ? '1' : '0' ?>"
+ data-can-activate="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.activate') ? '1' : '0' ?>"
+ data-can-deactivate="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.deactivate') ? '1' : '0' ?>"
+ data-can-unlock="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.unlock') ? '1' : '0' ?>"
+ data-can-reset-password="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.password.reset') ? '1' : '0' ?>">
  <div class="mis-page-header">
   <div>
    <h1 class="h3">Payment Users</h1>
    <p>Manage authorized Payment personnel accounts and access states.</p>
   </div>
-  <?php if (paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.create')): ?>
+  <?php if (paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.create')): ?>
    <button class="btn btn-primary" id="newOfficer"><i class="fas fa-plus me-1"></i>Add Payment User</button>
   <?php endif; ?>
  </div>

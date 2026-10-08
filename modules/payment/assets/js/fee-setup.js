@@ -12,6 +12,12 @@
     const showModal = id => bootstrap.Modal.getOrCreateInstance(byId(id)).show();
     const hideModal = id => bootstrap.Modal.getOrCreateInstance(byId(id)).hide();
     const bootstrapData = window.FEE_SETUP_BOOTSTRAP || {};
+    const canManage = bootstrapData.permissions?.manage === true;
+    const canActivate = bootstrapData.permissions?.activate === true;
+    function applyFeeActionVisibility() {
+        document.querySelectorAll('[data-action="editIdentity"], [data-action="archiveIdentity"], [data-action="classify"], [data-version-action="edit"], [data-version-action="archive"]').forEach(button => { button.hidden = !canManage; });
+        document.querySelectorAll('[data-version-action="activate"]').forEach(button => { button.hidden = !canActivate; });
+    }
     const state = {
         api: app.dataset.api,
         csrf: bootstrapData.csrf_token || '',
@@ -143,6 +149,7 @@
         const search = byId('legacySearch').value.trim().toLowerCase();
         const rows = state.legacy.filter(fee => `${fee.fee_name} ${fee.category_name || ''}`.toLowerCase().includes(search));
         byId('legacyRows').innerHTML = rows.map(fee => `<tr><td class="ps-4"><div class="payment-table-primary">${escapeHtml(fee.fee_name)}</div><div class="payment-table-secondary">Fee #${fee.fee_id}</div></td><td><div class="payment-table-primary">${escapeHtml(fee.category_name || 'Uncategorized')}</div></td><td class="payment-table-money text-success">${peso(fee.default_amount)}</td><td><span class="badge bg-light text-dark border">${escapeHtml(fee.status)}</span></td><td class="pe-4 text-end"><div class="payment-table-actions"><button class="btn btn-sm btn-primary shadow-sm px-3 w-auto" style="min-width:auto" data-action="classify" data-id="${fee.fee_id}">Classify</button></div></td></tr>`).join('');
+        applyFeeActionVisibility();
         byId('legacyEmpty').classList.toggle('d-none', rows.length > 0);
         const legacyCount = byId('legacyCount');
         if (legacyCount) legacyCount.textContent = state.legacy.length;
@@ -271,6 +278,7 @@
         byId('versionsCode').textContent = `${fee.fee_code} · ${fee.type_name}`;
         byId('newVersionActions').classList.toggle('d-none', fee.identity_status === 'Archived');
         byId('versionsList').innerHTML = fee.versions.length ? fee.versions.map(version => `<div class="fee-version-item" data-status="${version.effective_status}"><div class="d-flex flex-wrap justify-content-between gap-3"><div><div class="fw-bold">Version ${version.version_no} <span class="badge text-bg-${version.effective_status === 'Active' ? 'success' : version.effective_status === 'Draft' ? 'warning' : 'secondary'}">${escapeHtml(version.effective_status)}</span></div><div>${escapeHtml(version.academic_year)} / ${escapeHtml(version.semester)} &bull; <strong>${peso(version.amount)}</strong> &bull; ${escapeHtml(version.behavior)}</div><small class="text-muted">${version.applicability.map(scopeLabel).map(escapeHtml).join(' • ')}</small></div><div class="payment-table-actions">${version.effective_status === 'Draft' ? `<button class="btn btn-sm btn-light border text-primary" data-version-action="edit" data-id="${version.fee_version_id}">Edit</button> <button class="btn btn-sm btn-success" data-version-action="activate" data-id="${version.fee_version_id}">Activate</button> <button class="btn btn-sm btn-light border text-danger" data-version-action="archive" data-id="${version.fee_version_id}">Archive</button>` : version.effective_status === 'Active' ? `<button class="btn btn-sm btn-light border text-danger" data-version-action="archive" data-id="${version.fee_version_id}">Archive</button>` : '<span class="small text-muted">Read only</span>'}</div></div></div>`).join('') : '<div class="text-center text-muted py-4">No versions yet. Create the first Draft version.</div>';
+        applyFeeActionVisibility();
         showModal('versionsModal');
     }
 

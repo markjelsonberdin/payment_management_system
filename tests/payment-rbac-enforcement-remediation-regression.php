@@ -1,0 +1,25 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli')throw new RuntimeException('CLI only');
+require_once __DIR__.'/../config/config.php';
+require_once ROOT_PATH.'/includes/authentication.php';
+require_once ROOT_PATH.'/modules/payment/includes/PaymentPermissionManagementService.php';
+$n=0;function rcheck(bool $v,string $m):void{global$n;$n++;if(!$v)throw new RuntimeException($m);}function rowFor(array$rows,string$role,string$key):array{foreach($rows as$r)if($r['role']===$role&&$r['permission']===$key)return$r;throw new RuntimeException("Missing $role:$key");}
+rcheck(paymentCanonicalPermission('payment.concern_review')==='payment.concern.view','Legacy concern alias canonicalized');
+rcheck(paymentCanonicalPermission('payment.ledger')==='ledger.view','Legacy ledger alias canonicalized');
+rcheck(in_array('payment.ledger',paymentEquivalentPermissionKeys('ledger.view'),true),'Canonical lookup includes aliases');
+rcheck(paymentPermissionDecision('accounting_officer','payment.concern.view',null),'Concern view keeps compatibility fallback');
+foreach(['payment.concern.evidence.review','payment.concern.decision','payment.concern.verify','ledger.export'] as$key)rcheck(!paymentPermissionDecision('accounting_officer',$key,null),"$key must require explicit grant");
+rcheck(!paymentPermissionDecision('accounting_admin','fee.activate',null),'Fee activation must require explicit grant');
+rcheck(!paymentPermissionDecision('accounting_admin','report.export',null),'Report export must require explicit grant');
+rcheck(!paymentPermissionDecision('accounting_admin','payment.reconciliation.exception.approve',true),'Unavailable capability must fail closed despite an explicit grant');
+$p=new PDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$p->exec('CREATE TABLE role_permissions(role_key TEXT,module_key TEXT,granted INTEGER)');$p->exec("INSERT INTO role_permissions VALUES('accounting_officer','payment.concern_review',1),('accounting_officer','payment.concern.view',0)");
+$data=(new PaymentPermissionMatrixService($p))->load();$view=rowFor($data['rows'],'accounting_officer','payment.concern.view');rcheck($view['effective_access']==='denied'&&$view['core_permission']==='revoked','Canonical revocation wins alias conflict');rcheck(count($data['duplicates'])===1,'Alias collision reported');
+$unused=rowFor($data['rows'],'accounting_officer','ar.view');rcheck($unused['available']===false&&$unused['editable']===false&&$unused['source']==='not_implemented','Unused capability unavailable');
+$auth=(string)file_get_contents(ROOT_PATH.'/includes/authentication.php');rcheck(str_contains($auth,'paymentEquivalentPermissionKeys($permission)')&&str_contains($auth,'module_key IN ($permissionPlaceholders)')&&str_contains($auth,'ORDER BY granted ASC LIMIT 1'),'Effective lookup canonical and fail-safe');
+$concern=(string)file_get_contents(ROOT_PATH.'/modules/payment/pages/accounting/payment-concern-portal.php');$ocr=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/accounting/ocr-scan-concern.php');$receipt=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/accounting/view-receipt.php');rcheck(str_contains($concern,"requirePaymentPermission('payment.concern.view')"),'Concern page uses view');rcheck(substr_count($concern,'if ($canConcernEvidence)')>=3,'Concern page hides OCR evidence and scan controls without evidence permission');rcheck(str_contains($concern,"\$action === 'Verify' ? 'payment.concern.verify' : 'payment.concern.decision'"),'Concern mutations split');rcheck(str_contains($ocr,"payment.concern.evidence.review")&&str_contains($receipt,"payment.concern.evidence.review"),'Evidence endpoints use evidence permission');
+$fee=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/accounting/fee-setup.php');rcheck(str_contains($fee,"requirePaymentPermission('fee.view')")&&str_contains($fee,"\$action === 'activate_version' ? 'fee.activate' : 'fee.manage'"),'Fee action guards split');
+$report=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/export-accounting-collections.php');$ledger=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/export-history.php');rcheck(str_contains($report,"requirePaymentPermission('report.export')")&&str_contains($ledger,"ledger.export'"),'Export endpoints use canonical export permissions');
+$nav=(string)file_get_contents(ROOT_PATH.'/modules/payment/index.php');$mis=(string)file_get_contents(ROOT_PATH.'/modules/payment/pages/mis_admin/payment-user-management.php');rcheck(str_contains($nav,'paymentEffectivePermission($role')&&!str_contains($nav,'paymentRoleAllowsPermission($role'), 'Module launcher uses effective permission');rcheck(str_contains($mis,'paymentEffectivePermission(getCurrentUserRoleKey()')&&!str_contains($mis,'paymentRoleAllowsPermission(getCurrentUserRoleKey()'),'MIS action flags use effective permissions');
+rcheck(is_file(ROOT_PATH.'/database/migrations/payment_rbac_4g3_enforcement.sql')&&is_file(ROOT_PATH.'/database/preflight/batch-4g-3-rbac-enforcement.sql'),'Migration and preflight prepared');
+echo "PASS: $n Batch 4G-3 RBAC enforcement remediation checks.\n";

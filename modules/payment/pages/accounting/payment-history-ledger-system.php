@@ -136,6 +136,7 @@ $queryBase = array_filter([
 });
 
 $exportQuery = http_build_query(array_merge($queryBase, ['sort' => $sort, 'dir' => $dir]));
+$canExportHistory = $cashierHistoryMode || paymentEffectivePermission(getCurrentUserRoleKey(), 'ledger.export');
 $exportUrl = BASE_URL . '/modules/payment/api/' . ($cashierHistoryMode ? 'export-cashier-history.php' : 'export-history.php') . ($exportQuery !== '' ? '?' . $exportQuery : '');
 
 $pageTitle    = $cashierHistoryMode ? 'My Walk-in Transactions' : 'Payment History & Ledger System';
@@ -148,7 +149,7 @@ $breadcrumbs  = [
 
 require_once __DIR__ . '/../../../../includes/breadcrumbs.php';
 require_once ROOT_PATH . '/modules/payment/includes/payment-ui-assets.php';
-paymentUiUseSharedCss(['css/accounting/payment-history.css?v=1'], true);
+paymentUiUseSharedCss(['css/accounting/payment-history.css?v=2'], true);
 require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 $fromRow = $totalRows === 0 ? 0 : $offset + 1;
@@ -164,9 +165,9 @@ $toRow = min($offset + count($paymentList), $totalRows);
             <p class="payment-page-lede"><?= $cashierHistoryMode ? 'Review walk-in transactions processed by your account.' : 'Audit walk-in and online collections, official receipts, and student ledger balances.' ?></p>
         </div>
         <div class="payment-page-actions">
-            <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-outline-primary fw-bold shadow-sm" id="btnExportHistory">
+            <?php if ($canExportHistory): ?><a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-outline-primary fw-bold shadow-sm" id="btnExportHistory">
                 <i class="ti ti-file-spreadsheet me-1"></i> Export Excel
-            </a>
+            </a><?php endif; ?>
         </div>
     </div>
 

@@ -11,7 +11,7 @@ require_once __DIR__ . '/../includes/SimpleXlsxWriter.php';
 
 requireAuth();
 $cashierHistoryMode = getCurrentUserRoleKey() === 'cashier';
-requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'payment.ledger');
+requirePaymentPermission($cashierHistoryMode ? 'payment.walkin_history' : 'ledger.export');
 
 function exportHistoryIsOnline(array $pay): bool
 {

@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/modules/payment/includes/ocr/OcrStructuredAuditServic
 
 header('Content-Type: application/json');
 requireAuth();
-requirePaymentPermission('payment.concern_review');
+requirePaymentPermission('payment.concern.evidence.review');
 
 function ocrRespond(array $payload,int $status=200):never{http_response_code($status);echo json_encode($payload,JSON_UNESCAPED_SLASHES);exit;}
 
@@ -30,7 +30,7 @@ $auditService=new OcrStructuredAuditService(new PaymentAuditOutboxService($pdo,$
 
 try{
     global $pdo;
-    (new PaymentSecurityService($pdo))->ensurePaymentAccess($actorId,getCurrentUserRoleKey(),'payment.concern_review',(int)$concernId,'concern');
+    (new PaymentSecurityService($pdo))->ensurePaymentAccess($actorId,getCurrentUserRoleKey(),'payment.concern.evidence.review',(int)$concernId,'concern');
     $rateKey='ocr_limit_'.$actorId.'_'.$concernId;
     $now=time();
     $_SESSION[$rateKey]=array_values(array_filter($_SESSION[$rateKey]??[],static fn($stamp)=>$now-(int)$stamp<60));

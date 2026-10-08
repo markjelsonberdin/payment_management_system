@@ -11,12 +11,15 @@ require_once __DIR__ . '/../../includes/PaymentConcernService.php';
 require_once __DIR__ . '/../../includes/PaymentConcernVerificationService.php';
 
 requireAuth();
-requirePaymentPermission('payment.concern.review');
+requirePaymentPermission('payment.concern.view');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 $reviewer_id = getCurrentUserId();
+$canConcernEvidence = paymentEffectivePermission(getCurrentUserRoleKey(), 'payment.concern.evidence.review');
+$canConcernDecision = paymentEffectivePermission(getCurrentUserRoleKey(), 'payment.concern.decision');
+$canConcernVerify = paymentEffectivePermission(getCurrentUserRoleKey(), 'payment.concern.verify');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_concern'])) {
     requireCsrf();
@@ -29,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_concern'])) {
         if ($concern_id < 1 || !in_array($action, ['Verify', 'Hold', 'Reject'], true)) {
             throw new Exception('Invalid concern decision.');
         }
+        requirePaymentPermission($action === 'Verify' ? 'payment.concern.verify' : 'payment.concern.decision');
         $concernService = new PaymentConcernService($pdo);
         $verifiedData = [
             'amount' => $_POST['verified_amount'] ?? null,
@@ -154,19 +158,19 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <small class="payment-table-secondary"><?= htmlspecialchars((string)($row['payment_channel'] ?? 'N/A')) ?></small>
                                     </td>
                                     <td>
-                                        <div class="payment-table-primary small"><strong>Bank:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'N/A') ?></div>
+                                        <?php if ($canConcernEvidence): ?><div class="payment-table-primary small"><strong>Bank:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'N/A') ?></div>
                                         <div class="payment-table-secondary"><strong>OCR Ref:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'N/A') ?></div>
                                         <div class="payment-table-secondary">Confidence: <?= $row['confidence_score'] ? $row['confidence_score'] . '%' : 'N/A' ?></div>
-                                    </td>
+                                    <?php else: ?><span class="text-muted small">Evidence review permission required</span><?php endif; ?></td>
                                     <td class="text-center">
-                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 mb-1"><?= htmlspecialchars($row['ocr_status']) ?></span>
+                                        <?php if ($canConcernEvidence): ?><span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 mb-1"><?= htmlspecialchars($row['ocr_status']) ?></span>
                                         <?php if (isset($row['rule_status'])): ?>
                                             <div class="small fw-bold <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'text-success' : 'text-danger' ?>">
                                                 <i class="fas <?= $row['rule_status'] === 'READY_FOR_REVIEW' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
                                                 <?= htmlspecialchars($row['rule_status']) ?>
                                             </div>
                                         <?php endif; ?>
-                                    </td>
+                                    <?php else: ?><span class="text-muted small">Restricted</span><?php endif; ?></td>
                                     <td class="text-center">
                                         <?php 
                                         $vStatus = match($row['verification_status']) {
@@ -219,7 +223,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                             <div class="col-lg-4 border-end p-4 bg-white d-flex flex-column">
                                 <h6 class="fw-bold text-muted mb-3"><i class="fas fa-image me-2"></i>Receipt Image</h6>
                                 <div class="text-center bg-light rounded border flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden position-relative" style="min-height: 400px; max-height: 600px;">
-                                    <?php if (!empty($row['receipt_path'])): ?>
+                                    <?php if ($canConcernEvidence && !empty($row['receipt_path'])): ?>
                                         <img src="<?= BASE_URL ?>/modules/payment/api/accounting/view-receipt.php?concern_id=<?= (int)$row['concern_id'] ?>" alt="Receipt" class="img-fluid" style="object-fit: contain; max-height: 600px;">
                                     <?php else: ?>
                                         <span class="text-muted"><i class="ti ti-ban fs-3 d-block mb-2"></i>No image attached</span>
@@ -228,18 +232,20 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                 <div class="small text-muted mt-3">
                                     <div><strong>Student:</strong> <?= htmlspecialchars($row['full_name']) ?> (<?= htmlspecialchars($row['student_number']) ?>)</div>
                                     <div><strong>Concern submitted:</strong> <?= htmlspecialchars($row['submitted_at']) ?></div>
-                                    <div><strong>Linked payment:</strong> <?= $row['payment_id'] ? '#' . (int)$row['payment_id'] . ' · PHP ' . number_format((float)$row['payment_amount'], 2) : 'None yet' ?></div>
+                                    <div><strong>Linked payment:</strong> <?= $row['payment_id'] ? '#' . (int)$row['payment_id'] . ' · ₱' . number_format((float)$row['payment_amount'], 2) : 'None yet' ?></div>
                                 </div>
-                                <div class="mt-3">
-                                    <button class="btn btn-outline-primary w-100 fw-bold" onclick="scanConcernOCR(<?= $row['concern_id'] ?>, this, <?= $row['ocr_status'] === 'Failed' ? 'true' : 'false' ?>)" <?= in_array($row['verification_status'], ['Pending', 'On Hold'], true) ? '' : 'disabled' ?>>
-                                        <i class="fas fa-robot me-2"></i><?= $row['ocr_status'] === 'Failed' ? 'Retry Google Vision OCR' : 'Run Google Vision OCR Scan' ?>
-                                    </button>
-                                </div>
+                                <?php if ($canConcernEvidence): ?>
+                                    <div class="mt-3">
+                                        <button class="btn btn-outline-primary w-100 fw-bold" onclick="scanConcernOCR(<?= $row['concern_id'] ?>, this, <?= $row['ocr_status'] === 'Failed' ? 'true' : 'false' ?>)" <?= in_array($row['verification_status'], ['Pending', 'On Hold'], true) ? '' : 'disabled' ?>>
+                                            <i class="fas fa-robot me-2"></i><?= $row['ocr_status'] === 'Failed' ? 'Retry Google Vision OCR' : 'Run Google Vision OCR Scan' ?>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                             
                             <!-- RIGHT COLUMN: Data & Verification -->
                             <div class="col-lg-8 p-4 d-flex flex-column">
-                                <?php $canDecide = in_array($row['verification_status'], ['Pending', 'On Hold'], true); ?>
+                                <?php $canDecide = in_array($row['verification_status'], ['Pending', 'On Hold'], true) && ($canConcernDecision || $canConcernVerify); ?>
                                 <form action="" method="POST" class="d-flex flex-column h-100">
                                     <?= csrfField(); ?>
                                     <input type="hidden" name="concern_id" value="<?= $row['concern_id'] ?>">
@@ -254,18 +260,18 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </div>
                                         <div class="row mb-2">
                                             <div class="col-6 text-muted small fw-bold">Linked Payment Amount</div>
-                                            <div class="col-6 text-primary fw-bold"><?= $row['payment_amount'] !== null ? 'PHP ' . number_format((float)$row['payment_amount'], 2) : 'No linked payment' ?></div>
+                                            <div class="col-6 text-primary fw-bold"><?= $row['payment_amount'] !== null ? '₱' . number_format((float)$row['payment_amount'], 2) : 'No linked payment' ?></div>
                                         </div>
                                         <hr class="my-2">
                                         
-                                        <!-- OCR Result placeholders -->
+                                        <?php if ($canConcernEvidence): ?><!-- OCR Result placeholders -->
                                         <div class="row mb-2">
                                             <div class="col-6 text-muted small fw-bold">OCR Status</div>
                                             <div class="col-6"><span class="badge bg-secondary" id="ocr_status_badge_<?= $row['concern_id'] ?>"><?= htmlspecialchars($row['ocr_status']) ?></span></div>
                                         </div>
                                         <div class="row mb-2">
                                             <div class="col-6 text-muted small fw-bold">OCR Extracted Amount</div>
-                                            <div class="col-6 text-success fw-bold" id="ocr_amount_<?= $row['concern_id'] ?>"><?= $row['extracted_amount'] !== null ? 'PHP ' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
+                                            <div class="col-6 text-success fw-bold" id="ocr_amount_<?= $row['concern_id'] ?>"><?= $row['extracted_amount'] !== null ? '₱' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
                                         </div>
                                         <div class="row mb-3">
                                             <div class="col-6 text-muted small fw-bold">OCR Reference No.</div>
@@ -274,13 +280,13 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <div class="row mb-0"><div class="col-6 text-muted small fw-bold">Automated assessment</div><div class="col-6"><span class="badge bg-light text-dark border"><?= htmlspecialchars($row['rule_status'] ?? 'OCR pending') ?></span></div></div>
                                     </div>
 
-                                    <div class="row g-3 mb-3">
+                                    <?php endif; ?><?php if ($canConcernEvidence): ?><div class="row g-3 mb-3">
                                         <div class="col-md-6">
                                             <div class="bg-white border rounded-3 p-3 h-100">
                                                 <h6 class="fw-bold">Google OCR evidence</h6>
                                                 <div class="small"><strong>Status:</strong> <?= htmlspecialchars($row['extraction_status'] ?? $row['ocr_status']) ?></div>
                                                 <div class="small"><strong>Reference:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'Not extracted') ?></div>
-                                                <div class="small"><strong>Amount:</strong> <?= $row['extracted_amount'] !== null ? 'PHP ' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
+                                                <div class="small"><strong>Amount:</strong> <?= $row['extracted_amount'] !== null ? '₱' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
                                                 <div class="small"><strong>Date:</strong> <?= htmlspecialchars($row['transaction_date'] ?? 'Not extracted') ?></div>
                                                 <div class="small"><strong>Receipt channel:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'Not extracted') ?></div>
                                                 <div class="small mt-2 text-muted">OCR values are evidence only. Compare them with the original receipt before deciding.</div>
@@ -294,7 +300,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             </div>
                                         </div>
                                     </div>
-                                    <?php if ($row['verification_status'] === 'On Hold'): ?>
+                                    <?php endif; ?><?php if ($row['verification_status'] === 'On Hold'): ?>
                                         <div class="alert alert-info py-2"><strong>On hold:</strong> <?= htmlspecialchars($row['hold_reason'] ?? '') ?></div>
                                     <?php endif; ?>
 
@@ -306,20 +312,20 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <label class="form-label small fw-bold text-muted">Verified Amount</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text">₱</span>
-                                                <input type="number" step="0.01" min="0.01" name="verified_amount" class="form-control" value="<?= htmlspecialchars((string)($row['extracted_amount'] ?? $row['payment_amount'] ?? '')) ?>">
+                                                <input type="number" step="0.01" min="0.01" name="verified_amount" class="form-control" value="<?= htmlspecialchars((string)($canConcernEvidence ? ($row['extracted_amount'] ?? $row['payment_amount'] ?? '') : ($row['payment_amount'] ?? ''))) ?>">
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Reference No.</label>
-                                            <input type="text" name="verified_reference" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($row['ocr_ref'] ?? '')) ?>" maxlength="100">
+                                            <input type="text" name="verified_reference" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($canConcernEvidence ? ($row['ocr_ref'] ?? '') : '')) ?>" maxlength="100">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Payment Channel</label>
-                                            <select name="verified_channel" class="form-select form-select-sm"><option value="">Select channel</option><?php foreach(['GCash','Maya','PayMongo','Bank Transfer','Other'] as $channel): ?><option value="<?= $channel ?>" <?= strcasecmp((string)($row['bank_name']??''),$channel)===0?'selected':'' ?>><?= $channel ?></option><?php endforeach; ?></select>
+                                            <select name="verified_channel" class="form-select form-select-sm"><option value="">Select channel</option><?php foreach(['GCash','Maya','PayMongo','Bank Transfer','Other'] as $channel): ?><option value="<?= $channel ?>" <?= $canConcernEvidence && strcasecmp((string)($row['bank_name'] ?? ''), $channel) === 0 ? 'selected' : '' ?>><?= $channel ?></option><?php endforeach; ?></select>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small fw-bold text-muted">Transaction Date</label>
-                                            <input type="date" name="verified_date" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($row['transaction_date'] ?? '')) ?>">
+                                            <input type="date" name="verified_date" class="form-control form-control-sm" value="<?= htmlspecialchars((string)($canConcernEvidence ? ($row['transaction_date'] ?? '') : '')) ?>">
                                         </div>
                                     </div>
 
@@ -329,7 +335,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                             <select name="billing_id" class="form-select">
                                                 <option value="">Select the student's billing</option>
                                                 <?php foreach ($billingChoices[(int)$row['student_id']] ?? [] as $bill): ?>
-                                                    <option value="<?= (int)$bill['billing_id'] ?>">#<?= (int)$bill['billing_id'] ?> · <?= htmlspecialchars($bill['academic_year']) ?> <?= htmlspecialchars($bill['semester']) ?> · Balance PHP <?= number_format((float)$bill['remaining_balance'], 2) ?></option>
+                                                    <option value="<?= (int)$bill['billing_id'] ?>">#<?= (int)$bill['billing_id'] ?> · <?= htmlspecialchars($bill['academic_year']) ?> <?= htmlspecialchars($bill['semester']) ?> · Balance ₱<?= number_format((float)$bill['remaining_balance'], 2) ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
@@ -346,9 +352,11 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         <label class="form-label fw-bold small text-muted">Decision <span class="text-danger">*</span></label>
                                         <select class="form-select fw-bold" name="action_concern" required <?= $canDecide ? '' : 'disabled' ?>>
                                             <option value="">Select decision</option>
-                                            <option value="Verify">Approve &amp; Verify (Update Ledger)</option>
-                                            <option value="Hold">Hold for Investigation</option>
-                                            <option value="Reject">Reject Concern</option>
+                                            <?php if ($canConcernVerify): ?><option value="Verify">Approve &amp; Verify (Update Ledger)</option><?php endif; ?>
+                                            <?php if ($canConcernDecision): ?>
+                                                <option value="Hold">Hold for Investigation</option>
+                                                <option value="Reject">Reject Concern</option>
+                                            <?php endif; ?>
                                         </select>
                                     </div>
 

@@ -20,7 +20,7 @@ renderBreadcrumbs($breadcrumbs);
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php', ENT_QUOTES, 'UTF-8') ?>"
  data-personnel-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
  data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
- data-can-unlock="<?= paymentRoleAllowsPermission(getCurrentUserRoleKey(), 'payment_users.unlock') ? '1' : '0' ?>">
+ data-can-unlock="<?= paymentEffectivePermission(getCurrentUserRoleKey(), 'payment_users.unlock') ? '1' : '0' ?>">
   <div class="mis-page-header">
     <div><h1 class="h3">Security Monitoring</h1>
       <p>Monitor Payment personnel authentication and security conditions.</p></div>
@@ -59,5 +59,5 @@ renderBreadcrumbs($breadcrumbs);
     <div class="mis-pagination"><small id="eventCount" class="text-muted"></small><nav class="payment-pagination" aria-label="Security event pages"><ul class="pagination pagination-sm mb-0" id="eventPagination"></ul></nav></div>
   </div></section>
 </main>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=3"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=4"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

@@ -313,11 +313,7 @@ function userCanAccessModule(string $moduleKey): bool
     }
     if (str_starts_with($moduleKey, 'payment.')
         || preg_match('/^(billing|fee|ledger|ar|report|payment_users|integration|school_sales)\./', $moduleKey)) {
-        // Payment role capabilities are the source of truth for Payment
-        // operations.  Legacy granular module-grant rows may be incomplete
-        // (for example, omitting Accounting's fee-setup permission), but
-        // must not hide or block a role-owned payment page.
-        return paymentRoleAllowsPermission(getCurrentUserRoleKey(), $moduleKey);
+        return paymentEffectivePermission(getCurrentUserRoleKey(), $moduleKey);
     }
     // Student portal alias
     if ($moduleKey === 'student-portal' || $moduleKey === 'student_portal') {
@@ -331,6 +327,63 @@ function userCanAccessModule(string $moduleKey): bool
 
     $allowedModules = getAllowedModuleKeys();
     return in_array($moduleKey, $allowedModules, true);
+}
+
+/**
+ * Resolve a Payment operation through both authorization layers.
+ *
+ * The role bundle is the ceiling. An exact role_permissions row is an
+ * optional per-operation grant and, when present, is authoritative. Missing
+ * granular rows retain the bundle result while older deployments migrate.
+ * A parent payment grant never proves authorization for a child operation.
+ */
+function paymentEffectivePermission(string $role, string $permission): bool
+{
+    $role = smsNormalizeRoleKey($role);
+    $permission = paymentCanonicalPermission($permission);
+    $pdo = db();
+    if (!$pdo) {
+        return false;
+    }
+
+    try {
+        $lookupKeys = smsRolePermissionLookupKeys($role);
+        $rolePlaceholders = implode(',', array_fill(0, count($lookupKeys), '?'));
+        $permissionKeys = paymentEquivalentPermissionKeys($permission);
+        $permissionPlaceholders = implode(',', array_fill(0, count($permissionKeys), '?'));
+        $stmt = $pdo->prepare(
+            "SELECT granted FROM role_permissions
+             WHERE role_key IN ($rolePlaceholders)
+               AND module_key IN ($permissionPlaceholders)
+             ORDER BY granted ASC LIMIT 1"
+        );
+        $stmt->execute([...$lookupKeys, ...$permissionKeys]);
+        $grant = $stmt->fetchColumn();
+        return paymentPermissionDecision($role, $permission, $grant === false ? null : (int) $grant === 1);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+function paymentPermissionDecision(string $role, string $permission, ?bool $explicitGrant): bool
+{
+    $permission = paymentCanonicalPermission($permission);
+    if (!paymentCapabilityImplemented($permission)) return false;
+    if (!paymentRoleAllowsPermission($role, $permission)) return false;
+
+    $requiresExplicitGrant = in_array($permission, [
+        'payment.reconciliation.view',
+        'payment.reconciliation.process',
+        'payment.reconciliation.import',
+        'payment.reconciliation.exception.approve',
+        'payment.concern.evidence.review',
+        'payment.concern.decision',
+        'payment.concern.verify',
+        'ledger.export',
+        'fee.activate',
+        'report.export',
+    ], true);
+    if ($explicitGrant === null && $requiresExplicitGrant) return false;
+    return $explicitGrant ?? true;
 }
 
 function requireSuperAdmin(): void
@@ -1667,59 +1720,66 @@ function smsUserIsOnline(?string $lastSeenAt, int $onlineSeconds = 300): bool
     return (time() - $ts) <= max(60, $onlineSeconds);
 }
 
-function paymentRoleAllowsPermission(string $role, string $permission): bool
+/** @return array<string,string> Legacy Payment capability key => canonical key. */
+function paymentPermissionAliases(): array
 {
-    $role = smsNormalizeRoleKey($role);
-    // Legacy page keys resolve to canonical capabilities.  Authorization is
-    // intentionally fail-closed: Global Super Admin is not a PMS operator.
-    $aliases = [
-        'payment.billing' => 'billing.individual.process',
-        'payment.fee_setup' => 'fee.manage',
-        'payment.ledger' => 'ledger.view',
-        'payment.concern_review' => 'payment.concern.review',
-        'payment.managed_bulk_operate' => 'billing.bulk.process',
-        'payment.managed_bulk_detail' => 'billing.bulk.view',
-        'payment.managed_bulk_approve' => 'billing.bulk.approve',
-        'payment.analytics' => 'report.view',
-        'payment.collection_analytics_view' => 'report.view',
-        'payment.online_payment_config' => 'integration.paymongo.manage',
-        'payment.accounting_users_view' => 'payment_users.view',
-        'payment.accounting_users_manage' => 'payment_users.update',
+    return [
+        'payment.billing' => 'billing.individual.process', 'payment.fee_setup' => 'fee.manage',
+        'payment.ledger' => 'ledger.view', 'payment.concern.review' => 'payment.concern.view', 'payment.concern_review' => 'payment.concern.view',
+        'payment.managed_bulk_operate' => 'billing.bulk.process', 'payment.managed_bulk_detail' => 'billing.bulk.view',
+        'payment.managed_bulk_approve' => 'billing.bulk.approve', 'payment.analytics' => 'report.view',
+        'payment.collection_analytics_view' => 'report.view', 'payment.online_payment_config' => 'integration.paymongo.manage',
+        'payment.accounting_users_view' => 'payment_users.view', 'payment.accounting_users_manage' => 'payment_users.update',
         'payment_users.reset_password' => 'payment_users.password.reset',
     ];
-    $permission = $aliases[$permission] ?? $permission;
-    $bundles = [
-        'accounting_officer' => [
-            'billing.individual.process', 'billing.bulk.create', 'billing.bulk.preview',
-            'billing.bulk.process', 'billing.bulk.retry', 'billing.bulk.resume', 'billing.bulk.view',
-            'billing.individual.review', 'ar.view', 'payment.discount', 'ledger.view',
-            'payment.concern.review', 'report.view',
-        ],
-        'accounting_admin' => [
-            'fee.view', 'fee.manage', 'fee.activate', 'billing.individual.review',
-            'billing.bulk.view', 'billing.bulk.approve', 'payment.verify',
-            'payment.concern.review', 'ledger.view', 'ar.view', 'ar.manage',
-            'payment.discount', 'report.view', 'report.export',
-            'school_sales.catalog.view', 'school_sales.catalog.manage', 'school_sales.catalog.activate',
-        ],
-        'cashier' => [
-            'payment.collection', 'payment.walkin_history', 'payment.school_sales',
-            'payment.cashier_dashboard', 'billing.individual.review',
-        ],
-        'mis_admin' => [
-            'payment.mis_overview', 'payment.security.view',
-            'payment_users.view', 'payment_users.create', 'payment_users.update',
-            'payment_users.role.assign', 'payment_users.activate', 'payment_users.deactivate',
-            'payment_users.unlock', 'payment_users.password.reset',
-            'integration.paymongo.manage', 'integration.ocr.manage',
-        ],
-    ];
-    return in_array($permission, $bundles[$role] ?? [], true);
 }
-
+function paymentCanonicalPermission(string $permission): string { return paymentPermissionAliases()[$permission] ?? $permission; }
+/** Capabilities exposed in the matrix must have a complete enforcement path. */
+function paymentCapabilityImplemented(string $permission): bool
+{
+    return !in_array(paymentCanonicalPermission($permission), [
+        'ar.view',
+        'ar.manage',
+        'payment.verify',
+        'billing.bulk.resume',
+        'payment.reconciliation.process',
+        'payment.reconciliation.exception.approve',
+    ], true);
+}
+/** @return list<string> Canonical capability followed by every registered legacy alias. */
+function paymentEquivalentPermissionKeys(string $permission): array
+{
+    $canonical = paymentCanonicalPermission($permission);
+    $keys = [$canonical];
+    foreach (paymentPermissionAliases() as $alias => $target) {
+        if ($target === $canonical) $keys[] = $alias;
+    }
+    return array_values(array_unique($keys));
+}
+/** @return array<string,list<string>> */
+function paymentRolePermissionBundles(): array
+{
+    return [
+        'accounting_officer' => ['billing.individual.process','billing.bulk.create','billing.bulk.preview','billing.bulk.process','billing.bulk.retry','billing.bulk.resume','billing.bulk.view','billing.individual.review','ar.view','payment.discount','ledger.view','ledger.export','payment.concern.view','payment.concern.evidence.review','payment.concern.decision','payment.concern.verify','payment.reconciliation.view','payment.reconciliation.process','payment.reconciliation.import','report.view'],
+        'accounting_admin' => ['fee.view','fee.manage','fee.activate','billing.individual.review','billing.bulk.view','billing.bulk.approve','payment.verify','ledger.view','ledger.export','ar.view','ar.manage','payment.reconciliation.view','payment.reconciliation.exception.approve','report.view','report.export','school_sales.catalog.view','school_sales.catalog.manage','school_sales.catalog.activate'],
+        'cashier' => ['payment.collection','payment.walkin_history','payment.school_sales','payment.cashier_dashboard','billing.individual.review'],
+        'mis_admin' => ['payment.mis_overview','payment.permissions.manage','payment.security.view','payment_users.view','payment_users.create','payment_users.update','payment_users.role.assign','payment_users.activate','payment_users.deactivate','payment_users.unlock','payment_users.password.reset','integration.paymongo.manage','integration.ocr.manage'],
+    ];
+}
+/** @return list<string> */
+function paymentPermissionCatalog(): array
+{
+    $permissions=[];foreach(paymentRolePermissionBundles() as $bundle)$permissions=array_merge($permissions,$bundle);
+    $permissions=array_values(array_unique($permissions));sort($permissions,SORT_STRING);return $permissions;
+}
+function paymentRoleAllowsPermission(string $role,string $permission): bool
+{
+    $role=smsNormalizeRoleKey($role);$permission=paymentCanonicalPermission($permission);$bundles=paymentRolePermissionBundles();
+    return in_array($permission,$bundles[$role]??[],true);
+}
 function requirePaymentPermission(string $permission): void
 {
-    if (!paymentRoleAllowsPermission(getCurrentUserRoleKey(), $permission) || !userCanAccessModule($permission)) {
+    if (!paymentEffectivePermission(getCurrentUserRoleKey(), $permission)) {
         http_response_code(403);
         die('403 Forbidden: You do not have the required permission ('. htmlspecialchars($permission) .') to access this module.');
     }

@@ -40,15 +40,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function pager(meta, onPage) {
     if (!meta || meta.total_pages <= 1) return '';
-    const pages = Array.from({ length: meta.total_pages }, (_, index) => index + 1)
-      .filter(page => page === 1 || page === meta.total_pages || Math.abs(page - meta.page) <= 2);
-    let previous = 0;
-    const items = pages.map(page => {
-      const spacer = previous && page > previous + 1 ? '<span class="px-1 text-muted">…</span>' : '';
-      previous = page;
-      return `${spacer}<button class="btn btn-sm ${page === meta.page ? 'btn-primary' : 'btn-outline-secondary'}" type="button" data-page="${page}">${page}</button>`;
-    }).join('');
-    return `<div class="d-flex justify-content-end align-items-center gap-1 mt-3"><button class="btn btn-sm btn-outline-secondary" type="button" data-page="${meta.page - 1}" ${meta.page <= 1 ? 'disabled' : ''}>‹</button>${items}<button class="btn btn-sm btn-outline-secondary" type="button" data-page="${meta.page + 1}" ${meta.page >= meta.total_pages ? 'disabled' : ''}>›</button></div>`;
+    const pageItem = (page, label = String(page), active = false, disabled = false, ariaLabel = '') =>
+      `<li class="page-item${active ? ' active' : ''}${disabled ? ' disabled' : ''}">${active || disabled
+        ? `<span class="page-link"${active ? ' aria-current="page"' : ' aria-disabled="true"'}>${label}</span>`
+        : `<button class="page-link" type="button" data-page="${page}"${ariaLabel ? ` aria-label="${ariaLabel}"` : ''}>${label}</button>`}</li>`;
+    const start = Math.max(1, meta.page - 2), end = Math.min(meta.total_pages, meta.page + 2);
+    let items = pageItem(meta.page - 1, '‹ Previous', false, meta.page <= 1, 'Previous page');
+    if (start > 1) {
+      items += pageItem(1);
+      if (start > 2) items += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>';
+    }
+    for (let page = start; page <= end; page += 1) items += pageItem(page, String(page), page === meta.page);
+    if (end < meta.total_pages) {
+      if (end < meta.total_pages - 1) items += '<li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li>';
+      items += pageItem(meta.total_pages);
+    }
+    items += pageItem(meta.page + 1, 'Next ›', false, meta.page >= meta.total_pages, 'Next page');
+    return `<nav class="payment-pagination mt-3" aria-label="Managed billing pages"><ul class="pagination pagination-sm mb-0">${items}</ul></nav>`;
   }
 
   async function loadRun(runId, resetFilters = true) {
@@ -98,6 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const approver = run.approved_by ? displayName(run.approved_by_name_snapshot, run.approved_by) : '';
     const statusClass = run.status === 'Draft' ? 'text-bg-warning' : run.status === 'Approved' ? 'text-bg-success' : 'text-bg-secondary';
     out.innerHTML = `<article class="border rounded p-3"><div class="d-flex flex-wrap justify-content-between align-items-start gap-2 border-bottom pb-3 mb-3"><div><div class="d-flex align-items-center gap-2"><h2 class="h5 mb-0">Run #${esc(run.run_id)}</h2><span class="badge ${statusClass}">${esc(run.status)}</span></div><p class="small text-muted mb-0 mt-1">Managed bulk billing approval record</p></div><strong>Gross estimate: ${peso(run.projected_amount)}</strong></div><div class="row row-cols-1 row-cols-md-3 g-3 small mb-4"><div><span class="text-muted d-block">AY / Semester</span><strong>${esc(run.academic_year)} / ${esc(run.semester)}</strong></div><div><span class="text-muted d-block">Students</span><strong>${esc(run.projected_student_count)}</strong></div><div><span class="text-muted d-block">Created by</span><strong>${esc(creator)}</strong><span class="d-block text-muted">${esc(displayDate(run.created_at))}</span></div></div>${run.status !== 'Draft' && run.approved_by ? `<div class="alert alert-success py-2 small"><strong>Approved by ${esc(approver)}</strong> on ${esc(displayDate(run.approved_at))}. This run is ready for Accounting Officer processing.</div>` : ''}<h3 class="h6">Fee Snapshot</h3><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Fee</th><th>Behavior</th><th>Amount</th><th>Selection</th></tr></thead><tbody>${fees.map(fee => `<tr><td>${esc(fee.fee_name_snapshot || fee.preview_name_snapshot)}</td><td>${esc(fee.behavior_snapshot || fee.behavior)}</td><td>${peso(fee.amount_snapshot || fee.preview_amount_snapshot)}</td><td>${selectionBadge(fee)}</td></tr>`).join('')}</tbody></table></div><div class="d-flex flex-wrap justify-content-between gap-2 mt-4"><h3 class="h6 mb-0">Cohort Assignments (${meta.total_rows ?? assignments.length})</h3><div class="d-flex gap-2"><input id="assignmentStudentSearch" class="form-control form-control-sm" style="min-width:200px" placeholder="Search student…" value="${esc(filters.student_search || '')}"><select id="assignmentStatus" class="form-select form-select-sm"><option value="">All statuses</option>${assignmentStatuses.map(status => `<option value="${status}" ${filters.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select><select id="assignmentPageSize" class="form-select form-select-sm"><option value="25">25 / page</option><option value="50">50 / page</option><option value="100">100 / page</option></select><button id="assignmentFilter" type="button" class="btn btn-sm btn-outline-primary">Filter</button></div></div><div class="table-responsive mt-2"><table class="table table-sm"><thead><tr><th>Student No.</th><th>Student</th><th>Program / Year</th><th>Enrollment</th><th>Status</th></tr></thead><tbody>${assignments.length ? assignments.map(a => `<tr><td>${esc(a.student_number)}</td><td>${esc(a.student_full_name)}</td><td>${esc(a.program_code)} / ${esc(a.year_level)}</td><td>${esc(a.enrollment_status)}</td><td>${esc(a.status)}</td></tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-3">No assignments match this filter.</td></tr>'}</tbody></table></div><div class="small text-muted">${meta.total_rows ? `Showing ${((meta.page - 1) * meta.page_size) + 1} to ${Math.min(meta.page * meta.page_size, meta.total_rows)} of ${meta.total_rows} entries` : 'Showing 0 entries'}</div>${pager(meta, page => { assignmentPage = page; loadRun(run.run_id, false); })}${run.status === 'Draft' ? `<section class="border rounded bg-light p-3 mt-4"><h3 class="h6">Approval Summary</h3><p class="mb-1"><strong>${esc(run.projected_student_count)}</strong> students · <strong>${selectedFees}</strong> selected fee versions</p><p class="mb-2">Gross estimate: <strong>${peso(run.projected_amount)}</strong></p><p class="small text-muted mb-3">Actual student charges remain revalidated by Phase 4 during Accounting Officer processing.</p><button type="button" class="btn btn-success" id="openApproveModal">Approve Draft</button></section>` : ''}</article>`;
+    const assignmentTable = out.querySelectorAll('table')[1];
+    if (assignmentTable) {
+      const heading = document.createElement('th'); heading.textContent = 'Notification'; assignmentTable.querySelector('thead tr')?.append(heading);
+      if (assignments.length) assignmentTable.querySelectorAll('tbody tr').forEach((row, index) => { const cell = document.createElement('td'); cell.textContent = assignments[index]?.notification_state || 'NotRequired'; row.append(cell); });
+      else assignmentTable.querySelector('tbody td')?.setAttribute('colspan', '6');
+    }
     document.getElementById('assignmentPageSize').value = String(assignmentPageSize);
     document.getElementById('assignmentFilter').addEventListener('click', () => {
       assignmentStudentSearch = document.getElementById('assignmentStudentSearch').value.trim();

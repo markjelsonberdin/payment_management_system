@@ -14,14 +14,14 @@ require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
 header('Content-Type: application/json');
 
 requireAuth();
-requirePaymentPermission('payment.concern_review');
+requirePaymentPermission('payment.reconciliation.import');
 
 // Ensure proper role
 $role = getCurrentUserRoleKey();
 $userId = getCurrentUserId();
 global $pdo;
 $securityService = new PaymentSecurityService($pdo);
-$securityService->ensurePaymentAccess($userId, $role, 'payment.concern_review', 0, 'system');
+$securityService->ensurePaymentAccess($userId, $role, 'payment.reconciliation.import', 0, 'system');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

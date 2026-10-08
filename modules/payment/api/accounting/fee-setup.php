@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/includes/authentication.php';
 
 requireAuth();
-requirePaymentPermission('fee.manage');
+requirePaymentPermission('fee.view');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -76,6 +76,7 @@ try {
     }
 
     $action = (string) ($input['action'] ?? '');
+    requirePaymentPermission($action === 'activate_version' ? 'fee.activate' : 'fee.manage');
     $actorId = (int) (getCurrentUserId() ?? 0);
     $payload = isset($input['data']) && is_array($input['data']) ? $input['data'] : $input;
 

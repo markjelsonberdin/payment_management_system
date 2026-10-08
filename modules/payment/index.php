@@ -58,9 +58,10 @@ $pageDescriptions = [
 $overviewCards = [];
 foreach ($allowedSlugs as $slug) {
     $page = $pageBySlug[$slug] ?? null;
-    if ($page === null || (isset($page['permission']) && !paymentRoleAllowsPermission($role, $page['permission']))) {
+    if ($page === null || (isset($page['permission']) && !paymentEffectivePermission($role, $page['permission']))) {
         continue;
     }
+    if ($slug === 'accounting_admin/dashboard' && !paymentEffectivePermission($role, 'report.view')) continue;
     $overviewCards[] = $page;
 }
 
