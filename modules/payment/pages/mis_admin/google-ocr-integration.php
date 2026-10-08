@@ -61,10 +61,11 @@ renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-config.css?v=1">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-colors.css?v=1">
 <main id="ocrAdminApp" class="container-fluid payment-page ocr-admin py-4"
       data-status-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-status.php"
       data-diagnostic-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-test-connection.php">
-  <header class="ocr-header"><div><span class="ocr-eyebrow">Receipt processing</span><h1>Google OCR Configuration</h1><p>Manage receipt OCR integration, authentication, and usage limits.</p></div><div class="ocr-header-actions"><button class="btn btn-outline-primary" id="ocrRefreshStatus" type="button"><i class="ti ti-refresh"></i> Refresh Status</button><button class="btn btn-outline-primary" id="ocrRunDiagnostic" type="button"><i class="ti ti-shield-check"></i> Run Authentication Diagnostic</button></div></header>
+  <header class="ocr-header"><div><span class="ocr-eyebrow">Receipt processing</span><h1>Google OCR Configuration</h1><p>Manage receipt OCR integration, authentication, and usage limits.</p></div><div class="ocr-header-actions"><button class="btn btn-outline-primary" id="ocrRunDiagnostic" type="button"><i class="ti ti-shield-check"></i> Run Authentication Diagnostic</button></div></header>
   <?php if (($_GET['result'] ?? '') === 'updated'): ?><div class="alert alert-success">Google OCR configuration updated.</div><?php endif; ?>
   <?php if ($errorCode !== null): ?><div class="alert alert-danger"><?= e($messages[$errorCode] ?? $messages['OCR_CONFIG_INVALID']) ?></div><?php endif; ?>
 
@@ -93,5 +94,5 @@ renderBreadcrumbs($breadcrumbs);
 </main>
 
 <div class="modal fade" id="ocrConfirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content ocr-confirm"><div class="modal-header"><div><h2 class="modal-title">Confirm Configuration Changes</h2><p>Review availability and quota changes before saving.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>This update applies to authorized receipt OCR requests.</p><div class="ocr-change-table"><div><span>Setting</span><span>Current</span><span>New</span></div><div><strong>OCR Processing</strong><span id="ocrPreviousEnabled">—</span><span id="ocrNewEnabled">—</span></div><div><strong>Monthly Quota</strong><span id="ocrPreviousLimit">—</span><span id="ocrNewLimit">—</span></div></div><div class="ocr-safe-note"><i class="ti ti-shield-check"></i><span>The change will be attributed to the active administrator through the existing structured audit flow.</span></div></div><div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="ocrConfirmSave" type="button">Confirm &amp; Apply</button></div></div></div></div>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-ocr-administration.js?v=2" defer></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-ocr-administration.js?v=3" defer></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

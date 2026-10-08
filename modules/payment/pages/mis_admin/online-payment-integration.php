@@ -106,11 +106,11 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/paymongo-config.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/paymongo-config.css?v=4">
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid payment-page paymongo-config py-4">
+<div class="container-fluid payment-page paymongo-config py-4" id="paymongoAdminApp" data-credential-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/paymongo-credential.php">
     <div class="paymongo-page-header">
         <div>
             <div class="paymongo-eyebrow">Payment infrastructure</div>
@@ -172,26 +172,25 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
         <div class="paymongo-panel-heading">
             <div>
                 <span class="paymongo-section-icon"><i class="ti ti-webhook" aria-hidden="true"></i></span>
-                <div><h2>Webhook Configuration Details</h2><p>Endpoint registration and recent configuration activity.</p></div>
+                <div><h2>Webhook Configuration Details</h2><p>Endpoint registration and latest connection test.</p></div>
             </div>
             <span class="paymongo-security-pill"><i class="ti ti-lock" aria-hidden="true"></i>Protected endpoint</span>
         </div>
         <div class="paymongo-webhook-grid">
             <div class="paymongo-detail paymongo-detail-wide">
                 <span>Expected Webhook URL</span>
-                <strong id="expectedWebhookUrl">Checking...</strong>
+                <div class="paymongo-webhook-url-row">
+                    <strong id="expectedWebhookUrl">Checking...</strong>
+                    <button type="button" class="paymongo-copy-url" id="copyWebhookUrl" title="Copy webhook URL" aria-label="Copy expected webhook URL"><i class="ti ti-copy" aria-hidden="true"></i><span>Copy</span></button>
+                </div>
             </div>
             <div class="paymongo-detail">
                 <span>URL Status</span>
                 <strong id="webhookUrlStatus">UNVERIFIED</strong>
             </div>
             <div class="paymongo-detail">
-                <span>Last Successful Test</span>
-                <strong id="lastSuccessfulTest">Never</strong>
-            </div>
-            <div class="paymongo-detail">
-                <span>Last Configuration Update</span>
-                <strong id="lastConfigUpdate">Unknown</strong>
+                <span>Last Test Event</span>
+                <strong id="lastTestEvent">Never Tested</strong>
             </div>
         </div>
     </section>
@@ -223,7 +222,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                     <div class="paymongo-panel-heading">
                         <div>
                             <span class="paymongo-section-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
-                            <div><h2>PayMongo API Configuration</h2><p>Credential values remain masked and never enter the page source.</p></div>
+                            <div><h2>PayMongo API Configuration</h2><p>Keys stay masked until an authorized MIS Admin views or copies one.</p></div>
                         </div>
                     </div>
                     <div class="paymongo-credential-grid">
@@ -234,15 +233,16 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                     <div><h3><?= e($credentialMeta[0]) ?></h3><span><?= e($credentialMeta[1]) ?></span></div>
                                 </div>
                                 <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Signing Secret'] as $credentialKey => $credentialLabel): ?>
-                                    <div class="paymongo-credential-row">
-                                        <div>
+                                    <div class="paymongo-credential-row" data-mode="<?= e($modeKey) ?>" data-credential="<?= e($credentialKey) ?>" data-configured="<?= $credentialStatus[$modeKey][$credentialKey] ? '1' : '0' ?>">
+                                        <div class="paymongo-credential-meta">
                                             <span><?= e($credentialLabel) ?></span>
                                             <strong><?= $credentialStatus[$modeKey][$credentialKey] ? 'Configured' : 'Not configured' ?></strong>
                                         </div>
-                                        <span class="paymongo-mask" aria-label="<?= e($credentialLabel . ' is ' . ($credentialStatus[$modeKey][$credentialKey] ? 'configured' : 'not configured')) ?>">
-                                            <?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '—' ?>
-                                            <i class="ti ti-eye-off" aria-hidden="true"></i>
-                                        </span>
+                                        <div class="paymongo-credential-value-wrap">
+                                            <code class="paymongo-mask" aria-live="polite" aria-label="<?= e($credentialLabel . ' is ' . ($credentialStatus[$modeKey][$credentialKey] ? 'configured' : 'not configured')) ?>"><?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••••••' : '—' ?></code>
+                                            <button class="paymongo-key-action paymongo-key-view" type="button" <?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'disabled' ?> aria-label="Show <?= e($credentialLabel) ?>" title="Show key"><i class="ti ti-eye" aria-hidden="true"></i></button>
+                                            <button class="paymongo-key-action paymongo-key-copy" type="button" <?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'disabled' ?> aria-label="Copy <?= e($credentialLabel) ?>" title="Copy key"><i class="ti ti-copy" aria-hidden="true"></i></button>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                                 <div class="paymongo-credential-note"><i class="ti ti-lock" aria-hidden="true"></i><?= $modeKey === 'test' ? 'Sandbox keys are used for simulation and QA.' : 'Production keys are managed through protected server environment variables.' ?></div>
@@ -304,6 +304,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const paymongoApp = document.getElementById('paymongoAdminApp');
     const gatewaySelect = document.getElementById('gatewayModeSelect');
 
     // Polling UI Elements
@@ -311,6 +312,80 @@ document.addEventListener("DOMContentLoaded", function () {
     const iconRefresh = document.getElementById('iconRefreshStatus');
     const btnTestConnection = document.getElementById('btnTestConnection');
     const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+    async function requestCredential(row, purpose) {
+        const body = new URLSearchParams({
+            csrf_token: csrfToken,
+            mode: row.dataset.mode,
+            credential: row.dataset.credential,
+            purpose: purpose
+        });
+        const response = await fetch(paymongoApp.dataset.credentialUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            },
+            body: body.toString()
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok || typeof payload.value !== 'string') {
+            throw new Error('The credential could not be accessed.');
+        }
+        return payload.value;
+    }
+
+    document.querySelectorAll('.paymongo-credential-row[data-configured="1"]').forEach((row) => {
+        const output = row.querySelector('.paymongo-mask');
+        const viewButton = row.querySelector('.paymongo-key-view');
+        const copyButton = row.querySelector('.paymongo-key-copy');
+        const maskedValue = '••••••••••••••••';
+
+        viewButton.addEventListener('click', async () => {
+            if (row.dataset.visible === '1') {
+                output.textContent = maskedValue;
+                row.dataset.visible = '0';
+                viewButton.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i>';
+                viewButton.setAttribute('aria-label', 'Show key');
+                viewButton.title = 'Show key';
+                return;
+            }
+            viewButton.disabled = true;
+            try {
+                const credentialValue = await requestCredential(row, 'view');
+                output.textContent = credentialValue;
+                row.dataset.visible = '1';
+                viewButton.innerHTML = '<i class="ti ti-eye-off" aria-hidden="true"></i>';
+                viewButton.setAttribute('aria-label', 'Hide key');
+                viewButton.title = 'Hide key';
+            } catch (error) {
+                output.textContent = 'Access unavailable';
+                window.setTimeout(() => { output.textContent = maskedValue; }, 1800);
+            } finally {
+                viewButton.disabled = false;
+            }
+        });
+
+        copyButton.addEventListener('click', async () => {
+            copyButton.disabled = true;
+            try {
+                const credentialValue = await requestCredential(row, 'copy');
+                await navigator.clipboard.writeText(credentialValue);
+                copyButton.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+                copyButton.title = 'Copied';
+            } catch (error) {
+                copyButton.innerHTML = '<i class="ti ti-alert-triangle" aria-hidden="true"></i>';
+                copyButton.title = 'Copy failed';
+            } finally {
+                window.setTimeout(() => {
+                    copyButton.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i>';
+                    copyButton.title = 'Copy key';
+                    copyButton.disabled = false;
+                }, 1400);
+            }
+        });
+    });
 
     const ui = {
         api: {
@@ -407,8 +482,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 document.getElementById('expectedWebhookUrl').textContent = data.webhook.expected_url || 'Unavailable';
                 document.getElementById('webhookUrlStatus').textContent = data.webhook.url_status || 'UNVERIFIED';
-                document.getElementById('lastSuccessfulTest').textContent = data.last_test?.successful_at || 'Never';
-                document.getElementById('lastConfigUpdate').textContent = data.last_configuration_update || 'Unknown';
+                const lastTestStatus = data.last_test?.status;
+                document.getElementById('lastTestEvent').textContent = lastTestStatus
+                    ? lastTestStatus.replaceAll('_', ' ')
+                    : 'Never Tested';
 
             })
             .catch(err => {
@@ -541,6 +618,20 @@ document.addEventListener("DOMContentLoaded", function () {
     btnRefresh.addEventListener('click', () => {
         fetchStatus(true);
         fetchChannelsStatus();
+    });
+
+    document.getElementById('copyWebhookUrl')?.addEventListener('click', async function () {
+        const webhookUrl = document.getElementById('expectedWebhookUrl')?.textContent?.trim() || '';
+        if (webhookUrl === '' || webhookUrl === 'Checking...' || webhookUrl === 'Unavailable') return;
+        const original = this.innerHTML;
+        try {
+            await navigator.clipboard.writeText(webhookUrl);
+            this.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i><span>Copied</span>';
+        } catch (error) {
+            this.innerHTML = '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Failed</span>';
+        } finally {
+            window.setTimeout(() => { this.innerHTML = original; }, 1400);
+        }
     });
     
     // Initialize

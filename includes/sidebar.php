@@ -362,7 +362,7 @@ $researchDirectorNavGroups = [
             <?php else: ?>
                 <?php $paymentRoleKey = smsNormalizeRoleKey($roleKey); ?>
                 <li class="nav-item sidebar-group-label">
-                    <span class="nav-link sidebar-group-heading"><?= $paymentRoleKey === 'mis_admin' ? 'Dashboard Module' : 'Dashboard' ?></span>
+                    <span class="nav-link sidebar-group-heading"><?= $paymentRoleKey === 'mis_admin' ? 'Dashboard' : 'Dashboard' ?></span>
                 </li>
                 <li class="nav-item">
                     <?php

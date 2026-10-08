@@ -12,7 +12,7 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=3">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=6">
 <main class="container-fluid payment-page py-4" id="accountingUsersApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
  data-csrf="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
@@ -156,7 +156,7 @@ renderBreadcrumbs($breadcrumbs);
       <div class="payment-user-field">
        <label class="form-label" for="paymentUserRole">Role</label>
        <div class="payment-user-input-wrap">
-        <i class="ti ti-shield-half payment-user-field-icon" aria-hidden="true"></i>
+        <i class="ti ti-user-shield payment-user-field-icon" id="paymentUserRoleIcon" aria-hidden="true"></i>
         <select id="paymentUserRole" class="form-select payment-user-control has-leading-icon" name="role_key" required>
          <option value="accounting_admin">Accounting Admin</option>
          <option value="accounting_officer">Accounting Officer</option>
@@ -203,8 +203,7 @@ renderBreadcrumbs($breadcrumbs);
        <div class="payment-user-field">
         <label class="form-label" for="paymentTempPassword">Temporary password</label>
         <div class="payment-user-input-wrap">
-         <input id="paymentTempPassword" class="form-control payment-user-control has-password-toggle" name="password" type="password" minlength="12" maxlength="128" placeholder="Enter initial temporary password" autocomplete="new-password">
-         <button type="button" class="payment-password-toggle" data-password-target="paymentTempPassword" aria-label="Show temporary password" aria-pressed="false"><i class="ti ti-eye" aria-hidden="true"></i></button>
+         <input id="paymentTempPassword" class="form-control payment-user-control" name="password" type="password" minlength="12" maxlength="128" placeholder="Enter initial temporary password" autocomplete="new-password">
         </div>
         <div class="form-text">The user must replace this at first login.</div>
        </div>
@@ -212,8 +211,7 @@ renderBreadcrumbs($breadcrumbs);
        <div class="payment-user-field">
         <label class="form-label" for="paymentTempPasswordConfirm">Confirm temporary password</label>
         <div class="payment-user-input-wrap">
-         <input id="paymentTempPasswordConfirm" class="form-control payment-user-control has-password-toggle" name="password_confirm" type="password" minlength="12" maxlength="128" placeholder="Re-enter password" autocomplete="new-password">
-         <button type="button" class="payment-password-toggle" data-password-target="paymentTempPasswordConfirm" aria-label="Show password confirmation" aria-pressed="false"><i class="ti ti-eye" aria-hidden="true"></i></button>
+         <input id="paymentTempPasswordConfirm" class="form-control payment-user-control" name="password_confirm" type="password" minlength="12" maxlength="128" placeholder="Re-enter password" autocomplete="new-password">
         </div>
        </div>
 
@@ -247,7 +245,20 @@ renderBreadcrumbs($breadcrumbs);
    </div>
   </div>
  </div>
- <div class="modal fade" id="resetPasswordModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="resetPasswordForm" novalidate><div class="modal-header"><div><h2 class="modal-title h5 mb-1">Reset password</h2><small class="text-muted" id="resetPasswordTarget"></small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close dialog"></button></div><div class="modal-body"><div class="modal-form-message" role="alert" aria-live="assertive"></div><input type="hidden" name="user_id"><div class="alert alert-info small"><i class="fas fa-shield-alt me-1"></i>This creates a temporary password. The user must change it on next login.</div><label class="form-label" for="resetTempPassword">New temporary password</label><input id="resetTempPassword" class="form-control" name="password" type="password" autocomplete="new-password" required><label class="form-label mt-3" for="resetTempPasswordConfirm">Confirm password</label><input id="resetTempPasswordConfirm" class="form-control" name="password_confirm" type="password" autocomplete="new-password" required><div class="password-feedback small mt-2" aria-live="polite"></div><ul class="password-rules small text-muted ps-3 mb-0"><li data-rule="length">12–128 characters</li><li data-rule="upper">Uppercase letter</li><li data-rule="lower">Lowercase letter</li><li data-rule="number">Number</li><li data-rule="special">Special character</li><li data-rule="identifier">Does not contain username/email</li><li data-rule="match">Passwords match</li></ul></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning">Reset password</button></div></form></div></div></div>
+ <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered reset-password-dialog"><div class="modal-content reset-password-modal"><form id="resetPasswordForm" novalidate>
+   <div class="modal-header reset-password-header"><div><h2 class="modal-title" id="resetPasswordTitle">Reset password</h2><small id="resetPasswordTarget"></small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close dialog"></button></div>
+   <div class="modal-body reset-password-body"><div class="modal-form-message" role="alert" aria-live="assertive"></div><input type="hidden" name="user_id">
+    <div class="reset-password-notice"><i class="ti ti-shield-lock" aria-hidden="true"></i><span>This creates a temporary password. The user must change it on their next login.</span></div>
+    <div class="reset-password-toolbar"><button type="button" class="btn btn-outline-primary btn-sm" id="generateResetPassword"><i class="ti ti-refresh" aria-hidden="true"></i><span>Auto-generate</span></button><button type="button" class="btn btn-light btn-sm" id="viewResetPassword" aria-pressed="false"><i class="ti ti-eye" aria-hidden="true"></i><span>View</span></button><button type="button" class="btn btn-light btn-sm" id="copyResetPassword"><i class="ti ti-copy" aria-hidden="true"></i><span>Copy</span></button></div>
+    <div class="payment-user-field"><label class="form-label" for="resetTempPassword">New temporary password</label><input id="resetTempPassword" class="form-control payment-user-control" name="password" type="password" minlength="12" maxlength="128" placeholder="Enter or generate a strong password" autocomplete="new-password" required><div class="invalid-feedback">Enter a temporary password that meets every requirement.</div></div>
+    <div class="payment-user-field"><label class="form-label" for="resetTempPasswordConfirm">Confirm password</label><input id="resetTempPasswordConfirm" class="form-control payment-user-control" name="password_confirm" type="password" minlength="12" maxlength="128" placeholder="Re-enter password" autocomplete="new-password" required><div class="invalid-feedback">The password confirmation must match.</div></div>
+    <div class="payment-password-policy"><div class="password-feedback" aria-live="polite">Start typing to check your password.</div><ul class="password-rules"><li data-rule="length">12–128 characters</li><li data-rule="upper">Uppercase letter</li><li data-rule="lower">Lowercase letter</li><li data-rule="number">Number</li><li data-rule="special">Special character</li><li data-rule="identifier">Does not contain username/email</li><li data-rule="match">Passwords match</li></ul></div>
+    <section class="reset-account-control"><div><strong>Account status</strong><span id="resetAccountStatus">Managed Payment personnel account</span><small>Deactivation revokes current sessions while preserving audit and payment records.</small></div><button type="button" class="btn btn-outline-danger btn-sm" id="deactivateFromReset"><i class="ti ti-user-off" aria-hidden="true"></i>Deactivate account</button></section>
+   </div>
+   <div class="modal-footer reset-password-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning" type="submit"><i class="ti ti-key" aria-hidden="true"></i>Reset password</button></div>
+  </form></div></div>
+ </div>
 </main>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/accounting-user-management.js?v=3"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/accounting-user-management.js?v=7"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

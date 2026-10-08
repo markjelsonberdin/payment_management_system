@@ -308,7 +308,7 @@ $MODULES = [
                 'cashier/dashboard',
                 'cashier/walk-in-transaction-history',
             ],
-            'Payment Administration' => ['mis_admin/payment-user-management', 'mis_admin/roles-permissions'],
+            'MIS ADMIN' => ['mis_admin/payment-user-management', 'mis_admin/roles-permissions'],
             'Integrations' => [
                 'mis_admin/online-payment-integration',
                 'mis_admin/google-ocr-integration',

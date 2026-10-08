@@ -39,6 +39,7 @@ $bodyClass = $bodyClass ?? '';
             if (t !== 'dark' && t !== 'light') t = 'light';
             var root = document.documentElement;
             root.setAttribute('data-theme', t);
+            root.setAttribute('data-bs-theme', t);
             root.style.colorScheme = isLoginPage ? 'light' : t;
             // Auth screens use navy — never flash light gray/white on refresh
             root.style.backgroundColor = isLoginPage ? LOGIN_BG : (t === 'dark' ? DARK_BG : LIGHT_BG);
@@ -47,6 +48,7 @@ $bodyClass = $bodyClass ?? '';
             }
         } catch (e) {
             document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.setAttribute('data-bs-theme', 'light');
             document.documentElement.style.backgroundColor = isLoginPage ? LOGIN_BG : LIGHT_BG;
         }
     })();
@@ -69,6 +71,7 @@ $bodyClass = $bodyClass ?? '';
             BASE_URL . '/modules/payment/assets/css/payment-components.css?v=4',
             BASE_URL . '/modules/payment/assets/css/payment-utilities.css?v=1',
             BASE_URL . '/modules/payment/assets/css/payment-operational-tables.css?v=2',
+            BASE_URL . '/modules/payment/assets/css/payment-theme-compat.css?v=2',
         ];
         $smsExtraHeadCss = array_values(array_unique(array_merge($paymentSharedCss, $smsExtraHeadCss)));
     }
@@ -95,6 +98,7 @@ $bodyClass = $bodyClass ?? '';
     <!-- SMS 2 Theme -->
     <link href="<?= BASE_URL ?>/assets/css/theme.css?v=3" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/layout.css?v=5" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/navbar-components.css?v=7" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/icons.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/dashboard-glass.css" rel="stylesheet">

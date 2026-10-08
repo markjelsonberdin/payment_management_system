@@ -66,15 +66,13 @@ $response = [
     'gateway' => ['active' => false, 'status' => 'INACTIVE', 'message' => 'Payment gateway is inactive.'],
     'channels' => ['status' => 'not_checked', 'items' => []],
     'last_test' => ['status' => null, 'successful_at' => null, 'failed_at' => null],
-    'last_configuration_update' => null,
     'checked_at' => gmdate('c'),
 ];
 
 try {
-    $metaStmt = $pdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key IN ('paymongo_last_test_status','paymongo_last_successful_test','paymongo_last_failed_test','paymongo_last_config_update')");
+    $metaStmt = $pdo->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key IN ('paymongo_last_test_status','paymongo_last_successful_test','paymongo_last_failed_test')");
     $meta = $metaStmt->fetchAll(PDO::FETCH_KEY_PAIR);
     $response['last_test'] = ['status' => $meta['paymongo_last_test_status'] ?? null, 'successful_at' => $meta['paymongo_last_successful_test'] ?? null, 'failed_at' => $meta['paymongo_last_failed_test'] ?? null];
-    $response['last_configuration_update'] = $meta['paymongo_last_config_update'] ?? null;
 } catch (Throwable $e) {
     error_log('PayMongo status metadata unavailable: ' . get_class($e));
 }

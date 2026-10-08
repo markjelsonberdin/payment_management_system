@@ -14,12 +14,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusFilter = document.getElementById('statusFilter');
   const paginationControls = document.getElementById('paginationControls');
   const paginationSummary = document.getElementById('paginationSummary');
+  const paymentUserRole = document.getElementById('paymentUserRole');
+  const paymentUserRoleIcon = document.getElementById('paymentUserRoleIcon');
+  const generateResetPassword = document.getElementById('generateResetPassword');
+  const viewResetPassword = document.getElementById('viewResetPassword');
+  const copyResetPassword = document.getElementById('copyResetPassword');
+  const deactivateFromReset = document.getElementById('deactivateFromReset');
   const PAGE_SIZE = 8;
 
   let users = [];
   let originalRole = '';
   let resetUser = null;
   let page = 1;
+
+  function updateRoleIcon() {
+    if (!paymentUserRoleIcon || !paymentUserRole) return;
+    const roleIcons = {
+      accounting_admin: 'ti ti-shield-lock',
+      accounting_officer: 'ti ti-user-shield',
+      cashier: 'ti ti-cash-register'
+    };
+    paymentUserRoleIcon.className = `${roleIcons[paymentUserRole.value] || 'ti ti-user-shield'} payment-user-field-icon`;
+  }
+  paymentUserRole?.addEventListener('change', updateRoleIcon);
+  updateRoleIcon();
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -43,6 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const target = targetForm.querySelector('.modal-form-message');
     if (target) target.innerHTML = '';
     targetForm.classList.remove('was-validated');
+    targetForm.querySelectorAll('[data-server-error="1"]').forEach(field => {
+      field.setCustomValidity('');
+      field.removeAttribute('data-server-error');
+      const feedback = field.parentElement?.querySelector('.invalid-feedback');
+      if (feedback?.dataset.defaultMessage) feedback.textContent = feedback.dataset.defaultMessage;
+    });
   }
   function showModalError(targetForm, text) {
     const target = targetForm.querySelector('.modal-form-message');
@@ -55,6 +79,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (targetForm.checkValidity()) return true;
     showModalError(targetForm, 'Complete the required fields highlighted below.');
     targetForm.querySelector(':invalid')?.focus();
+    return false;
+  }
+
+  function showIdentityConflict(messageText) {
+    const lower = String(messageText || '').toLowerCase();
+    const conflicts = [];
+    if (lower.includes('username')) conflicts.push(['username', 'This username is already in use.']);
+    if (lower.includes('email')) conflicts.push(['email', 'This email address is already in use.']);
+    conflicts.forEach(([name, warning]) => {
+      const field = form.querySelector(`[name="${name}"]`);
+      const feedback = field?.parentElement?.querySelector('.invalid-feedback');
+      if (!field || !feedback) return;
+      if (!feedback.dataset.defaultMessage) feedback.dataset.defaultMessage = feedback.textContent;
+      feedback.textContent = warning;
+      field.dataset.serverError = '1';
+      field.setCustomValidity(warning);
+      field.addEventListener('input', () => {
+        field.setCustomValidity('');
+        field.removeAttribute('data-server-error');
+        feedback.textContent = feedback.dataset.defaultMessage || '';
+      }, {once: true});
+    });
+    if (conflicts.length) {
+      form.classList.add('was-validated');
+      form.querySelector('[data-server-error="1"]')?.focus();
+      return true;
+    }
     return false;
   }
   function roleLabel(role) {
@@ -227,20 +278,81 @@ document.addEventListener('DOMContentLoaded', () => {
   const createPolicy = bindPolicy(form, () => null);
   const resetPolicy = bindPolicy(resetForm, () => resetUser);
 
-  document.querySelectorAll('[data-password-target]').forEach(button => {
-    button.addEventListener('click', () => {
-      const input = document.getElementById(button.dataset.passwordTarget);
-      if (!input) return;
-      const reveal = input.type === 'password';
-      input.type = reveal ? 'text' : 'password';
-      button.setAttribute('aria-pressed', reveal ? 'true' : 'false');
-      button.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
-      button.querySelector('i').className = reveal ? 'ti ti-eye-off' : 'ti ti-eye';
-    });
+  function generatedPassword() {
+    const sets = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#$%^&*'];
+    const randomCharacter = set => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+    const characters = sets.map(randomCharacter);
+    const all = sets.join('');
+    while (characters.length < 16) characters.push(randomCharacter(all));
+    for (let index = characters.length - 1; index > 0; index -= 1) {
+      const swap = crypto.getRandomValues(new Uint32Array(1))[0] % (index + 1);
+      [characters[index], characters[swap]] = [characters[swap], characters[index]];
+    }
+    return characters.join('');
+  }
+
+  generateResetPassword?.addEventListener('click', () => {
+    if (!resetUser || generateResetPassword.disabled) return;
+    generateResetPassword.disabled = true;
+    generateResetPassword.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Generating…</span>';
+    window.setTimeout(() => {
+      let password = generatedPassword();
+      const username = String(resetUser.username || '').toLowerCase();
+      const emailLocal = String(resetUser.email || '').split('@')[0].toLowerCase();
+      while ((username.length >= 3 && password.toLowerCase().includes(username)) || (emailLocal.length >= 3 && password.toLowerCase().includes(emailLocal))) password = generatedPassword();
+      resetForm.password.value = password;
+      resetForm.password_confirm.value = password;
+      resetForm.password.dispatchEvent(new Event('input', {bubbles: true}));
+      resetForm.password_confirm.dispatchEvent(new Event('input', {bubbles: true}));
+      generateResetPassword.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i><span>Password generated</span>';
+      window.setTimeout(() => {
+        generateResetPassword.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i><span>Auto-generate</span>';
+        generateResetPassword.disabled = false;
+      }, 900);
+    }, 1200);
+  });
+
+  viewResetPassword?.addEventListener('click', () => {
+    const reveal = resetForm.password.type === 'password';
+    resetForm.password.type = reveal ? 'text' : 'password';
+    resetForm.password_confirm.type = reveal ? 'text' : 'password';
+    viewResetPassword.setAttribute('aria-pressed', reveal ? 'true' : 'false');
+    viewResetPassword.innerHTML = reveal ? '<i class="ti ti-eye-off" aria-hidden="true"></i><span>Hide</span>' : '<i class="ti ti-eye" aria-hidden="true"></i><span>View</span>';
+  });
+
+  copyResetPassword?.addEventListener('click', async () => {
+    const password = resetForm.password.value;
+    if (!password) return;
+    const original = copyResetPassword.innerHTML;
+    try {
+      await navigator.clipboard.writeText(password);
+      copyResetPassword.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i><span>Copied</span>';
+    } catch (error) {
+      copyResetPassword.innerHTML = '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Failed</span>';
+    } finally {
+      window.setTimeout(() => { copyResetPassword.innerHTML = original; }, 1000);
+    }
+  });
+
+  deactivateFromReset?.addEventListener('click', async () => {
+    if (!resetUser || resetUser.status === 'inactive' || !can('canDeactivate')) return;
+    if (!confirm(`Deactivate ${resetUser.full_name}? Current sessions will be revoked.`)) return;
+    deactivateFromReset.disabled = true;
+    try {
+      await call('deactivate', {user_id: Number(resetUser.id)});
+      resetModal.hide();
+      show('User deactivated and current sessions revoked.');
+      await load();
+    } catch (error) {
+      showModalError(resetForm, error.message);
+    } finally {
+      deactivateFromReset.disabled = false;
+    }
   });
 
   document.getElementById('newOfficer')?.addEventListener('click', () => {
     form.reset(); form.user_id.value = ''; form.role_key.value = 'accounting_officer';
+    updateRoleIcon();
     message.innerHTML = '';
     clearModalMessage(form);
     form.role_key.disabled = false; form.password.required = true; form.password_confirm.required = true;
@@ -258,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       message.innerHTML = '';
       clearModalMessage(form);
       form.user_id.value = user.id; form.role_key.value = user.role_key; originalRole = user.role_key;
+      updateRoleIcon();
       form.role_key.disabled = !can('canAssignRole');
       form.full_name.value = user.full_name; form.username.value = user.username; form.email.value = user.email;
       form.full_name.disabled = form.username.disabled = form.email.disabled = !can('canUpdate');
@@ -277,6 +390,16 @@ document.addEventListener('DOMContentLoaded', () => {
         await call('unlock', {user_id: Number(user.id)}); show('Account security lock cleared.'); await load();
       } else if (button.classList.contains('reset')) {
         resetUser = user; resetForm.reset(); message.innerHTML = ''; clearModalMessage(resetForm); resetForm.user_id.value = user.id;
+        document.getElementById('resetAccountStatus').textContent = user.status === 'active' ? 'Active account' : 'Inactive account';
+        resetForm.password.type = resetForm.password_confirm.type = 'password';
+        if (viewResetPassword) {
+          viewResetPassword.setAttribute('aria-pressed', 'false');
+          viewResetPassword.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i><span>View</span>';
+        }
+        if (deactivateFromReset) {
+          deactivateFromReset.disabled = user.status === 'inactive' || !can('canDeactivate');
+          deactivateFromReset.title = user.status === 'inactive' ? 'Account is already inactive' : '';
+        }
         document.getElementById('resetPasswordTarget').textContent = `${user.full_name} • ${user.username}`;
         resetPolicy(); resetModal.show();
       }
@@ -306,7 +429,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (can('canAssignRole') && selectedRole !== originalRole) await call('assign_role', {user_id: id, role_key: selectedRole});
       }
       modal.hide(); show(id ? 'Payment user updated.' : 'Payment user created.'); await load();
-    } catch (error) { showModalError(form, error.message); }
+    } catch (error) {
+      if (!showIdentityConflict(error.message)) showModalError(form, error.message);
+    }
   });
 
   resetForm.addEventListener('submit', async event => {

@@ -233,9 +233,22 @@ final class PaymentPersonnelService
 
     private function assertUnique(string $username, string $email, int $except = 0): void
     {
-        $stmt = $this->pdo->prepare('SELECT id FROM users WHERE (username=? OR email=?) AND id<>? LIMIT 1');
+        $stmt = $this->pdo->prepare(
+            'SELECT username, email FROM users
+             WHERE (LOWER(username)=LOWER(?) OR LOWER(email)=LOWER(?)) AND id<>?'
+        );
         $stmt->execute([$username, $email, $except]);
-        if ($stmt->fetchColumn()) throw new InvalidArgumentException('Username or email already exists.');
+        $usernameExists = false;
+        $emailExists = false;
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $usernameExists = $usernameExists || strcasecmp((string) $row['username'], $username) === 0;
+            $emailExists = $emailExists || strcasecmp((string) $row['email'], $email) === 0;
+        }
+        if ($usernameExists && $emailExists) {
+            throw new InvalidArgumentException('Username and email already exist.');
+        }
+        if ($usernameExists) throw new InvalidArgumentException('Username already exists.');
+        if ($emailExists) throw new InvalidArgumentException('Email already exists.');
     }
 
     private function assertChangedTarget(PDOStatement $stmt, int $id): void

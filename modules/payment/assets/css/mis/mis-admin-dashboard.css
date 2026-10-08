@@ -7,7 +7,6 @@
 }
 
 .mis-dashboard-header,
-.mis-dashboard-refresh-wrap,
 .mis-dashboard-kpi-top,
 .mis-dashboard-kpi-value,
 .mis-dashboard-kpi-footer,
@@ -40,9 +39,6 @@
 
 .mis-dashboard-header h1 { margin: 0; color: var(--dash-navy); font-size: 1.55rem; font-weight: 800; }
 .mis-dashboard-header p { margin: .15rem 0 0; color: var(--dash-muted); font-size: .85rem; }
-.mis-dashboard-refresh-wrap { gap: .75rem; }
-.mis-dashboard-refresh-wrap small { color: var(--dash-muted); font-size: .72rem; }
-.mis-dashboard-refresh-wrap .btn { font-size: .8rem; font-weight: 700; }
 
 .mis-dashboard-kpis {
     display: grid;
@@ -135,14 +131,11 @@
 
 @media (max-width: 767.98px) {
     .mis-dashboard-header { align-items: stretch; flex-direction: column; }
-    .mis-dashboard-refresh-wrap { justify-content: space-between; }
     .mis-dashboard-kpis, .mis-integration-grid { grid-template-columns: 1fr; }
     .mis-security-panel-heading { flex-direction: column; }
 }
 
 @media (max-width: 420px) {
-    .mis-dashboard-refresh-wrap { align-items: stretch; flex-direction: column; }
-    .mis-dashboard-refresh-wrap .btn { width: 100%; }
     .mis-security-event { align-items: flex-start; }
     .mis-security-event-meta { justify-items: start; }
 }

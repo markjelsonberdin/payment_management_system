@@ -149,9 +149,6 @@
     const current = ++requestVersion;
     setLoading();
     byId('dashboardNotice').className = 'd-none';
-    const button = byId('refreshDashboard');
-    button.disabled = true;
-    button.querySelector('i')?.classList.add('fa-spin');
 
     const [overviewResult, securityResult] = await Promise.allSettled([
       fetchJson(window.MIS_OVERVIEW_API),
@@ -174,13 +171,8 @@
       const partial = Object.values(overview.section_status || {}).includes('error') || !security;
       byId('dashboardNotice').className = partial ? 'alert alert-warning' : 'd-none';
       byId('dashboardNotice').textContent = partial ? 'Some dashboard information is currently unavailable.' : '';
-      byId('adminLastUpdated').textContent = 'Last updated: ' + new Date(overview.generated_at).toLocaleString('en-PH');
     }
-
-    button.disabled = false;
-    button.querySelector('i')?.classList.remove('fa-spin');
   }
 
-  byId('refreshDashboard').addEventListener('click', load);
   load();
 })();

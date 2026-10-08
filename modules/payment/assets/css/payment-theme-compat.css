@@ -1,0 +1,328 @@
+/* Payment theme compatibility with the shared SMS2 data-theme contract. */
+.sms-app .payment-page,
+.sms-app .payment-shell,
+.sms-app .payment-dashboard {
+    color: var(--sms-text);
+}
+
+.sms-app .payment-page h1,
+.sms-app .payment-page h2,
+.sms-app .payment-page h3,
+.sms-app .payment-page h4,
+.sms-app .payment-page h5,
+.sms-app .payment-page h6,
+.sms-app .payment-shell h1,
+.sms-app .payment-shell h2,
+.sms-app .payment-shell h3,
+.sms-app .payment-dashboard h1,
+.sms-app .payment-dashboard h2,
+.sms-app .payment-dashboard h3 {
+    color: var(--sms-heading);
+}
+
+.sms-app .payment-page p,
+.sms-app .payment-page .text-muted,
+.sms-app .payment-shell .text-muted,
+.sms-app .payment-dashboard .text-muted,
+.sms-app .mis-page-header p {
+    color: var(--sms-text-muted) !important;
+}
+
+.sms-app .payment-page .card,
+.sms-app .payment-page .mis-card,
+.sms-app .payment-page .ocr-panel,
+.sms-app .payment-page .ocr-summary,
+.sms-app .payment-page .paymongo-panel,
+.sms-app .payment-page .paymongo-health-card,
+.sms-app .payment-shell .card,
+.sms-app .payment-dashboard .card {
+    color: var(--sms-text);
+    background: var(--sms-surface);
+    border-color: var(--sms-border);
+}
+
+.sms-app .payment-page .card-header,
+.sms-app .payment-page .card-footer,
+.sms-app .payment-page .bg-white,
+.sms-app .payment-shell .card-header,
+.sms-app .payment-shell .card-footer {
+    color: var(--sms-text);
+    background: var(--sms-surface) !important;
+    border-color: var(--sms-border);
+}
+
+.sms-app .payment-page .form-control,
+.sms-app .payment-page .form-select,
+.sms-app .payment-page .input-group-text,
+.sms-app .payment-shell .form-control,
+.sms-app .payment-shell .form-select,
+.sms-app .payment-dashboard .form-control,
+.sms-app .payment-dashboard .form-select {
+    color: var(--sms-text-strong);
+    background-color: var(--sms-input-bg);
+    border-color: var(--sms-input-border);
+}
+
+.sms-app .payment-page .form-control::placeholder,
+.sms-app .payment-shell .form-control::placeholder,
+.sms-app .payment-dashboard .form-control::placeholder {
+    color: var(--sms-text-faint);
+}
+
+.sms-app .payment-page .form-label,
+.sms-app .payment-page label,
+.sms-app .payment-shell .form-label,
+.sms-app .payment-dashboard .form-label {
+    color: var(--sms-text-strong);
+}
+
+.sms-app .payment-page .table,
+.sms-app .payment-shell .table,
+.sms-app .payment-dashboard .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--sms-text);
+    --bs-table-border-color: var(--sms-table-border);
+    --bs-table-hover-bg: var(--sms-dropdown-hover);
+    --bs-table-hover-color: var(--sms-text-strong);
+    color: var(--sms-text);
+}
+
+.sms-app .payment-page .table thead th,
+.sms-app .payment-shell .table thead th,
+.sms-app .payment-dashboard .table thead th {
+    color: var(--sms-text-muted);
+    background: var(--sms-table-head-bg);
+    border-color: var(--sms-table-border);
+}
+
+.sms-app .payment-page .table tbody td,
+.sms-app .payment-shell .table tbody td,
+.sms-app .payment-dashboard .table tbody td {
+    color: var(--sms-text);
+    background: transparent;
+    border-color: var(--sms-table-border);
+}
+
+.sms-app .payment-page .modal-content,
+.sms-app .payment-shell .modal-content {
+    color: var(--sms-text);
+    background: var(--sms-surface-elevated);
+    border-color: var(--sms-border);
+}
+
+.sms-app .payment-page .modal-header,
+.sms-app .payment-page .modal-footer,
+.sms-app .payment-shell .modal-header,
+.sms-app .payment-shell .modal-footer {
+    background: var(--sms-surface-muted);
+    border-color: var(--sms-border);
+}
+
+.sms-app .payment-page .dropdown-menu,
+.sms-app .payment-shell .dropdown-menu {
+    color: var(--sms-text);
+    background: var(--sms-dropdown-bg);
+    border-color: var(--sms-dropdown-border);
+}
+
+.sms-app .payment-page .dropdown-item,
+.sms-app .payment-shell .dropdown-item {
+    color: var(--sms-text);
+}
+
+.sms-app .payment-page .dropdown-item:hover,
+.sms-app .payment-page .dropdown-item:focus,
+.sms-app .payment-shell .dropdown-item:hover,
+.sms-app .payment-shell .dropdown-item:focus {
+    color: var(--sms-text-strong);
+    background: var(--sms-dropdown-hover);
+}
+
+.sms-app .payment-page .pagination,
+.sms-app .payment-shell .pagination {
+    --bs-pagination-bg: var(--sms-surface);
+    --bs-pagination-color: var(--sms-primary);
+    --bs-pagination-border-color: var(--sms-border);
+    --bs-pagination-hover-bg: var(--sms-surface-muted);
+    --bs-pagination-hover-border-color: var(--sms-border);
+    --bs-pagination-disabled-bg: var(--sms-surface-muted);
+    --bs-pagination-disabled-color: var(--sms-text-faint);
+}
+
+[data-theme="dark"] .sms-app .payment-page .btn-light,
+[data-theme="dark"] .sms-app .payment-shell .btn-light {
+    color: var(--sms-text-strong);
+    background: var(--sms-surface-muted);
+    border-color: var(--sms-border);
+}
+
+[data-theme="dark"] .sms-app .payment-page .btn-close,
+[data-theme="dark"] .sms-app .payment-shell .btn-close {
+    filter: invert(1) grayscale(100%) brightness(180%);
+}
+
+/* Recently redesigned MIS screens use local variables; bind them to Core. */
+.sms-app .ocr-admin {
+    --ocr-navy: var(--sms-heading);
+    --ocr-blue: var(--sms-primary);
+    --ocr-muted: var(--sms-text-muted);
+    --ocr-border: var(--sms-border);
+    --ocr-soft: var(--sms-surface-muted);
+}
+
+.sms-app .paymongo-config {
+    --pm-navy: var(--sms-heading);
+    --pm-blue: var(--sms-primary);
+    --pm-blue-soft: var(--sms-primary-xlight);
+    --pm-muted: var(--sms-text-muted);
+    --pm-border: var(--sms-border);
+    color: var(--sms-text);
+}
+
+.sms-app .mis-admin-dashboard {
+    --dash-navy: var(--sms-heading);
+    --dash-blue: var(--sms-primary);
+    --dash-border: var(--sms-border);
+    --dash-muted: var(--sms-text-muted);
+    --dash-surface: var(--sms-surface);
+}
+
+.sms-app .security-monitoring-page {
+    --security-navy: var(--sms-heading);
+    --security-blue: var(--sms-primary);
+    --security-border: var(--sms-border);
+    --security-muted: var(--sms-text-muted);
+    --security-surface: var(--sms-surface);
+}
+
+.sms-app .ocr-summary-icon,
+.sms-app .ocr-title-icon,
+.sms-app .ocr-switch,
+.sms-app .paymongo-health-icon,
+.sms-app .paymongo-section-icon {
+    color: var(--sms-primary);
+    background: var(--sms-primary-xlight);
+}
+
+.sms-app .ocr-readonly,
+.sms-app .ocr-safe-note,
+.sms-app .ocr-metrics > div,
+.sms-app .ocr-diagnostic-grid > div,
+.sms-app .ocr-usage-note,
+.sms-app .paymongo-detail,
+.sms-app .paymongo-inline-note,
+.sms-app .paymongo-fee-summary {
+    color: var(--sms-text);
+    background: var(--sms-surface-muted);
+    border-color: var(--sms-border);
+}
+
+.sms-app .ocr-fields small,
+.sms-app .ocr-readonly > span,
+.sms-app .ocr-safe-note,
+.sms-app .ocr-usage-note,
+.sms-app .ocr-credential-list span,
+.sms-app .ocr-method span {
+    color: var(--sms-text-muted);
+}
+
+/* Shared MIS Admin card motion. */
+.sms-app .payment-page :is(
+    .card,
+    .mis-card,
+    .mis-stat-card,
+    .mis-dashboard-kpi,
+    .mis-dashboard-panel,
+    .mis-integration-card,
+    .security-summary-card,
+    .security-panel,
+    .ocr-summary,
+    .ocr-panel,
+    .paymongo-readiness-card,
+    .paymongo-health-card,
+    .paymongo-panel,
+    .paymongo-credential-group
+) {
+    animation: smsMisCardEnter .42s cubic-bezier(.2, .72, .3, 1) both;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.sms-app .payment-page :is(
+    .card,
+    .mis-card,
+    .mis-stat-card,
+    .mis-dashboard-kpi,
+    .mis-dashboard-panel,
+    .mis-integration-card,
+    .security-summary-card,
+    .security-panel,
+    .ocr-summary,
+    .ocr-panel,
+    .paymongo-health-card,
+    .paymongo-panel,
+    .paymongo-credential-group
+):hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--sms-primary) 28%, var(--sms-border));
+    box-shadow: 0 12px 28px rgba(18, 49, 91, .12);
+}
+
+.sms-app .payment-page :is(.card, .mis-card, .ocr-panel, .paymongo-panel):focus-within {
+    border-color: color-mix(in srgb, var(--sms-primary) 34%, var(--sms-border));
+    box-shadow: 0 10px 24px rgba(18, 49, 91, .1);
+}
+
+.sms-app .payment-page :is(.row, [class$="-grid"]) > :nth-child(2) { animation-delay: .045s; }
+.sms-app .payment-page :is(.row, [class$="-grid"]) > :nth-child(3) { animation-delay: .09s; }
+.sms-app .payment-page :is(.row, [class$="-grid"]) > :nth-child(4) { animation-delay: .135s; }
+.sms-app .payment-page :is(.row, [class$="-grid"]) > :nth-child(n+5) { animation-delay: .18s; }
+
+@keyframes smsMisCardEnter {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+[data-theme="dark"] .sms-app .paymongo-credential-value-wrap {
+    background: var(--sms-surface-muted);
+    border-color: var(--sms-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sms-app .payment-page :is(
+        .card,
+        .mis-card,
+        .mis-stat-card,
+        .mis-dashboard-kpi,
+        .mis-dashboard-panel,
+        .mis-integration-card,
+        .security-summary-card,
+        .security-panel,
+        .ocr-summary,
+        .ocr-panel,
+        .paymongo-readiness-card,
+        .paymongo-health-card,
+        .paymongo-panel,
+        .paymongo-credential-group
+    ) {
+        animation: none;
+        transition: none;
+    }
+
+    .sms-app .payment-page :is(.card, .mis-card, .ocr-panel, .paymongo-panel):hover {
+        transform: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sms-app .payment-page,
+    .sms-app .payment-shell,
+    .sms-app .payment-dashboard {
+        min-width: 0;
+        overflow-x: clip;
+    }
+
+    .sms-app .payment-page .table-responsive,
+    .sms-app .payment-shell .table-responsive {
+        max-width: 100%;
+    }
+}

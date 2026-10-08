@@ -22,10 +22,6 @@ renderBreadcrumbs($breadcrumbs);
       <span class="mis-dashboard-heading-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
       <div><h1>Dashboard</h1><p>Monitor Payment personnel, integrations, and security.</p></div>
     </div>
-    <div class="mis-dashboard-refresh-wrap">
-      <small id="adminLastUpdated">Not yet updated</small>
-      <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
-    </div>
   </div>
 
   <div id="dashboardNotice" class="d-none" role="status" aria-live="polite"></div>

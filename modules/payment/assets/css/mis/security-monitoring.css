@@ -85,6 +85,35 @@
 .security-recent-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .6rem; width: 100%; padding: .65rem 0; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #e7edf4; }
 .security-recent-item:hover { background: #f8fafd; }
 .security-recent-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; color: #52677f; background: #eef3f8; border-radius: .52rem; }
+.security-summary-icon,
+.security-panel-icon,
+.security-snapshot-icon,
+.security-recent-icon,
+.security-personnel > span {
+    box-sizing: border-box;
+    line-height: 1;
+    text-align: center;
+}
+.security-summary-icon > i,
+.security-panel-icon > i,
+.security-snapshot-icon > i,
+.security-recent-icon > i {
+    display: grid;
+    width: 1em;
+    height: 1em;
+    margin: 0;
+    line-height: 1;
+    place-items: center;
+}
+.security-summary-icon > i::before,
+.security-panel-icon > i::before,
+.security-snapshot-icon > i::before,
+.security-recent-icon > i::before {
+    display: block;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+}
 .security-recent-copy { min-width: 0; }
 .security-recent-copy strong, .security-recent-copy small { display: block; }
 .security-recent-copy strong { overflow: hidden; color: #2e425d; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }

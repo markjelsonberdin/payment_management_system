@@ -58,10 +58,8 @@
         [['ocrConsumed',recorded?usage.consumed:null],['ocrReserved',recorded?usage.reserved:null],['ocrRemaining',recorded?usage.remaining:null],['ocrProviderAttempts',available?usage.provider_attempts:null],['ocrSuccessful',recorded?usage.successful:null],['ocrFailed',recorded?usage.failed:null],['ocrCacheHits',available?usage.cache_hits:null],['ocrStale',available?data.stale_incomplete:null],['ocrConsumedLegend',recorded?usage.consumed:null],['ocrReservedLegend',recorded?usage.reserved:null],['ocrAvailableLegend',recorded?usage.remaining:null]].forEach(([id,item]) => setText(id,item));
     }
     async function refresh() {
-        const button = byId('ocrRefreshStatus'); if (button) button.disabled = true;
         try { const response = await fetch(root.dataset.statusUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } }); const payload = await response.json(); if (!response.ok || !payload.ok) throw new Error(payload.message || 'OCR status is unavailable.'); const data = payload.data || {}; renderConfiguration(data); renderDiagnostic(data); renderUsage(data); renderRows('ocrLifecycleRows', data.lifecycle_states, 'lifecycle_state'); renderRows('ocrFailureRows', data.failure_categories, 'category'); }
         catch (error) { badge('ocrUsageAvailability', 'Unavailable', 'danger'); setText('ocrStatusMessage', error.message || 'OCR status is temporarily unavailable.'); }
-        finally { if (button) button.disabled = false; }
     }
     const diagnosticForm = byId('ocrDiagnosticForm');
     async function runDiagnostic() {
@@ -70,7 +68,7 @@
         catch (error) { setText('ocrStatusMessage', error.message || 'Authentication diagnostic is unavailable.'); }
         finally { button.disabled = false; }
     }
-    byId('ocrRefreshStatus')?.addEventListener('click', refresh); byId('ocrRunDiagnostic')?.addEventListener('click', runDiagnostic);
+    byId('ocrRunDiagnostic')?.addEventListener('click', runDiagnostic);
     const configForm = byId('ocrConfigurationForm'); let modal = null;
     if (configForm) configForm.addEventListener('submit', (event) => {
         const currentEnabled = byId('ocrEnabled')?.checked ? '1' : '0', currentLimit = byId('monthlyLimit')?.value || '';

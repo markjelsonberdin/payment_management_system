@@ -16,7 +16,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=3">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/security-monitoring.css?v=1">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/security-monitoring.css?v=2">
 <main class="container-fluid payment-page security-monitoring-page py-4" id="paymentSecurityApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php', ENT_QUOTES, 'UTF-8') ?>"
  data-personnel-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
