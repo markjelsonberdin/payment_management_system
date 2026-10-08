@@ -6,8 +6,20 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../modules/crad/config/config.php';
-require_once __DIR__ . '/../modules/crad/includes/chapter-evaluation-workflow.php';
+$cradConfigFile = __DIR__ . '/../modules/crad/config/config.php';
+$cradWorkflowFile = __DIR__ . '/../modules/crad/includes/chapter-evaluation-workflow.php';
+if (is_file($cradConfigFile)) {
+    require_once $cradConfigFile;
+}
+if (is_file($cradWorkflowFile)) {
+    require_once $cradWorkflowFile;
+}
+if (!function_exists('cradDb')) {
+    function cradDb(): ?PDO
+    {
+        return null;
+    }
+}
 
 function smsAssignmentNotificationEnsureSentSchema(PDO $crad): void
 {

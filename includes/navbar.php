@@ -17,7 +17,10 @@ $navStudentReturnedProposals = [];
 
 if ($navRoleKey === 'student') {
     try {
-        require_once __DIR__ . '/../modules/crad/config/config.php';
+        $navCradConfig = __DIR__ . '/../modules/crad/config/config.php';
+        if (is_file($navCradConfig)) {
+            require_once $navCradConfig;
+        }
         $navCradPdo = function_exists('cradDb') ? cradDb() : null;
 
         if ($navCradPdo instanceof PDO) {

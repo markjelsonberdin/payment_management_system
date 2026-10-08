@@ -63,7 +63,10 @@ if ($isStudentPortal) {
     }
 
     try {
-        require_once ROOT_PATH . '/modules/crad/config/config.php';
+        $sidebarCradConfig = ROOT_PATH . '/modules/crad/config/config.php';
+        if (is_file($sidebarCradConfig)) {
+            require_once $sidebarCradConfig;
+        }
         $sidebarCrad = function_exists('cradDb') ? cradDb() : null;
         if ($sidebarCrad instanceof PDO) {
             $sidebarStudentId = trim((string) ($_SESSION['student_id'] ?? ''));
