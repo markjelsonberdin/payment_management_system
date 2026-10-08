@@ -92,7 +92,7 @@ if ($secretConfigured) {
             $environmentMatches = (bool) ($attributes['livemode'] ?? false) === $isLive;
             $enabled = ($attributes['status'] ?? '') === 'enabled';
             $events = is_array($attributes['events'] ?? null) ? $attributes['events'] : [];
-            $eventsMatch = empty(array_diff(['checkout_session.payment.paid', 'payment.paid'], $events));
+            $eventsMatch = empty(array_diff(['payment.paid'], $events));
             if (!$environmentMatches || !$enabled || !$eventsMatch) continue;
             $candidateFound = true;
             $response['webhook']['correct_environment'] = true;
@@ -145,16 +145,16 @@ try {
     $adminSettings = $channelService->getAdminSettings($mode);
     $providerStatuses = null;
     if ($mode === 'test' && $apiOk) {
-        $providerStatuses = array_fill_keys(['gcash', 'maya', 'card', 'qrph'], ['provider_active' => true]);
+        $providerStatuses = array_fill_keys(['qrph'], ['provider_active' => true]);
     } elseif ($apiOk && isset($service)) {
         $capabilities = $service->getMerchantCapabilities();
         if ($capabilities !== []) {
             $providerStatuses = [];
-            foreach (['gcash', 'maya', 'card', 'qrph'] as $code) $providerStatuses[$code] = ['provider_active' => ($capabilities[$code] ?? null) === 'active'];
+            foreach (['qrph'] as $code) $providerStatuses[$code] = ['provider_active' => ($capabilities[$code] ?? null) === 'active'];
         }
     }
     if ($providerStatuses !== null) {
-        foreach (['gcash' => 'GCash', 'maya' => 'Maya', 'card' => 'Card', 'qrph' => 'QRPh'] as $code => $label) {
+        foreach (['qrph' => 'QR Ph'] as $code => $label) {
             $policyAllowed = $mode !== 'live' || $code === 'qrph';
             $providerActive = !empty($providerStatuses[$code]['provider_active']);
             $configured = !empty($adminSettings[$code]);

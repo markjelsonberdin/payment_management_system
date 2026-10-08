@@ -31,6 +31,8 @@ final class OcrConfigurationService
             'last_successful_test' => $settings['ocr_last_successful_test'] ?? null,
             'last_failed_test' => $settings['ocr_last_failed_test'] ?? null,
             'last_test_status' => $settings['ocr_last_test_status'] ?? null,
+            'last_test_authentication' => $settings['ocr_last_test_authentication'] ?? null,
+            'last_test_error_category' => $settings['ocr_last_test_error_category'] ?? null,
             'last_configuration_update' => $settings['ocr_last_config_update'] ?? null,
         ];
     }
@@ -72,6 +74,29 @@ final class OcrConfigurationService
                 ['ocr_last_config_update', gmdate('c'), 'Latest OCR configuration update'],
             ] as $row) $stmt->execute($row);
             return ['enabled' => $enabled, 'project_id' => $projectId, 'mode' => $mode, 'monthly_limit' => $limit];
+        });
+    }
+    /** @param array{id:int,name:string,role:string} $actor @param array<string,mixed> $diagnostic */
+    public function recordDiagnostic(string $correlationId, array $actor, array $diagnostic): array
+    {
+        CatalogCorrelationId::assertValid($correlationId);
+        $status = (string) ($diagnostic['status'] ?? 'FAILED');
+        $authentication = (string) ($diagnostic['authentication'] ?? 'UNVERIFIED');
+        $category = (string) ($diagnostic['error_category'] ?? 'NONE');
+        if (!in_array($status, ['CONFIGURATION_VALID','AUTHENTICATION_VERIFIED','FAILED'], true)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_STATUS_INVALID');
+        if (!in_array($authentication, ['VERIFIED','FAILED','UNVERIFIED'], true)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_AUTH_INVALID');
+        if (!preg_match('/^[A-Z0-9_]{1,64}$/', $category)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_CATEGORY_INVALID');
+        $checkedAt = gmdate('c');
+        $safe = ['status'=>$status,'authentication'=>$authentication,'error_category'=>$category,'provider_capability'=>'UNVERIFIED','actual_ocr_processing'=>'UNVERIFIED','checked_at'=>$checkedAt];
+        return $this->mutations->execute($correlationId, $safe, [
+            'action'=>'OCR_CONNECTION_DIAGNOSTIC_COMPLETED','module_key'=>'payment','entity_type'=>'ocr_configuration','entity_id'=>null,
+            'detail'=>'Non-billable Google OCR configuration and authentication diagnostic completed.',
+            'before_state'=>null,'after_state'=>$safe,'actor_user_id'=>$actor['id'],'actor_user_name'=>$actor['name'],'actor_role_key'=>$actor['role'],
+            'actor_ip_address'=>function_exists('smsClientIp')?smsClientIp():null,'actor_user_agent'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),
+        ], function(PDO $pdo) use($safe,$status,$checkedAt): array {
+            $q=$pdo->prepare('INSERT INTO payment_gateway_settings (setting_key,setting_value,description) VALUES (?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),description=VALUES(description)');
+            foreach ([['ocr_last_test_status',$safe['status'],'Latest non-billable OCR diagnostic result'],['ocr_last_test_authentication',$safe['authentication'],'Latest OCR authentication state'],['ocr_last_test_error_category',$safe['error_category'],'Latest safe OCR diagnostic category'],[$status==='AUTHENTICATION_VERIFIED'?'ocr_last_successful_test':'ocr_last_failed_test',$checkedAt,'Latest OCR diagnostic timestamp']] as $row) $q->execute($row);
+            return $safe;
         });
     }
 }

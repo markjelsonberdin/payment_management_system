@@ -14,7 +14,8 @@ $auth = $read('includes/authentication.php');
 $index = $read('modules/payment/index.php');
 $sidebar = $read('includes/sidebar.php');
 $pages = [
-    'overview' => $read('modules/payment/pages/mis_admin/dashboard.php'),
+    'dashboard' => $read('modules/payment/pages/mis_admin/dashboard.php'),
+    'overview' => $read('modules/payment/pages/mis_admin/overview.php'),
     'users' => $read('modules/payment/pages/mis_admin/payment-user-management.php'),
     'paymongo' => $read('modules/payment/pages/mis_admin/online-payment-integration.php'),
     'ocr' => $read('modules/payment/pages/mis_admin/google-ocr-integration.php'),
@@ -29,7 +30,9 @@ foreach ($expectedGroups as $group => $slug) {
     mis8check(str_contains($config, "'{$group}'") && str_contains($config, "'{$slug}'"), "{$group} navigation group");
 }
 mis8check(str_contains($auth, "\$visible['payment']['label'] = 'MIS Admin'"), 'MIS-only module label');
-mis8check(!str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module"), 'MIS navigation must use one Dashboard Module heading');
+mis8check(!str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and MIS Admin Overview use separate configured navigation sections');
+mis8check(str_contains($sidebar, "/dashboard/index.php") && str_contains($index, "'mis_admin/dashboard'") && str_contains($config, "'slug' => 'mis_admin/dashboard'"), 'MIS Admin Dashboard route resolves independently');
+mis8check(str_contains($sidebar, "/modules/payment/pages/mis_admin/overview.php") && str_contains($config, "'label' => 'Payment Management'"), 'MIS Admin Overview remains its own module destination');
 mis8check(str_contains($index, "'mis_admin' => ['Payment Administration', 'Integrations', 'Security']"), 'Payment index supports MIS group list');
 mis8check(str_contains($sidebar, 'foreach ($module[\'groups\'] as $groupLabel => $groupSlugs)'), 'Existing generic sidebar grouping preserved');
 $mappings = [
@@ -46,8 +49,14 @@ $labels = ['Dashboard', 'Payment Users', 'PayMongo Integration', 'Google OCR Int
 foreach ($labels as $label) mis8check(str_contains($config, "'title' => '{$label}'"), "{$label} canonical label");
 foreach ($pages as $name => $page) {
     mis8check((bool) preg_match('/<h1\b[^>]*>.*?<\/h1>/s', $page), "{$name} uses H1");
-    mis8check(str_contains($page, 'payment-mis-admin.css'), "{$name} loads shared MIS CSS");
-    mis8check(str_contains($page, "['label' => 'MIS Admin'") || str_contains($page, "['label'=>'MIS Admin'"), "{$name} MIS breadcrumb");
+    if ($name === 'overview') {
+        mis8check(str_contains($page, "ROOT_PATH.'/includes/layout-start.php'") && str_contains($page, 'payment-page'), "{$name} uses the existing shared layout");
+    } else {
+        mis8check(str_contains($page, 'payment-mis-admin.css'), "{$name} loads shared MIS CSS");
+    }
+    if ($name !== 'overview') {
+        mis8check(str_contains($page, "['label' => 'MIS Admin'") || str_contains($page, "['label'=>'MIS Admin'"), "{$name} MIS breadcrumb");
+    }
 }
 foreach (['users', 'security'] as $name) {
     mis8check(str_contains($pages[$name], 'scope="col"'), "{$name} table header semantics");
@@ -57,7 +66,11 @@ mis8check(str_contains($pages['security'], 'personnelReset') && str_contains($pa
 $securityJs = $read('modules/payment/assets/js/payment-security-monitoring.js');
 mis8check(str_contains($securityJs, "byId('personnelReset')") && str_contains($securityJs, "byId('eventReset')"), 'Security reset behavior');
 mis8check(substr_count($pages['users'], 'aria-label="Close dialog"') >= 2, 'Payment user modal closes accessible');
-mis8check(str_contains($pages['overview'], 'MIS_OVERVIEW_LINKS'), 'Overview drill-down allowlist');
+mis8check(str_contains($pages['dashboard'], 'MIS_OVERVIEW_API') && str_contains($pages['dashboard'], "\$pageTitle = 'Dashboard'"), 'Dashboard retains its live status cards and dashboard route');
+mis8check(str_contains($pages['overview'], "\$pageTitle='Overview'"), 'Overview has its own route and page identity');
+mis8check(str_contains($pages['dashboard'], "requirePaymentPermission('payment.mis_overview')") && str_contains($pages['overview'], "requirePaymentPermission('payment.mis_overview')"), 'Both destinations enforce the MIS Overview permission server-side');
+mis8check(str_contains($sidebar, "isPaymentDashboardPage) ? 'active'") && str_contains($sidebar, "\$activePage === 'mis_admin/overview'"), 'Dashboard and Overview have distinct active navigation states');
+mis8check(str_contains($pages['overview'], 'module-button-grid'), 'Overview retains its separate module shortcut grid');
 foreach (['payment-user-management.php', 'security-monitoring.php', 'online-payment-integration.php', 'google-ocr-integration.php'] as $route) {
     mis8check(str_contains($pages['overview'], $route), "Overview link {$route}");
 }

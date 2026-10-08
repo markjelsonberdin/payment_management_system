@@ -5,6 +5,7 @@ require_once __DIR__ . '/BillingStudentContextProvider.php';
 require_once __DIR__ . '/RegistrarCohortClient.php';
 require_once __DIR__ . '/ManagedStandardAssessmentService.php';
 require_once __DIR__ . '/ManagedStandardAssessmentWriter.php';
+require_once __DIR__ . '/ManagedBillingNotificationDispatcher.php';
 
 final class ManagedBillingRunException extends RuntimeException
 {
@@ -66,7 +67,14 @@ final class ManagedBillingRunService
         $service=new ManagedStandardAssessmentService($this->pdo); $writer=new ManagedStandardAssessmentWriter($this->pdo,$service);
         foreach($assignments as $assignment) { $this->refreshLease($runId,$token); $this->processAssignment($assignment,$run,$selected,$writer,$actorId); }
         $this->pdo->prepare('UPDATE billing_runs SET runner_token=NULL,lease_expires_at=NULL,processing_cursor=processing_cursor+? WHERE run_id=? AND runner_token=?')->execute([count($assignments),$runId,$token]);
-        return $this->reconcile($runId);
+        $result = $this->reconcile($runId);
+        try {
+            $result['notification_dispatch'] = (new ManagedBillingNotificationDispatcher($this->pdo))->dispatchDue(min(100, $batchSize), $runId);
+        } catch (Throwable $e) {
+            error_log('Managed billing notification dispatch remains pending.');
+            $result['notification_dispatch'] = ['processed'=>0, 'sent'=>0, 'pending_account_link'=>0, 'failed'=>0];
+        }
+        return $result;
     }
 
     /** @return array<string,mixed> */

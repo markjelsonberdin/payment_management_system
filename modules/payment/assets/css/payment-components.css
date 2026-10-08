@@ -143,6 +143,25 @@
 .payment-status.is-info { color: #075985; background: #f0f9ff; border-color: #bae6fd; }
 .payment-status.is-muted { color: #475569; background: #f1f5f9; border-color: #cbd5e1; }
 
+/* Keep legacy Bootstrap badges readable and semantically consistent while
+ * older Payment modules are migrated to the shared .payment-status markup. */
+.payment-page .badge.bg-success,
+.payment-page .badge.text-bg-success,
+.payment-page .badge.bg-success-subtle { color: #166534 !important; background: #f0fdf4 !important; border: 1px solid #bbf7d0; }
+.payment-page .badge.bg-warning,
+.payment-page .badge.text-bg-warning,
+.payment-page .badge.bg-warning-subtle { color: #92400e !important; background: #fffbeb !important; border: 1px solid #fde68a; }
+.payment-page .badge.bg-danger,
+.payment-page .badge.text-bg-danger,
+.payment-page .badge.bg-danger-subtle { color: #991b1b !important; background: #fef2f2 !important; border: 1px solid #fecaca; }
+.payment-page .badge.bg-info,
+.payment-page .badge.text-bg-info,
+.payment-page .badge.bg-info-subtle { color: #075985 !important; background: #f0f9ff !important; border: 1px solid #bae6fd; }
+.payment-page .badge.bg-secondary,
+.payment-page .badge.text-bg-secondary,
+.payment-page .badge.bg-light { color: #475569 !important; background: #f1f5f9 !important; border: 1px solid #cbd5e1; }
+.payment-page .badge { border-radius: 999px; font-weight: 650; line-height: 1.25; }
+
 .payment-page .pagination,
 .payment-pagination .pagination {
     flex-wrap: wrap;

@@ -60,7 +60,7 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php'; require_once ROOT_PATH . '
 </div>
 <script>
 (() => {
- const base='<?= BASE_URL ?>', money=v=>'PHP '+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const base='<?= BASE_URL ?>', money=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
  const businessDateTime=v=>{if(!v)return '—';const date=new Date(String(v).replace(' ','T')+'+08:00');return Number.isNaN(date.getTime())?String(v):date.toLocaleString('en-PH',{timeZone:'Asia/Manila'});};
  let trendChart,academicChart,salesChart,requestVersion=0,activePeriod='<?= htmlspecialchars($reportingControlPeriod, ENT_QUOTES, 'UTF-8') ?>',activeMonth=<?= $dashboardMonth ?>,activeYear=<?= $dashboardYear ?>;

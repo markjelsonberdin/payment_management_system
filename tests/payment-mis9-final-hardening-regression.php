@@ -116,7 +116,7 @@ foreach (['AUB Bank Reconciliation', 'Fee Setup', 'Student Billing', 'Payment Ap
 foreach (['Payment Administration', 'Integrations', 'Security'] as $group) {
     mis9check(str_contains($config, "'$group'"), "Navigation group $group");
 }
-mis9check(!str_contains($auth, "overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module"), 'MIS dashboard hierarchy must not render a duplicate Dashboard heading');
+mis9check(!str_contains($auth, "overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and Overview remain separate under their configured sections');
 mis9check(str_contains($sidebar, "module['overview_group_label']"), 'Optional navigation metadata');
 mis9check(!str_contains($config, "'MIS ADMIN PORTAL'"), 'Legacy flat MIS group absent');
 

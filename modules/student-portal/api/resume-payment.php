@@ -94,6 +94,8 @@ try {
         exit;
     }
 
+    throw new RuntimeException('Historical non-QR online attempts cannot be resumed. Start a new QR Ph payment.');
+
     $checkoutSessionId = $payment['checkout_session_id'];
     if (!$checkoutSessionId) {
         die("Invalid payment record: Missing checkout session reference.");

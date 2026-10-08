@@ -1,7 +1,0 @@
-﻿<?php
-/**
- * SMS 2 - Reports & Analytics
- */
-require_once __DIR__ . '/../../../config/config.php';
-$reportSlug = 'leave-evaluation-analytics';
-require_once ROOT_PATH . '/includes/reports-page.php';

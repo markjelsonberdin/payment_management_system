@@ -38,7 +38,7 @@ if (!function_exists('paymentUiUseSharedCss')) {
     {
         $files = [
             'css/payment-base.css?v=1',
-            'css/payment-components.css?v=3',
+            'css/payment-components.css?v=4',
             'css/payment-utilities.css?v=1',
         ];
         if ($tables) {

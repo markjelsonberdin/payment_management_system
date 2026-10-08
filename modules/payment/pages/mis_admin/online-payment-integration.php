@@ -106,203 +106,200 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/paymongo-config.css?v=2">
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
-<div class="container-fluid payment-page py-4">
-    
-    <!-- Header -->
-    <div class="mis-page-header">
-        <div><h1 class="h3"><i class="ti ti-world text-primary me-2" aria-hidden="true"></i>PayMongo Integration</h1><p>Manage and monitor the Payment Management System's PayMongo technical integration.</p></div>
+<div class="container-fluid payment-page paymongo-config py-4">
+    <div class="paymongo-page-header">
+        <div>
+            <div class="paymongo-eyebrow">Payment infrastructure</div>
+            <h1>Online Payment Configuration</h1>
+            <p>Manage payment gateway credentials, payment channels, and integration health.</p>
+        </div>
+        <div class="paymongo-header-actions">
+            <button type="button" class="btn btn-outline-primary" id="btnTestConnection">
+                <i class="ti ti-bolt me-1" aria-hidden="true"></i>Test Connection
+            </button>
+            <button type="button" class="btn btn-primary" id="btnRefreshStatus">
+                <i class="ti ti-refresh me-1" id="iconRefreshStatus" aria-hidden="true"></i>Refresh Status
+            </button>
+        </div>
     </div>
 
-    <!-- Validation errors remain visible; successful saves return silently. -->
     <?php if (isset($_GET['error_code'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
-            <i class="ti ti-alert-triangle me-2"></i> <strong>Error!</strong> <?= e($errorMessages[$_GET['error_code']] ?? 'The PayMongo request could not be completed.') ?>
+        <div class="alert alert-danger alert-dismissible fade show paymongo-alert" role="alert">
+            <i class="ti ti-alert-triangle me-2" aria-hidden="true"></i>
+            <strong>Configuration not saved.</strong>
+            <?= e($errorMessages[$_GET['error_code']] ?? 'The PayMongo request could not be completed.') ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
         </div>
     <?php endif; ?>
+    <?php if (isset($dbError)): ?>
+        <div class="alert alert-warning paymongo-alert" role="alert"><?= e($dbError) ?></div>
+    <?php endif; ?>
 
-    <!-- Dashboard Status Cards Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-        <h5 class="fw-bold mb-0 text-dark">Integration Health</h5>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-success fw-bold shadow-sm" id="btnTestConnection">
-                <i class="ti ti-plug-connected me-1"></i> Test Connection
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-primary fw-bold shadow-sm" id="btnRefreshStatus">
-                <i class="ti ti-refresh me-1" id="iconRefreshStatus"></i> Refresh Status
-            </button>
+    <section class="paymongo-readiness-card" id="gatewayStatusCard" aria-labelledby="gatewayStatusText">
+        <div class="paymongo-readiness-icon"><i class="ti ti-rocket" id="gatewayStatusIcon" aria-hidden="true"></i></div>
+        <div class="paymongo-readiness-copy">
+            <span>Online Payment Gateway</span>
+            <h2 id="gatewayStatusText">Checking...</h2>
+            <p id="gatewayStatusSubtext">Fetching readiness state...</p>
         </div>
+        <div class="paymongo-live-indicator"><span></span>Live status</div>
+    </section>
+
+    <div class="paymongo-health-grid">
+        <article class="paymongo-health-card" id="apiConnectionCard">
+            <div class="paymongo-health-icon"><i class="ti ti-wifi" id="apiConnectionIcon" aria-hidden="true"></i></div>
+            <div>
+                <span>PayMongo API Connection</span>
+                <h3 id="apiConnectionText">Checking...</h3>
+                <p id="apiConnectionSubtext">Verifying credentials...</p>
+            </div>
+        </article>
+        <article class="paymongo-health-card" id="webhookStatusCard">
+            <div class="paymongo-health-icon"><i class="ti ti-antenna" id="webhookStatusIcon" aria-hidden="true"></i></div>
+            <div>
+                <span>Webhook Status</span>
+                <h3 id="webhookStatusText">Checking...</h3>
+                <p id="webhookStatusSubtext">Inspecting remote registration...</p>
+            </div>
+        </article>
     </div>
 
-    <!-- Dashboard Status Cards -->
-    <div class="row g-3 mb-4">
-        <!-- Gateway Status -->
-        <div class="col-md-4">
-            <div class="card mis-card" id="gatewayStatusCard">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Online Payment Gateway</span>
-                    <h4 class="fw-bolder text-secondary mb-0" id="gatewayStatusText">
-                        <i class="ti ti-loader me-2" id="gatewayStatusIcon"></i>Checking...
-                    </h4>
-                    <small class="text-muted mt-2 d-block" id="gatewayStatusSubtext">Fetching readiness state...</small>
-                </div>
+    <section class="paymongo-panel paymongo-webhook-panel">
+        <div class="paymongo-panel-heading">
+            <div>
+                <span class="paymongo-section-icon"><i class="ti ti-webhook" aria-hidden="true"></i></span>
+                <div><h2>Webhook Configuration Details</h2><p>Endpoint registration and recent configuration activity.</p></div>
+            </div>
+            <span class="paymongo-security-pill"><i class="ti ti-lock" aria-hidden="true"></i>Protected endpoint</span>
+        </div>
+        <div class="paymongo-webhook-grid">
+            <div class="paymongo-detail paymongo-detail-wide">
+                <span>Expected Webhook URL</span>
+                <strong id="expectedWebhookUrl">Checking...</strong>
+            </div>
+            <div class="paymongo-detail">
+                <span>URL Status</span>
+                <strong id="webhookUrlStatus">UNVERIFIED</strong>
+            </div>
+            <div class="paymongo-detail">
+                <span>Last Successful Test</span>
+                <strong id="lastSuccessfulTest">Never</strong>
+            </div>
+            <div class="paymongo-detail">
+                <span>Last Configuration Update</span>
+                <strong id="lastConfigUpdate">Unknown</strong>
             </div>
         </div>
+    </section>
 
-      <!-- Connection Status -->
-        <div class="col-md-4">
-            <div class="card mis-card" id="apiConnectionCard">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">PayMongo API Connection</span>
-                    <h4 class="fw-bolder text-secondary mb-0" id="apiConnectionText">
-                        <i class="ti ti-loader me-2" id="apiConnectionIcon"></i>Checking...
-                    </h4>
-                    <small class="text-muted mt-2 d-block" id="apiConnectionSubtext">Verifying credentials...</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Webhook Status -->
-        <div class="col-md-4">
-            <div class="card mis-card" id="webhookStatusCard">
-                <div class="card-body d-flex flex-column justify-content-center py-4 ps-4">
-                    <span class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.70rem; letter-spacing: 0.5px;">Webhook Status</span>
-                    <h4 class="fw-bolder text-secondary mb-0" id="webhookStatusText">
-                        <i class="ti ti-loader me-2" id="webhookStatusIcon"></i>Checking...
-                    </h4>
-                    <small class="text-muted mt-2 d-block" id="webhookStatusSubtext">Inspecting remote registration...</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-body p-3">
-            <div class="row g-3 small">
-                <div class="col-lg-6"><strong>Expected webhook URL:</strong> <span class="text-break" id="expectedWebhookUrl">Checking...</span></div>
-                <div class="col-lg-2"><strong>URL status:</strong> <span id="webhookUrlStatus">UNVERIFIED</span></div>
-                <div class="col-lg-2"><strong>Last successful test:</strong> <span id="lastSuccessfulTest">Never</span></div>
-                <div class="col-lg-2"><strong>Last configuration update:</strong> <span id="lastConfigUpdate">Unknown</span></div>
-            </div>
-        </div>
-    </div>
-
-    <form action="" method="POST">
+    <form action="" method="POST" id="paymongoConfigurationForm">
         <?= csrfField(); ?>
         <input type="hidden" name="correlation_id" value="<?= e($formCorrelationId) ?>">
-        <div class="row">
-            <!-- Left Column: API Credentials & Mode -->
-            <div class="col-lg-7 mb-4">
-                <div class="card mis-card">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-key me-2"></i>PayMongo API Configuration</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        
-                        <div class="mb-4 pb-3 border-bottom">
-                            <label class="form-label fw-bold text-dark" for="gatewayModeSelect">Active Environment Mode</label>
-                            <select class="form-select shadow-sm border-primary" id="gatewayModeSelect" name="gateway_mode" style="border-width: 2px;">
-                                <option value="test" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'test') ? 'selected' : '' ?>>Test Mode (Sandbox / Mock Transactions)</option>
-                                <option value="live" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'live') ? 'selected' : '' ?>>Live Mode (Production / Real Payments)</option>
-                            </select>
-                            <small class="text-muted d-block mt-1">This dropdown dictates which set of keys below will be used by the system during checkout.</small>
-                        </div>
 
-                        <!-- Masked presence fields; credential values never enter HTML or JavaScript. -->
-                        <div class="p-3 rounded-3 border" id="keyDisplayBox">
-                            <?php foreach (['test' => 'Test', 'live' => 'Live'] as $modeKey => $modeLabel): ?>
-                                <h6 class="fw-bold <?= $modeKey === 'live' ? 'text-danger' : 'text-primary' ?><?= $modeKey === 'live' ? ' mt-4' : '' ?>"><?= e($modeLabel) ?> credentials</h6>
-                                <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Secret'] as $credentialKey => $credentialLabel): ?>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-semibold mb-1" for="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"><?= e($credentialLabel) ?></label>
-                                        <div class="input-group">
-                                            <input
-                                                type="password"
-                                                class="form-control font-monospace"
-                                                id="<?= e($modeKey . ucfirst($credentialKey)) ?>Key"
-                                                value="<?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '' ?>"
-                                                placeholder="<?= $credentialStatus[$modeKey][$credentialKey] ? '' : 'Not configured' ?>"
-                                                aria-label="<?= e($modeLabel . ' ' . $credentialLabel) ?>"
-                                                readonly
-                                                autocomplete="off"
-                                            >
-                                            <span class="input-group-text text-muted" title="Credential hidden" aria-label="Credential hidden">
-                                                <i class="ti ti-eye-off" aria-hidden="true"></i>
-                                            </span>
+        <div class="paymongo-config-grid">
+            <div class="paymongo-config-main">
+                <section class="paymongo-panel">
+                    <div class="paymongo-panel-heading">
+                        <div>
+                            <span class="paymongo-section-icon"><i class="ti ti-adjustments" aria-hidden="true"></i></span>
+                            <div><h2>Payment Environment Mode</h2><p>Choose which protected credential set is used for student checkout.</p></div>
+                        </div>
+                    </div>
+                    <div class="paymongo-field-block">
+                        <label class="form-label" for="gatewayModeSelect">Active environment</label>
+                        <select class="form-select" id="gatewayModeSelect" name="gateway_mode">
+                            <option value="test" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'test') ? 'selected' : '' ?>>Test Mode (Sandbox / Staging Simulation)</option>
+                            <option value="live" <?= (isset($settings['gateway_mode']) && $settings['gateway_mode'] === 'live') ? 'selected' : '' ?>>Live Mode (Production / Real Payments)</option>
+                        </select>
+                        <div class="paymongo-inline-note"><i class="ti ti-info-circle" aria-hidden="true"></i>Switching modes directs new student checkouts to the selected PayMongo environment after you save.</div>
+                    </div>
+                </section>
+
+                <section class="paymongo-panel">
+                    <div class="paymongo-panel-heading">
+                        <div>
+                            <span class="paymongo-section-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
+                            <div><h2>PayMongo API Configuration</h2><p>Credential values remain masked and never enter the page source.</p></div>
+                        </div>
+                    </div>
+                    <div class="paymongo-credential-grid">
+                        <?php foreach (['test' => ['Test Credentials', 'Sandbox', 'ti-flask'], 'live' => ['Live Credentials', 'Production', 'ti-shield-lock']] as $modeKey => $credentialMeta): ?>
+                            <div class="paymongo-credential-group <?= $modeKey === 'live' ? 'is-live' : 'is-test' ?>">
+                                <div class="paymongo-credential-header">
+                                    <span class="paymongo-credential-icon"><i class="ti <?= e($credentialMeta[2]) ?>" aria-hidden="true"></i></span>
+                                    <div><h3><?= e($credentialMeta[0]) ?></h3><span><?= e($credentialMeta[1]) ?></span></div>
+                                </div>
+                                <?php foreach (['public' => 'Public Key', 'secret' => 'Secret Key', 'webhook' => 'Webhook Signing Secret'] as $credentialKey => $credentialLabel): ?>
+                                    <div class="paymongo-credential-row">
+                                        <div>
+                                            <span><?= e($credentialLabel) ?></span>
+                                            <strong><?= $credentialStatus[$modeKey][$credentialKey] ? 'Configured' : 'Not configured' ?></strong>
                                         </div>
-                                        <div class="form-text"><?= $credentialStatus[$modeKey][$credentialKey] ? 'Configured' : 'Not configured' ?></div>
+                                        <span class="paymongo-mask" aria-label="<?= e($credentialLabel . ' is ' . ($credentialStatus[$modeKey][$credentialKey] ? 'configured' : 'not configured')) ?>">
+                                            <?= $credentialStatus[$modeKey][$credentialKey] ? '••••••••••••' : '—' ?>
+                                            <i class="ti ti-eye-off" aria-hidden="true"></i>
+                                        </span>
                                     </div>
                                 <?php endforeach; ?>
-                            <?php endforeach; ?>
-                            <small class="d-block mt-2 text-muted"><i class="ti ti-lock me-1"></i>Keys stay masked and are managed through protected server environment variables.</small>
-                        </div>
+                                <div class="paymongo-credential-note"><i class="ti ti-lock" aria-hidden="true"></i><?= $modeKey === 'test' ? 'Sandbox keys are used for simulation and QA.' : 'Production keys are managed through protected server environment variables.' ?></div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <!-- Right Column: Channel Toggles -->
-            <div class="col-lg-5 mb-4">
-                
-                <!-- Payment Channels Card -->
-                <div class="card mis-card mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-toggle-right me-2"></i>Active Payment Channels</h5>
+            <aside class="paymongo-config-side">
+                <section class="paymongo-panel">
+                    <div class="paymongo-panel-heading">
+                        <div>
+                            <span class="paymongo-section-icon"><i class="ti ti-wallet" aria-hidden="true"></i></span>
+                            <div><h2>Active Payment Channels</h2><p>Channels available to students for the selected environment.</p></div>
+                        </div>
                     </div>
-                    <div class="card-body p-4">
-                        <p class="text-muted small mb-3">Enable or disable channels available to students in their portal payment gateway interface.</p>
-                        
-                        <div class="form-check form-switch fs-6 mb-3" id="container_qrph">
-                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="qrphSwitch" name="channel_qrph" value="1">
-                            <label class="form-check-label fw-bold text-dark ms-2" for="qrphSwitch">QR Ph</label>
-                            <div id="status_qrph" class="small mt-1 ms-2"></div>
+                    <div class="paymongo-channel-row" id="container_qrph">
+                        <div class="paymongo-channel-brand">
+                            <span class="paymongo-channel-icon"><i class="ti ti-qrcode" aria-hidden="true"></i></span>
+                            <div><h3>QR Ph</h3><span>National standard</span></div>
                         </div>
-                        
-                        <div class="form-check form-switch fs-6 mb-3" id="container_gcash">
-                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="gcashSwitch" name="channel_gcash" value="1">
-                            <label class="form-check-label fw-bold text-dark ms-2" for="gcashSwitch">GCash E-Wallet</label>
-                            <div id="status_gcash" class="small mt-1 ms-2"></div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="qrphSwitch" name="channel_qrph" value="1" aria-label="Enable QR Ph">
                         </div>
+                        <div id="status_qrph" class="paymongo-channel-status" aria-live="polite"></div>
+                    </div>
+                    <div class="paymongo-inline-note mt-3"><i class="ti ti-info-circle" aria-hidden="true"></i>QR Ph is the authorized online payment channel for test and live environments.</div>
+                    <div id="hidden_channels_msg" class="small text-muted mt-2" style="display:none">Unavailable channels are hidden because they are not active for this PayMongo account.</div>
+                </section>
 
-                        <div class="form-check form-switch fs-6 mb-3" id="container_maya">
-                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="mayaSwitch" name="channel_maya" value="1">
-                            <label class="form-check-label fw-bold text-dark ms-2" for="mayaSwitch">Maya E-Wallet</label>
-                            <div id="status_maya" class="small mt-1 ms-2"></div>
+                <section class="paymongo-panel">
+                    <div class="paymongo-panel-heading">
+                        <div>
+                            <span class="paymongo-section-icon"><i class="ti ti-percentage" aria-hidden="true"></i></span>
+                            <div><h2>Processing Fee Settings</h2><p>Set who is responsible for the PayMongo processing fee.</p></div>
                         </div>
+                        <span class="paymongo-rule-pill">Financial rule</span>
+                    </div>
+                    <label class="form-label" for="feePolicySelect">Fee responsibility</label>
+                    <select class="form-select" id="feePolicySelect" name="fee_policy" required>
+                        <option value="pass_to_student" <?= ($settings['fee_policy'] ?? 'pass_to_student') === 'pass_to_student' ? 'selected' : '' ?>>Pass Processing Fee to Student</option>
+                        <option value="absorb_by_school" <?= ($settings['fee_policy'] ?? '') === 'absorb_by_school' ? 'selected' : '' ?>>Absorb Processing Fee by Institution</option>
+                    </select>
+                    <div class="paymongo-fee-summary">
+                        <i class="ti ti-receipt" aria-hidden="true"></i>
+                        <p><strong id="feePolicySummary">Pass Processing Fee to Student</strong><span>The selected policy is validated and recorded in the payment activity log.</span></p>
+                    </div>
+                </section>
 
-                        <div class="form-check form-switch fs-6" id="container_card">
-                            <input class="form-check-input channel-toggle" type="checkbox" role="switch" id="cardSwitch" name="channel_card" value="1">
-                            <label class="form-check-label fw-bold text-dark ms-2" for="cardSwitch">Credit / Debit Card (Visa/Mastercard)</label>
-                            <div id="status_card" class="small mt-1 ms-2"></div>
-                        </div>
-                        
-                        <div id="hidden_channels_msg" class="text-muted small mt-3" style="display: none;">
-                            <i class="ti ti-info-circle me-1"></i> Some channels are hidden because they are not active in your PayMongo account.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mis-card">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-primary"><i class="ti ti-cash me-2"></i>Processing Fee</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <label class="form-label fw-semibold" for="feePolicySelect">Who pays the PayMongo processing fee?</label>
-                        <select class="form-select mb-3" id="feePolicySelect" name="fee_policy" required>
-                            <option value="pass_to_student" <?= ($settings['fee_policy'] ?? 'pass_to_student') === 'pass_to_student' ? 'selected' : '' ?>>Pass Processing Fee to Student</option>
-                            <option value="absorb_by_school" <?= ($settings['fee_policy'] ?? '') === 'absorb_by_school' ? 'selected' : '' ?>>Absorb Processing Fee by School</option>
-                        </select>
-                        <p class="text-muted small">This choice is validated and recorded in the payment security activity log.</p>
-                        <button type="submit" name="save_gateway_settings" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
-                            <i class="ti ti-device-floppy me-1"></i> Save Gateway Configuration
-                        </button>
-                    </div>
-                </div>
-            </div>
+                <button type="submit" name="save_gateway_settings" class="btn btn-primary paymongo-save-button">
+                    <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save Gateway Configuration
+                </button>
+            </aside>
         </div>
     </form>
+</div>
 </div>
 
 <script>
@@ -338,41 +335,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const channels = {
         test: {
-            qrph: <?= isset($settings['test_channel_qrph']) && $settings['test_channel_qrph'] === '0' ? 'false' : 'true' ?>,
-            gcash: <?= isset($settings['test_channel_gcash']) && $settings['test_channel_gcash'] === '0' ? 'false' : 'true' ?>,
-            maya: <?= isset($settings['test_channel_maya']) && $settings['test_channel_maya'] === '0' ? 'false' : 'true' ?>,
-            card: <?= isset($settings['test_channel_card']) && $settings['test_channel_card'] === '0' ? 'false' : 'true' ?>
+            qrph: <?= isset($settings['test_channel_qrph']) && $settings['test_channel_qrph'] === '0' ? 'false' : 'true' ?>
         },
         live: {
-            qrph: <?= isset($settings['live_channel_qrph']) && $settings['live_channel_qrph'] === '0' ? 'false' : 'true' ?>,
-            gcash: <?= isset($settings['live_channel_gcash']) && $settings['live_channel_gcash'] === '0' ? 'false' : 'true' ?>,
-            maya: <?= isset($settings['live_channel_maya']) && $settings['live_channel_maya'] === '0' ? 'false' : 'true' ?>,
-            card: <?= isset($settings['live_channel_card']) && $settings['live_channel_card'] === '0' ? 'false' : 'true' ?>
+            qrph: <?= isset($settings['live_channel_qrph']) && $settings['live_channel_qrph'] === '0' ? 'false' : 'true' ?>
         }
     };
 
-    const switches = {
-        qrph: document.getElementById('qrphSwitch'),
-        gcash: document.getElementById('gcashSwitch'),
-        maya: document.getElementById('mayaSwitch'),
-        card: document.getElementById('cardSwitch')
-    };
+    const switches = { qrph: document.getElementById('qrphSwitch') };
 
     function updateFields() {
         const mode = gatewaySelect.value;
         switches.qrph.checked = channels[mode].qrph;
-        switches.gcash.checked = channels[mode].gcash;
-        switches.maya.checked = channels[mode].maya;
-        switches.card.checked = channels[mode].card;
     }
 
     // Polling Logic
     let pollTimer;
     
     function setCardState(cardObj, statusStr, color, iconClass, subMessage) {
-        cardObj.card.className = `card border-0 shadow-sm rounded-3 h-100 border-start border-${color} border-4`;
-        cardObj.text.className = `fw-bolder text-${color} mb-0`;
-        cardObj.text.innerHTML = `<i class="${iconClass} me-2"></i>${statusStr}`;
+        cardObj.card.dataset.state = color;
+        cardObj.text.textContent = statusStr;
+        cardObj.icon.className = iconClass;
         cardObj.sub.textContent = subMessage;
     }
 
@@ -473,7 +456,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const url = '../../api/paymongo/channels.php?mode=' + mode;
         
         // Show loading state
-        ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
+        ['qrph'].forEach(c => {
             const div = document.getElementById('status_' + c);
             const container = document.getElementById('container_' + c);
             if (div) div.innerHTML = `<span class="text-muted"><i class="ti ti-loader me-1"></i>Checking...</span>`;
@@ -501,7 +484,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             })
             .catch(err => {
-                ['qrph', 'gcash', 'maya', 'card'].forEach(c => {
+                ['qrph'].forEach(c => {
                     const div = document.getElementById('status_' + c);
                     if (div) div.innerHTML = `<span class="text-danger"><i class="ti ti-alert-triangle me-1"></i>Error checking capability</span>`;
                 });
@@ -512,6 +495,14 @@ document.addEventListener("DOMContentLoaded", function () {
         updateFields();
         fetchChannelsStatus(); // Re-fetch capabilities for the new mode
     });
+
+    const feePolicySelect = document.getElementById('feePolicySelect');
+    const feePolicySummary = document.getElementById('feePolicySummary');
+    function updateFeePolicySummary() {
+        feePolicySummary.textContent = feePolicySelect.options[feePolicySelect.selectedIndex].text;
+    }
+    feePolicySelect.addEventListener('change', updateFeePolicySummary);
+    updateFeePolicySummary();
 
     // Event listener for manual toggles to update the status text instantly 
     // (though real save happens on form submit)

@@ -9,7 +9,9 @@ class GoogleOCRService {
     private $pdo;
     private $mockMode;
 
+    /** @deprecated Legacy parser compatibility only; active OCR uses GoogleVisionOcrService. */
     public function __construct($pdo = null) {
+        if (getenv('SMS2_ENABLE_LEGACY_OCR') !== '1') throw new LogicException('LEGACY_OCR_SERVICE_RETIRED');
         $this->pdo = $pdo;
         $envLoader = ROOT_PATH . '/modules/payment/config/env_loader.php';
         if (is_readable($envLoader)) {

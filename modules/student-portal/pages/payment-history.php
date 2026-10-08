@@ -67,7 +67,7 @@ try {
 require_once ROOT_PATH . '/includes/layout-start.php';
 ?>
 
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css?v=3">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-components.css?v=4">
 
 <!-- Render Breadcrumbs -->
 <?php renderBreadcrumbs($breadcrumbs); ?>

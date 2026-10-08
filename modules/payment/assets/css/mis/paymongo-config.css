@@ -1,5 +1,223 @@
-.paymongo-config .channel-toggle-row {
-    border: 1px solid var(--sms-border, #e2e8f0);
-    border-radius: var(--sms-radius-sm, 8px);
-    padding: 0.85rem 1rem;
+.paymongo-config {
+    --pm-navy: #0f2454;
+    --pm-blue: #1659d8;
+    --pm-blue-soft: #edf4ff;
+    --pm-green: #16845b;
+    --pm-green-soft: #e9f8f1;
+    --pm-red: #c53b3b;
+    --pm-amber: #b66a08;
+    --pm-border: #dbe4f0;
+    --pm-muted: #66758a;
+    color: #17243a;
+}
+
+.paymongo-page-header,
+.paymongo-header-actions,
+.paymongo-panel-heading > div,
+.paymongo-credential-header,
+.paymongo-channel-brand,
+.paymongo-fee-summary {
+    display: flex;
+    align-items: center;
+}
+
+.paymongo-page-header {
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.paymongo-page-header h1 {
+    margin: .15rem 0 .35rem;
+    color: var(--pm-navy);
+    font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+    font-weight: 750;
+}
+
+.paymongo-page-header p,
+.paymongo-panel-heading p,
+.paymongo-health-card p,
+.paymongo-readiness-copy p {
+    margin: 0;
+    color: var(--pm-muted);
+}
+
+.paymongo-eyebrow {
+    color: var(--pm-blue);
+    font-size: .73rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.paymongo-header-actions { gap: .65rem; }
+.paymongo-header-actions .btn { font-weight: 650; padding: .65rem 1rem; }
+.paymongo-alert { border: 1px solid currentColor; border-radius: .85rem; }
+
+.paymongo-readiness-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    min-height: 142px;
+    margin-bottom: 1rem;
+    padding: 1.4rem 1.5rem;
+    color: #fff;
+    background: linear-gradient(125deg, #102b69 0%, #1857cc 62%, #177c70 120%);
+    border-radius: 1rem;
+    box-shadow: 0 12px 30px rgba(15, 46, 110, .18);
+}
+
+.paymongo-readiness-icon,
+.paymongo-health-icon,
+.paymongo-section-icon,
+.paymongo-credential-icon,
+.paymongo-channel-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.paymongo-readiness-icon {
+    width: 3.35rem;
+    height: 3.35rem;
+    font-size: 1.65rem;
+    background: rgba(255, 255, 255, .14);
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: .9rem;
+}
+
+.paymongo-readiness-copy > span,
+.paymongo-health-card > div > span,
+.paymongo-detail > span {
+    display: block;
+    font-size: .72rem;
+    font-weight: 750;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.paymongo-readiness-copy > span { color: rgba(255, 255, 255, .72); }
+.paymongo-readiness-copy h2 { margin: .25rem 0; font-size: 1.65rem; font-weight: 800; }
+.paymongo-readiness-copy p { color: rgba(255, 255, 255, .8); }
+.paymongo-live-indicator { align-self: start; padding: .45rem .7rem; font-size: .74rem; font-weight: 750; background: rgba(255, 255, 255, .13); border-radius: 999px; }
+.paymongo-live-indicator span { display: inline-block; width: .45rem; height: .45rem; margin-right: .4rem; background: #6ee7b7; border-radius: 50%; box-shadow: 0 0 0 .22rem rgba(110, 231, 183, .18); }
+
+.paymongo-health-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.paymongo-health-card,
+.paymongo-panel {
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--pm-border);
+    border-radius: 1rem;
+    box-shadow: 0 5px 16px rgba(25, 55, 95, .055);
+}
+
+.paymongo-health-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem;
+    border-left: 4px solid #8a99ad;
+}
+
+.paymongo-health-icon { width: 2.65rem; height: 2.65rem; color: var(--pm-blue); background: var(--pm-blue-soft); border-radius: .8rem; font-size: 1.25rem; }
+.paymongo-health-card > div > span { color: var(--pm-muted); }
+.paymongo-health-card h3 { margin: .18rem 0; color: #36465d; font-size: 1.05rem; font-weight: 800; }
+.paymongo-health-card p { font-size: .82rem; }
+.paymongo-health-card[data-state="success"] { border-left-color: var(--pm-green); }
+.paymongo-health-card[data-state="success"] h3 { color: var(--pm-green); }
+.paymongo-health-card[data-state="danger"] { border-left-color: var(--pm-red); }
+.paymongo-health-card[data-state="danger"] h3 { color: var(--pm-red); }
+.paymongo-health-card[data-state="warning"] { border-left-color: var(--pm-amber); }
+.paymongo-health-card[data-state="warning"] h3 { color: var(--pm-amber); }
+
+.paymongo-panel { padding: 1.25rem; }
+.paymongo-panel + .paymongo-panel { margin-top: 1rem; }
+.paymongo-webhook-panel { margin-bottom: 1rem; }
+.paymongo-panel-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.1rem; }
+.paymongo-panel-heading > div { gap: .75rem; }
+.paymongo-panel-heading h2 { margin: 0 0 .2rem; color: var(--pm-navy); font-size: 1rem; font-weight: 800; }
+.paymongo-panel-heading p { font-size: .82rem; }
+.paymongo-section-icon { width: 2.3rem; height: 2.3rem; color: var(--pm-blue); background: var(--pm-blue-soft); border-radius: .7rem; font-size: 1.1rem; }
+.paymongo-security-pill,
+.paymongo-rule-pill { white-space: nowrap; padding: .4rem .65rem; color: var(--pm-green); background: var(--pm-green-soft); border-radius: 999px; font-size: .7rem; font-weight: 750; }
+.paymongo-rule-pill { color: #77530b; background: #fff4d6; text-transform: uppercase; letter-spacing: .04em; }
+
+.paymongo-webhook-grid { display: grid; grid-template-columns: 2fr repeat(3, minmax(130px, 1fr)); gap: .75rem; }
+.paymongo-detail { min-width: 0; padding: .85rem; background: #f7f9fc; border: 1px solid #e7edf5; border-radius: .75rem; }
+.paymongo-detail > span { margin-bottom: .35rem; color: var(--pm-muted); }
+.paymongo-detail strong { display: block; overflow-wrap: anywhere; color: #243650; font-size: .84rem; }
+
+.paymongo-config-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, .8fr); gap: 1rem; align-items: start; }
+.paymongo-field-block .form-label,
+.paymongo-panel > .form-label { color: #253751; font-size: .82rem; font-weight: 750; }
+.paymongo-config .form-select { min-height: 44px; border-color: #cbd7e6; border-radius: .7rem; }
+.paymongo-config .form-select:focus { border-color: var(--pm-blue); box-shadow: 0 0 0 .2rem rgba(22, 89, 216, .12); }
+.paymongo-inline-note { display: flex; gap: .45rem; margin-top: .75rem; padding: .7rem .8rem; color: #53657b; background: #f3f7fd; border-radius: .65rem; font-size: .78rem; }
+
+.paymongo-credential-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.paymongo-credential-group { overflow: hidden; border: 1px solid var(--pm-border); border-radius: .85rem; }
+.paymongo-credential-group.is-test { border-top: 3px solid #3b82f6; }
+.paymongo-credential-group.is-live { border-top: 3px solid var(--pm-green); }
+.paymongo-credential-header { gap: .65rem; padding: .9rem; background: #f8fafe; border-bottom: 1px solid var(--pm-border); }
+.paymongo-credential-icon { width: 2.15rem; height: 2.15rem; color: var(--pm-blue); background: var(--pm-blue-soft); border-radius: .65rem; }
+.is-live .paymongo-credential-icon { color: var(--pm-green); background: var(--pm-green-soft); }
+.paymongo-credential-header h3 { margin: 0; color: var(--pm-navy); font-size: .9rem; font-weight: 800; }
+.paymongo-credential-header span { color: var(--pm-muted); font-size: .72rem; }
+.paymongo-credential-row { display: flex; justify-content: space-between; align-items: center; gap: .65rem; padding: .78rem .9rem; border-bottom: 1px solid #edf1f6; }
+.paymongo-credential-row > div span { display: block; color: var(--pm-muted); font-size: .73rem; }
+.paymongo-credential-row > div strong { color: #253751; font-size: .8rem; }
+.paymongo-mask { display: inline-flex; align-items: center; gap: .45rem; color: #78869a; font-family: monospace; font-size: .75rem; }
+.paymongo-credential-note { display: flex; gap: .4rem; padding: .75rem .9rem; color: var(--pm-muted); background: #fbfcfe; font-size: .73rem; }
+
+.paymongo-channel-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .75rem; padding: .9rem; border: 1px solid var(--pm-border); border-radius: .8rem; }
+.paymongo-channel-brand { gap: .65rem; }
+.paymongo-channel-icon { width: 2.25rem; height: 2.25rem; color: var(--pm-blue); background: var(--pm-blue-soft); border-radius: .65rem; }
+.paymongo-channel-brand h3 { margin: 0; color: var(--pm-navy); font-size: .9rem; font-weight: 800; }
+.paymongo-channel-brand span { color: var(--pm-muted); font-size: .72rem; }
+.paymongo-channel-status { grid-column: 1 / -1; font-size: .78rem; }
+.paymongo-config .form-switch .form-check-input { width: 2.65rem; height: 1.4rem; cursor: pointer; }
+
+.paymongo-fee-summary { align-items: flex-start; gap: .7rem; margin-top: .85rem; padding: .85rem; color: #4c5e75; background: #f7f9fc; border-radius: .75rem; }
+.paymongo-fee-summary > i { color: var(--pm-blue); font-size: 1.1rem; }
+.paymongo-fee-summary p { margin: 0; }
+.paymongo-fee-summary strong,
+.paymongo-fee-summary span { display: block; }
+.paymongo-fee-summary strong { color: #253751; font-size: .8rem; }
+.paymongo-fee-summary span { margin-top: .2rem; font-size: .73rem; }
+.paymongo-save-button { width: 100%; min-height: 48px; margin-top: 1rem; border-radius: .75rem; font-weight: 750; box-shadow: 0 8px 18px rgba(22, 89, 216, .18); }
+
+@media (max-width: 1100px) {
+    .paymongo-config-grid { grid-template-columns: 1fr; }
+    .paymongo-webhook-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .paymongo-detail-wide { grid-column: 1 / -1; }
+}
+
+@media (max-width: 767.98px) {
+    .paymongo-page-header { align-items: stretch; flex-direction: column; }
+    .paymongo-header-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .paymongo-readiness-card { grid-template-columns: auto 1fr; padding: 1.1rem; }
+    .paymongo-live-indicator { grid-column: 1 / -1; justify-self: start; }
+    .paymongo-health-grid,
+    .paymongo-credential-grid,
+    .paymongo-webhook-grid { grid-template-columns: 1fr; }
+    .paymongo-detail-wide { grid-column: auto; }
+    .paymongo-panel-heading { align-items: stretch; flex-direction: column; }
+    .paymongo-security-pill,
+    .paymongo-rule-pill { align-self: flex-start; }
+}
+
+@media (max-width: 480px) {
+    .paymongo-header-actions { grid-template-columns: 1fr; }
+    .paymongo-readiness-icon { display: none; }
+    .paymongo-readiness-card { grid-template-columns: 1fr; }
+    .paymongo-panel { padding: 1rem; }
 }

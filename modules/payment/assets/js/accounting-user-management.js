@@ -39,6 +39,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function show(text, type = 'success') {
     message.innerHTML = `<div class="alert alert-${type}">${esc(text)}</div>`;
   }
+  function clearModalMessage(targetForm) {
+    const target = targetForm.querySelector('.modal-form-message');
+    if (target) target.innerHTML = '';
+    targetForm.classList.remove('was-validated');
+  }
+  function showModalError(targetForm, text) {
+    const target = targetForm.querySelector('.modal-form-message');
+    if (!target) return;
+    target.innerHTML = `<div class="alert alert-danger py-2 mb-3"><i class="fas fa-circle-exclamation me-1" aria-hidden="true"></i>${esc(text)}</div>`;
+    target.scrollIntoView({block: 'nearest'});
+  }
+  function validateRequiredFields(targetForm) {
+    targetForm.classList.add('was-validated');
+    if (targetForm.checkValidity()) return true;
+    showModalError(targetForm, 'Complete the required fields highlighted below.');
+    targetForm.querySelector(':invalid')?.focus();
+    return false;
+  }
   function roleLabel(role) {
     return role === 'accounting_admin' ? 'Accounting Admin' : role === 'cashier' ? 'Cashier' : 'Accounting Officer';
   }
@@ -194,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = rules[key];
         if (!item) return;
         item.classList.toggle('text-success', ok); item.classList.toggle('text-danger', !ok);
-        item.textContent = (ok ? '✓ ' : '○ ') + item.textContent.replace(/^[✓○] /, '');
+        item.textContent = item.textContent.replace(/^[✓○] /, '');
       });
       const met = Object.values(checks).filter(Boolean).length;
       feedback.className = 'password-feedback small mt-2 ' + (met === 7 ? 'text-success' : 'text-muted');
@@ -209,8 +227,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const createPolicy = bindPolicy(form, () => null);
   const resetPolicy = bindPolicy(resetForm, () => resetUser);
 
+  document.querySelectorAll('[data-password-target]').forEach(button => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.passwordTarget);
+      if (!input) return;
+      const reveal = input.type === 'password';
+      input.type = reveal ? 'text' : 'password';
+      button.setAttribute('aria-pressed', reveal ? 'true' : 'false');
+      button.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+      button.querySelector('i').className = reveal ? 'ti ti-eye-off' : 'ti ti-eye';
+    });
+  });
+
   document.getElementById('newOfficer')?.addEventListener('click', () => {
     form.reset(); form.user_id.value = ''; form.role_key.value = 'accounting_officer';
+    message.innerHTML = '';
+    clearModalMessage(form);
     form.role_key.disabled = false; form.password.required = true; form.password_confirm.required = true;
     document.querySelector('.password-fields').hidden = false;
     document.getElementById('officerModalTitle').textContent = 'Add Payment User';
@@ -223,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = users.find(item => Number(item.id) === Number(button.dataset.id));
     if (!user) return;
     if (button.classList.contains('edit')) {
+      message.innerHTML = '';
+      clearModalMessage(form);
       form.user_id.value = user.id; form.role_key.value = user.role_key; originalRole = user.role_key;
       form.role_key.disabled = !can('canAssignRole');
       form.full_name.value = user.full_name; form.username.value = user.username; form.email.value = user.email;
@@ -242,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm('Unlock this account? Administrative status and password will remain unchanged.')) return;
         await call('unlock', {user_id: Number(user.id)}); show('Account security lock cleared.'); await load();
       } else if (button.classList.contains('reset')) {
-        resetUser = user; resetForm.reset(); resetForm.user_id.value = user.id;
+        resetUser = user; resetForm.reset(); message.innerHTML = ''; clearModalMessage(resetForm); resetForm.user_id.value = user.id;
         document.getElementById('resetPasswordTarget').textContent = `${user.full_name} • ${user.username}`;
         resetPolicy(); resetModal.show();
       }
@@ -252,6 +286,13 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const data = new FormData(form); const id = Number(data.get('user_id') || 0);
+    clearModalMessage(form);
+    if (!validateRequiredFields(form)) return;
+    if (!id && !Object.values(createPolicy()).every(Boolean)) {
+      showModalError(form, 'The temporary password must meet all requirements below.');
+      form.password.focus();
+      return;
+    }
     try {
       if (!id) {
         if (data.get('password') !== data.get('password_confirm')) throw new Error('Password confirmation does not match.');
@@ -265,17 +306,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (can('canAssignRole') && selectedRole !== originalRole) await call('assign_role', {user_id: id, role_key: selectedRole});
       }
       modal.hide(); show(id ? 'Payment user updated.' : 'Payment user created.'); await load();
-    } catch (error) { show(error.message, 'danger'); }
+    } catch (error) { showModalError(form, error.message); }
   });
 
   resetForm.addEventListener('submit', async event => {
     event.preventDefault(); const data = new FormData(resetForm);
+    clearModalMessage(resetForm);
+    if (!validateRequiredFields(resetForm)) return;
+    if (!Object.values(resetPolicy()).every(Boolean)) {
+      showModalError(resetForm, 'The temporary password must meet all requirements below.');
+      resetForm.password.focus();
+      return;
+    }
     try {
       if (data.get('password') !== data.get('password_confirm')) throw new Error('Password confirmation does not match.');
       await call('reset_password', {user_id: Number(data.get('user_id')), password: data.get('password'),
         password_confirm: data.get('password_confirm')});
       resetModal.hide(); show('Temporary password saved and existing sessions revoked.'); await load();
-    } catch (error) { show(error.message, 'danger'); }
+    } catch (error) { showModalError(resetForm, error.message); }
   });
   load().catch(error => show(error.message, 'danger'));
 });

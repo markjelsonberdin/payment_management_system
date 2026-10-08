@@ -94,49 +94,6 @@
     margin-top: .9rem;
 }
 
-.cashier-history-pagination .pagination {
-    flex-wrap: wrap;
-    gap: .25rem;
-}
-
-.cashier-history-pagination .page-link {
-    display: inline-flex;
-    min-width: 2.25rem;
-    min-height: 2.25rem;
-    justify-content: center;
-    align-items: center;
-    padding: .35rem .65rem;
-    border: 1px solid var(--sms-border, #dbe3ee);
-    border-radius: .55rem !important;
-    background: var(--sms-surface-solid, #fff);
-    color: var(--sms-text, #334155);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.cashier-history-pagination .page-item.active .page-link {
-    border-color: var(--sms-primary, #1d4ed8);
-    background: var(--sms-primary, #1d4ed8);
-    color: var(--sms-body-bg, #fff);
-}
-
-.cashier-history-pagination .page-link:hover {
-    border-color: var(--sms-primary, #1d4ed8);
-    color: var(--sms-primary, #1d4ed8);
-}
-
-.cashier-history-pagination .page-item.disabled .page-link {
-    border-color: transparent;
-    background: var(--sms-surface-solid, #fff);
-    color: var(--sms-text-faint, #94a3b8);
-}
-
-.cashier-history-pagination .page-link:focus-visible {
-    outline: 3px solid rgba(37, 99, 235, .3);
-    outline-offset: 2px;
-    box-shadow: none;
-}
-
 @media (max-width: 767.98px) {
     .cashier-history-filter--search {
         grid-column: 1 / -1;

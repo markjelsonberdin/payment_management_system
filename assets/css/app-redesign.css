@@ -1,0 +1,264 @@
+/* Shared visual language inspired by the SMS2 academic portal prototype. */
+:root:not([data-theme="dark"]),
+[data-theme="light"] {
+    --sms-primary: #17477f;
+    --sms-primary-dark: #123660;
+    --sms-primary-light: #3477ba;
+    --sms-primary-xlight: #eaf2fb;
+    --sms-accent: #5595cf;
+    --sms-sidebar-bg: #ffffff;
+    --sms-sidebar-hover: #f1f5fa;
+    --sms-sidebar-active: #e8f0fa;
+    --sms-sidebar-border: #e5eaf0;
+    --sms-sidebar-text: #1e293b;
+    --sms-sidebar-text-muted: #667085;
+    --sms-sidebar-icon: #55708e;
+    --sms-sidebar-active-accent: #17477f;
+    --sms-sidebar-width: 252px;
+    --sms-navbar-height: 64px;
+    --sms-body-bg: #f5f7fa;
+    --sms-surface: #ffffff;
+    --sms-surface-solid: #ffffff;
+    --sms-surface-elevated: #ffffff;
+    --sms-surface-muted: #f8fafc;
+    --sms-glass-border: #e7ebf0;
+    --sms-text: #475467;
+    --sms-text-strong: #172b4d;
+    --sms-text-muted: #667085;
+    --sms-text-faint: #98a2b3;
+    --sms-heading: #172b4d;
+    --sms-border: #e5eaf0;
+    --sms-border-soft: #edf0f4;
+    --sms-shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --sms-shadow-sm: 0 2px 8px rgba(16, 24, 40, 0.05);
+    --sms-shadow-md: 0 6px 18px rgba(16, 24, 40, 0.07);
+    --sms-shadow-lg: 0 12px 30px rgba(16, 24, 40, 0.09);
+    --sms-shadow-hover: 0 10px 24px rgba(23, 71, 127, 0.12);
+    --sms-input-border: #d9e0e8;
+    --sms-navbar-bg: #ffffff;
+    --sms-navbar-border: #e6eaf0;
+    --sms-navbar-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+    --sms-dropdown-bg: #ffffff;
+    --sms-dropdown-hover: #f4f7fb;
+    --sms-dropdown-border: #e5eaf0;
+    --sms-dropdown-shadow: 0 12px 28px rgba(16, 24, 40, 0.12);
+    --sms-radius: 12px;
+    --sms-radius-sm: 9px;
+    --sms-radius-lg: 16px;
+    --sms-surface-radius: 14px;
+    --sms-transition: all 0.18s ease;
+}
+
+body.sms-app {
+    background: var(--sms-body-bg);
+    color: var(--sms-text);
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.sms-app .sms-navbar {
+    background: var(--sms-navbar-bg) !important;
+    border-bottom: 1px solid var(--sms-navbar-border);
+    box-shadow: var(--sms-navbar-shadow);
+}
+
+.sms-app .sms-navbar .navbar-brand,
+.sms-app .sms-navbar .navbar-ph-clock,
+.sms-app .sms-navbar .nav-link,
+.sms-app .sms-navbar .dropdown-toggle,
+.sms-app .sms-navbar .btn-link {
+    color: #344054 !important;
+    -webkit-text-fill-color: currentColor;
+}
+
+.sms-app .sms-navbar .navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.sms-app .sms-navbar .navbar-brand img {
+    height: 34px !important;
+}
+
+.sms-app .sms-navbar .sidebar-toggle,
+.sms-app .sms-navbar .btn-link:hover {
+    color: #17477f !important;
+}
+
+.sms-app .sms-navbar .notification-badge {
+    border-color: #ffffff;
+}
+
+.sms-app .sms-sidebar:not(.crad-officer-sidebar) {
+    background: var(--sms-sidebar-bg);
+    border-right: 1px solid var(--sms-sidebar-border);
+    box-shadow: none;
+}
+
+.sms-app .sidebar-header {
+    min-height: 58px;
+    padding-inline: 1.15rem;
+    border-bottom-color: var(--sms-sidebar-border);
+}
+
+.sms-app .sidebar-nav {
+    padding: 0.75rem 0.7rem 1.25rem;
+}
+
+.sms-app .sidebar-nav > ul > .nav-item > .nav-link {
+    min-height: 42px;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 550;
+}
+
+.sms-app .sidebar-nav > ul > .nav-item > .nav-link.active,
+.sms-app .sidebar-submenu .nav-link.active {
+    color: #17477f !important;
+    background: #eaf2fb;
+    box-shadow: none;
+    font-weight: 700;
+}
+
+.sms-app .sidebar-nav > ul > .nav-item > .nav-link.active > i:first-child,
+.sms-app .sidebar-submenu .nav-link.active i {
+    color: #17477f !important;
+}
+
+.sms-app .sms-main {
+    width: min(1480px, 100%);
+    margin-inline: auto;
+    padding: clamp(1.15rem, 2.5vw, 2rem);
+}
+
+.sms-app .page-header {
+    margin-bottom: 1.35rem;
+}
+
+.sms-app .page-header h1,
+.sms-app .student-portal-header h1 {
+    color: #172b4d;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.55rem, 2.6vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+}
+
+.sms-app .page-header p {
+    color: #667085;
+}
+
+.sms-app .card,
+.sms-app .academic-notices-panel,
+.sms-app .module-card {
+    border: 1px solid #e6eaf0;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.035);
+}
+
+.sms-app .card {
+    overflow: hidden;
+}
+
+.sms-app .card .card-body {
+    padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.sms-app .card-title,
+.sms-app .card h5,
+.sms-app .card h6 {
+    color: #243b5a;
+}
+
+.sms-app .stat-card {
+    border-top: 2px solid #dce9f7;
+}
+
+.sms-app .stat-card .stat-icon {
+    border-radius: 12px;
+    background: #edf4fc;
+    color: #17477f;
+}
+
+.sms-app .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #475467;
+    --bs-table-border-color: #edf0f4;
+}
+
+.sms-app .table thead th {
+    background: #f7f9fc;
+    color: #667085;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.sms-app .form-control,
+.sms-app .form-select {
+    min-height: 42px;
+    border-color: #d9e0e8;
+    border-radius: 9px;
+    color: #344054;
+    box-shadow: none;
+}
+
+.sms-app .form-control:focus,
+.sms-app .form-select:focus {
+    border-color: #78a6d5;
+    box-shadow: 0 0 0 3px rgba(52, 119, 186, 0.13);
+}
+
+.sms-app .btn-primary,
+.sms-app .btn-sms-primary {
+    border-color: #17477f;
+    border-radius: 9px;
+    background: #17477f;
+    box-shadow: none;
+}
+
+.sms-app .btn-primary:hover,
+.sms-app .btn-sms-primary:hover {
+    border-color: #123660;
+    background: #123660;
+}
+
+.sms-app .btn-outline-primary {
+    border-color: #c7d6e8;
+    border-radius: 9px;
+    color: #17477f;
+}
+
+.sms-app .btn-outline-primary:hover {
+    border-color: #17477f;
+    background: #17477f;
+}
+
+.sms-app .sms-footer {
+    border-top-color: #e6eaf0;
+    background: #ffffff;
+}
+
+@media (max-width: 991.98px) {
+    .sms-app .sms-main {
+        padding: 1.25rem 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    :root:not([data-theme="dark"]),
+    [data-theme="light"] {
+        --sms-navbar-height: 58px;
+    }
+
+    .sms-app .sms-main {
+        padding: 1rem 0.8rem;
+    }
+
+    .sms-app .card .card-body {
+        padding: 1rem;
+    }
+}

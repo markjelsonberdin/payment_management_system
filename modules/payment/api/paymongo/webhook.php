@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../../config/config.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/paymongo/PayMongoWebhookSecurityService.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentAllocationService.php';
+require_once ROOT_PATH . '/modules/payment/includes/SchoolSalesCatalogMutationInfrastructure.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentNotificationService.php';
 
 ini_set('display_errors', 0);
@@ -54,19 +55,7 @@ try {
     }
     
     // Handle different event types
-    if ($eventType === 'checkout_session.payment.paid') {
-        $checkoutSessionId = $eventData['id'] ?? '';
-        $paymongoAmount = $eventData['attributes']['line_items'][0]['amount'] ?? 0;
-        $paymongoAmountDec = $paymongoAmount / 100;
-        $paymongoCurrency = $eventData['attributes']['line_items'][0]['currency'] ?? '';
-        
-        if (empty($checkoutSessionId)) throw new Exception("Missing checkout_session_id");
-
-        $stmt = $pdo->prepare("SELECT * FROM payments WHERE checkout_session_id = :session_id");
-        $stmt->execute([':session_id' => $checkoutSessionId]);
-        $internalPayment = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    } elseif ($eventType === 'payment.paid') {
+    if ($eventType === 'payment.paid') {
         $paymentIntentId = $eventData['attributes']['payment_intent_id'] ?? '';
         $paymongoAmount = $eventData['attributes']['amount'] ?? 0;
         $paymongoAmountDec = $paymongoAmount / 100;
@@ -190,6 +179,10 @@ try {
         throw new Exception('Payment environment does not match webhook environment');
     }
 
+    if ((string) ($internalPayment['transaction_type'] ?? '') !== 'Online' || strcasecmp((string) ($internalPayment['payment_channel'] ?? ''), 'QRPh') !== 0) {
+        throw new Exception('Payment is outside the active QR Ph online workflow');
+    }
+
     if (empty($internalPayment['student_id']) || empty($internalPayment['billing_id'])) {
         throw new Exception('Payment record lacks required context (student_id/billing_id)');
     }
@@ -266,6 +259,39 @@ try {
              WHERE webhook_event_id = :webhook_event_id"
         );
         $stmtProcessed->execute([':webhook_event_id' => $webhookEventId]);
+    }
+
+
+    if ($shouldAllocate) {
+        $auditCorrelationId = CatalogCorrelationId::generate();
+        $auditRequest = [
+            'payment_id' => (int) $internalPayment['payment_id'],
+            'payment_intent_id' => (string) ($internalPayment['payment_intent_id'] ?? ''),
+            'webhook_event_id' => $webhookEventId,
+            'environment' => 'live',
+        ];
+        (new PaymentAuditOutboxService($pdo))->insertPending(
+            $auditCorrelationId,
+            CatalogCanonicalJson::fingerprint($auditRequest),
+            [
+                'action' => 'PAYMONGO_LIVE_PAYMENT_SETTLED',
+                'module_key' => 'payment',
+                'entity_type' => 'payment',
+                'entity_id' => (int) $internalPayment['payment_id'],
+                'detail' => 'Authenticated PayMongo QR Ph payment verified and allocated.',
+                'before_state' => ['payment_status' => (string) $internalPayment['payment_status']],
+                'after_state' => [
+                    'payment_status' => 'Verified',
+                    'allocation_applied' => true,
+                    'environment' => 'live',
+                    'channel' => 'QRPh',
+                    'amount' => (float) $internalPayment['amount'],
+                ],
+                'actor_user_name' => 'PayMongo Webhook',
+                'actor_role_key' => 'payment_provider',
+            ],
+            ['payment_id' => (int) $internalPayment['payment_id'], 'settlement' => 'verified_and_allocated']
+        );
     }
 
     $pdo->commit();

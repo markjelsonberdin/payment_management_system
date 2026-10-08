@@ -245,7 +245,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_payment'])) {
         // 3. Call the Payment Allocation Engine
         $allocationService = new PaymentAllocationService($pdo);
         // Signature: allocatePayment($paymentId, $studentId, $billingId, $amountPaid, $context, $categoryId)
-        $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $category_id);
+        $allocationTargetId = $payment_context === 'SPECIFIC_ITEM' ? $item_id : $category_id;
+        $allocationService->allocatePayment($payment_id, $student_id, $billing_id, $amount_paid, $payment_context, $allocationTargetId);
 
         $completeClaim = $pdo->prepare('UPDATE cashier_payment_idempotency SET payment_id = ? WHERE cashier_user_id = ? AND idempotency_key = ? AND payment_id IS NULL');
         $completeClaim->execute([(int) $payment_id, $cashier_id, $idempotency_key]);

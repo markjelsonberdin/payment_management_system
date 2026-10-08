@@ -392,7 +392,7 @@ $researchDirectorNavGroups = [
                     }
                     $moduleInMaint = smsIsModuleInMaintenance((string) $navModuleKey);
                     ?>
-                    <?php if (!$isMisOverview): ?>
+                    <?php if (!$isMisOverview || $paymentRoleKey === 'mis_admin'): ?>
                     <li class="nav-item sidebar-group-label">
                         <span class="nav-link sidebar-group-heading">
                             <?= htmlspecialchars($module['label']) ?>

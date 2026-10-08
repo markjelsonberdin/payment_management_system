@@ -14,7 +14,7 @@ if (($paymentId > 0) === ($saleId > 0)) {
 
 $role = getCurrentUserRoleKey(); $viewerId = (int) getCurrentUserId();
 $isStudent = $role === 'student'; $isCashier = $role === 'cashier';
-$canReport = $role === 'superadmin' || paymentRoleAllowsPermission($role, 'payment.ledger') || paymentRoleAllowsPermission($role, 'payment.transaction_history_view');
+$canReport = paymentEffectivePermission($role, 'ledger.view');
 $recordType = $paymentId > 0 ? 'payment' : 'cash_sale'; $recordId = $paymentId > 0 ? $paymentId : $saleId;
 $receipt = null; $lines = [];
 

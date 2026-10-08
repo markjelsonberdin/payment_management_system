@@ -10,11 +10,3 @@
 [data-theme="dark"] .ph-ledger-loading {
     background: rgba(15, 23, 42, 0.72);
 }
-.ph-ledger .pagination .page-item .page-link {
-    border-radius: 0.4rem !important;
-    margin: 0 3px;
-    min-width: 36px;
-    text-align: center;
-    padding: 0.375rem 0.75rem;
-    box-shadow: none !important;
-}

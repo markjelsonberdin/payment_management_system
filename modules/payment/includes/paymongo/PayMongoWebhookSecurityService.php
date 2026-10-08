@@ -7,9 +7,12 @@
 class PayMongoWebhookSecurityService {
     private $pdo;
     private $webhookSecret;
+    private string $environment;
 
     public function __construct($pdo, $env = 'test') {
         $this->pdo = $pdo;
+        if (!in_array($env, ['test', 'live'], true)) { throw new InvalidArgumentException('Invalid PayMongo environment.'); }
+        $this->environment = $env;
 
         // PayMongoService and the webhook must use the same environment
         // configuration source. Keep the database value as a legacy fallback.
@@ -67,7 +70,9 @@ class PayMongoWebhookSecurityService {
         $isValidTest = !empty($testSignature) && hash_equals($expectedSignature, $testSignature);
         $isValidLive = !empty($liveSignature) && hash_equals($expectedSignature, $liveSignature);
 
-        if (!$isValidTest && !$isValidLive) {
+        $isValidForEnvironment = $this->environment === 'live' ? $isValidLive : $isValidTest;
+
+        if (!$isValidForEnvironment) {
             throw new Exception("Invalid webhook signature. Request forged!");
         }
 

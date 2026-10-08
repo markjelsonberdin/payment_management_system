@@ -72,7 +72,7 @@ class PaymentChannelService
             $providerCapabilities = [];
         }
 
-        $channels = ['gcash', 'maya', 'card', 'qrph'];
+        $channels = ['qrph'];
         $results = [];
 
         foreach ($channels as $channel) {
@@ -118,7 +118,7 @@ class PaymentChannelService
         // Production policy: only QR Ph is offered for real payments.
         // Keep this server-side so a crafted checkout request cannot enable
         // GCash, Maya, or card while the UI hides them.
-        if ($env === 'live' && $channelCode !== 'qrph') {
+        if ($channelCode !== 'qrph') {
             return false;
         }
 

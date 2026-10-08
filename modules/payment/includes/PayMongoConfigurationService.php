@@ -7,7 +7,7 @@ require_once __DIR__ . '/SchoolSalesCatalogMutationInfrastructure.php';
 final class PayMongoConfigurationService
 {
     private const MODES = ['test', 'live'];
-    private const CHANNELS = ['gcash', 'maya', 'card', 'qrph'];
+    private const CHANNELS = ['qrph'];
     private const FEE_POLICIES = ['pass_to_student', 'absorb_by_school'];
 
     public function __construct(

@@ -219,16 +219,16 @@ require_once ROOT_PATH . '/includes/layout-start.php';
 
     <div class="row g-3 mb-3 dashboard-stats">
         <div class="col-md-3">
-            <section class="card stat-card warning"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('file-invoice-dollar') ?></div><div><h6 class="text-muted">Total Assessment</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalAssessment, 2) ?></h4></div></div></section>
+            <section class="card stat-card warning"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('file-invoice-dollar') ?></div><div><h6 class="text-muted">Total Assessment</h6><h4 class="fw-bold mb-0">₱<?= number_format($totalAssessment, 2) ?></h4></div></div></section>
         </div>
         <div class="col-md-3">
-            <section class="card stat-card secondary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('discount-2') ?></div><div><h6 class="text-muted">Discount</h6><h4 class="fw-bold mb-0">PHP <?= number_format($discountAmount, 2) ?></h4></div></div></section>
+            <section class="card stat-card secondary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('discount-2') ?></div><div><h6 class="text-muted">Discount</h6><h4 class="fw-bold mb-0">₱<?= number_format($discountAmount, 2) ?></h4></div></div></section>
         </div>
         <div class="col-md-3">
-            <section class="card stat-card success"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('check-circle') ?></div><div><h6 class="text-muted">Total Paid</h6><h4 class="fw-bold mb-0">PHP <?= number_format($totalPaid, 2) ?></h4></div></div></section>
+            <section class="card stat-card success"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('check-circle') ?></div><div><h6 class="text-muted">Total Paid</h6><h4 class="fw-bold mb-0">₱<?= number_format($totalPaid, 2) ?></h4></div></div></section>
         </div>
         <div class="col-md-3">
-            <section class="card stat-card primary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('wallet') ?></div><div><h6 class="text-muted">Balance</h6><h4 class="fw-bold mb-0">PHP <?= number_format($remainingBalance, 2) ?></h4></div></div></section>
+            <section class="card stat-card primary"><div class="card-body d-flex align-items-center"><div class="stat-icon me-3"><?= smsIcon('wallet') ?></div><div><h6 class="text-muted">Balance</h6><h4 class="fw-bold mb-0">₱<?= number_format($remainingBalance, 2) ?></h4></div></div></section>
         </div>
     </div>
     
@@ -262,7 +262,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                         <div class="flex-grow-1 text-dark fs-6" style="text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.5px;">
                                             <i class="ti ti-stack-2 text-primary me-2 opacity-75"></i><?= htmlspecialchars($catName) ?>
                                             <div class="text-muted fw-normal mt-1 text-capitalize" style="font-size: 0.75rem; letter-spacing: 0;">
-                                                PHP <?= number_format($catData['paid_amount'], 2) ?> of PHP <?= number_format($catData['total_amount'], 2) ?> Paid
+                                                ₱<?= number_format($catData['paid_amount'], 2) ?> of ₱<?= number_format($catData['total_amount'], 2) ?> Paid
                                             </div>
                                         </div>
                                         <span class="badge rounded-pill ms-auto" style="background-color: <?= $catStatusBg ?>; color: <?= $catStatusText ?>; font-size: 0.75rem;">
@@ -295,8 +295,8 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                                             <small class="text-muted d-block mt-1" style="font-size: 0.75rem;"><?= htmlspecialchars($item['description']) ?></small>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="py-3 text-end text-dark">PHP <?= number_format($item['amount'], 2) ?></td>
-                                                    <td class="py-3 text-end pe-4 text-success fw-bold">PHP <?= number_format($item['paid_amount'], 2) ?></td>
+                                                    <td class="py-3 text-end text-dark">₱<?= number_format($item['amount'], 2) ?></td>
+                                                    <td class="py-3 text-end pe-4 text-success fw-bold">₱<?= number_format($item['paid_amount'], 2) ?></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
@@ -356,7 +356,7 @@ require_once ROOT_PATH . '/includes/layout-start.php';
                                     data-context="<?= $opt['allocation_context'] ?>" 
                                     data-item-id="<?= $opt['billing_item_id'] ?>" 
                                     data-amount="<?= $opt['amount'] ?>">
-                                <?= htmlspecialchars($opt['name']) ?> (PHP <?= number_format($opt['amount'], 2) ?>)
+                                <?= htmlspecialchars($opt['name']) ?> (₱<?= number_format($opt['amount'], 2) ?>)
                             </option>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -605,7 +605,7 @@ function displayQrPayment(qrImage, amount, paymentIntentId, paymentId, expiresAt
     const downloadButton = document.getElementById('qrDownloadButton');
     downloadButton.href = qrImage;
     downloadButton.download = 'sms2-qr-' + paymentIntentId + '.png';
-    document.getElementById('qrAmountDisplay').innerHTML = 'PHP ' + parseFloat(amount).toFixed(2);
+    document.getElementById('qrAmountDisplay').innerHTML = '₱' + parseFloat(amount).toFixed(2);
 
     if (qrExpiryInterval) clearInterval(qrExpiryInterval);
     currentQrPaymentId = paymentId;
@@ -666,6 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initiatePayMongoCheckout(channel) {
+    if (channel !== 'qrph') { alert('Only QR Ph is available for online payments.'); return; }
     const selectEl = document.getElementById('paymongoCategorySelect');
     
     if (selectEl.selectedIndex < 0 || !selectEl.value) {
@@ -686,17 +687,17 @@ function initiatePayMongoCheckout(channel) {
     }
 
     if (inputAmount > maxAmount) {
-        alert("Amount cannot exceed the remaining balance for this category (PHP " + maxAmount.toFixed(2) + ").");
+        alert("Amount cannot exceed the remaining balance for this category (₱" + maxAmount.toFixed(2) + ").");
         return;
     }
 
     if (maxAmount >= 1000 && inputAmount < 1000) {
-        alert("The minimum payment amount is PHP 1,000.00.");
+        alert("The minimum payment amount is ₱1,000.00.");
         return;
     }
 
     if (maxAmount < 1000 && inputAmount !== maxAmount) {
-        alert("Since the balance is below PHP 1,000.00, you must pay the exact remaining amount (PHP " + maxAmount.toFixed(2) + ").");
+        alert("Since the balance is below ₱1,000.00, you must pay the exact remaining amount (₱" + maxAmount.toFixed(2) + ").");
         return;
     }
 
@@ -712,9 +713,7 @@ function initiatePayMongoCheckout(channel) {
     document.getElementById('checkoutLoading').classList.remove('d-none');
     document.querySelectorAll('.paymongo-btn').forEach(btn => btn.style.pointerEvents = 'none');
 
-    const apiEndpoint = channel === 'qrph' 
-        ? "<?= BASE_URL ?>/modules/payment/api/paymongo/create-qr-payment.php"
-        : "<?= BASE_URL ?>/modules/payment/api/paymongo/create-checkout.php";
+    const apiEndpoint = "<?= BASE_URL ?>/modules/payment/api/paymongo/create-qr-payment.php";
 
     fetch(apiEndpoint, {
         method: "POST",
