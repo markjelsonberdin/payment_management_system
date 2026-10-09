@@ -71,7 +71,7 @@ $bodyClass = $bodyClass ?? '';
             BASE_URL . '/modules/payment/assets/css/payment-components.css?v=4',
             BASE_URL . '/modules/payment/assets/css/payment-utilities.css?v=1',
             BASE_URL . '/modules/payment/assets/css/payment-operational-tables.css?v=2',
-            BASE_URL . '/modules/payment/assets/css/payment-theme-compat.css?v=2',
+            BASE_URL . '/modules/payment/assets/css/payment-theme-compat.css?v=3',
         ];
         $smsExtraHeadCss = array_values(array_unique(array_merge($paymentSharedCss, $smsExtraHeadCss)));
     }
@@ -109,7 +109,7 @@ $bodyClass = $bodyClass ?? '';
     <?php foreach ($smsExtraHeadCss as $smsHeadHref): ?>
     <link href="<?= htmlspecialchars((string) $smsHeadHref, ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet">
     <?php endforeach; ?>
-    <link href="<?= BASE_URL ?>/assets/css/app-redesign.css?v=1" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/app-redesign.css?v=2" rel="stylesheet">
     <?php if (strpos(' ' . $bodyClass . ' ', ' welcome-page ') !== false): ?>
     <link href="<?= BASE_URL ?>/assets/css/welcome.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/welcome-site.css?v=2" rel="stylesheet">

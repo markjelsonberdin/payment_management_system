@@ -17,16 +17,19 @@
   }
 
   function setLoading() {
+    byId('roleCounts').textContent = 'Loading role counts…';
+    byId('securitySummary').textContent = 'Loading account security…';
     byId('adminKpis').innerHTML = Array.from({length: 4}, () =>
       '<div class="mis-dashboard-kpi is-loading"><span></span><span></span><span></span></div>').join('');
     byId('integrationHealth').innerHTML = '<div class="mis-dashboard-state"><i class="ti ti-loader-2"></i>Loading integration configuration…</div>';
     byId('recentSecurityEvents').innerHTML = '<div class="mis-dashboard-state"><i class="ti ti-loader-2"></i>Loading security events…</div>';
   }
 
-  function kpiCard({label, value, detail, description, icon, tone, status, href}) {
+  function kpiCard({label, value, detail, description, icon, tone, status, href, progress}) {
     return '<article class="mis-dashboard-kpi is-' + tone + '">' +
       '<div class="mis-dashboard-kpi-top"><span>' + esc(label) + '</span><span class="mis-dashboard-kpi-icon"><i class="ti ' + esc(icon) + '" aria-hidden="true"></i></span></div>' +
       '<div class="mis-dashboard-kpi-value">' + esc(value) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</div>' +
+      (progress === undefined ? '' : '<div class="mis-personnel-progress" role="progressbar" aria-label="Active personnel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><span style="width:' + progress + '%"></span></div>') +
       '<p>' + esc(description) + '</p><div class="mis-dashboard-kpi-footer">' + status +
       (href ? '<a href="' + esc(href) + '" aria-label="View ' + esc(label) + ' details"><i class="ti ti-arrow-up-right"></i></a>' : '') + '</div></article>';
   }
@@ -40,20 +43,26 @@
     const ocrState = !ocr ? 'Unavailable' : (ocr.enabled ? (ocr.status === 'Technical configuration saved' ? 'Enabled' : 'Error') : 'Disabled');
     const paymongoConfigured = !!(paymongo && paymongo.api_credentials && paymongo.webhook_secret);
     const paymongoState = !paymongo ? 'Unavailable' : (paymongoConfigured ? 'Configured' : 'Not Configured');
+    const roles = accounts?.by_role;
+    const roleDescription = roles ? 'Admin ' + number(roles.accounting_admin) + ' · Officer ' + number(roles.accounting_officer) + ' · Cashier ' + number(roles.cashier) : 'Role breakdown unavailable.';
+    byId('roleCounts').innerHTML = roles ? Object.entries(roles).map(([role, count]) =>
+      '<span class="mis-dashboard-role-count"><strong>' + esc(titleCase(role)) + '</strong><span>' + esc(number(count)) + '</span></span>').join('') : 'Role counts unavailable.';
+    byId('securitySummary').textContent = accounts ? 'Total: ' + number(accounts.total) + ' · Active: ' + number(accounts.active) + ' · Inactive: ' + number(accounts.inactive) + ' · Temporarily locked: ' + number(accounts.locked) + ' · Current failed attempts: ' + number(accounts.failed_attempts) : 'Account security summary unavailable.';
 
     byId('adminKpis').innerHTML = [
       kpiCard({
         label: 'Active Personnel', value: accounts ? number(accounts.active) : 'Unavailable',
-        detail: accounts ? 'of ' + number(accounts.total) + ' accounts' : '', description: 'Enabled personnel accounts.',
+        detail: accounts ? 'of ' + number(accounts.total) + ' accounts' : '', description: roleDescription,
+        progress: accounts ? Math.max(0, Math.min(100, accounts.total > 0 ? Math.round(accounts.active / accounts.total * 100) : 0)) : undefined,
         icon: 'ti-id-badge-2', tone: 'primary',
-        status: statusPill(accounts && Number(accounts.active) > 0 ? 'Operational' : 'No active accounts', accounts && Number(accounts.active) > 0 ? 'success' : 'neutral'),
+        status: statusPill(!accounts ? 'Unavailable' : Number(accounts.active) > 0 ? 'Operational' : 'No active accounts', accounts && Number(accounts.active) > 0 ? 'success' : 'neutral'),
         href: links.users
       }),
       kpiCard({
         label: 'Security Alerts', value: alertCount === null ? 'Unavailable' : number(alertCount),
         detail: alertCount === 1 ? 'condition' : 'conditions', description: 'Requires investigation.',
         icon: 'ti-shield-exclamation', tone: alertCount > 0 ? 'danger' : 'success',
-        status: statusPill(alertCount > 0 ? 'Needs attention' : 'No current alerts', alertCount > 0 ? 'danger' : 'success'),
+        status: statusPill(alertCount === null ? 'Unavailable' : alertCount > 0 ? 'Needs attention' : 'No current alerts', alertCount === null ? 'neutral' : alertCount > 0 ? 'danger' : 'success'),
         href: links.security
       }),
       kpiCard({
@@ -147,6 +156,7 @@
 
   async function load() {
     const current = ++requestVersion;
+    byId('refreshDashboard').disabled = true;
     setLoading();
     byId('dashboardNotice').className = 'd-none';
 
@@ -155,12 +165,16 @@
       fetchJson(window.MIS_SECURITY_API + '?page_size=25&event_page=1')
     ]);
     if (current !== requestVersion) return;
+    byId('refreshDashboard').disabled = false;
 
     if (overviewResult.status === 'rejected') {
       byId('dashboardNotice').className = 'alert alert-danger';
       byId('dashboardNotice').textContent = 'MIS Admin dashboard is temporarily unavailable. Please refresh or sign in again.';
       byId('adminKpis').innerHTML = '<div class="mis-dashboard-state is-error">Dashboard summary unavailable.</div>';
       byId('integrationHealth').innerHTML = '<div class="mis-dashboard-state is-error">Integration configuration unavailable.</div>';
+      byId('roleCounts').textContent = 'Role counts unavailable.';
+      byId('securitySummary').textContent = 'Account security summary unavailable.';
+      byId('adminLastUpdated').textContent = 'Refresh failed';
       renderSecurity(securityResult.status === 'fulfilled' ? securityResult.value : null);
     } else {
       const overview = overviewResult.value;
@@ -168,11 +182,14 @@
       renderKpis(overview, security);
       renderIntegrations(overview);
       renderSecurity(security);
+      const updated = new Date(overview.generated_at);
+      byId('adminLastUpdated').textContent = Number.isNaN(updated.getTime()) ? 'Update time unavailable' : 'Updated ' + updated.toLocaleString('en-PH');
       const partial = Object.values(overview.section_status || {}).includes('error') || !security;
       byId('dashboardNotice').className = partial ? 'alert alert-warning' : 'd-none';
       byId('dashboardNotice').textContent = partial ? 'Some dashboard information is currently unavailable.' : '';
     }
   }
 
+  byId('refreshDashboard').addEventListener('click', load);
   load();
 })();

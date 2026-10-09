@@ -105,8 +105,8 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 ?>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/paymongo-config.css?v=4">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/paymongo-config.css?v=5">
 
 <?php renderBreadcrumbs($breadcrumbs); ?>
 
@@ -140,7 +140,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
     <?php endif; ?>
 
     <section class="paymongo-readiness-card" id="gatewayStatusCard" aria-labelledby="gatewayStatusText">
-        <div class="paymongo-readiness-icon"><i class="ti ti-rocket" id="gatewayStatusIcon" aria-hidden="true"></i></div>
+        <div class="paymongo-readiness-icon"><i class="ti ti-shield-check" id="gatewayStatusIcon" aria-hidden="true"></i></div>
         <div class="paymongo-readiness-copy">
             <span>Online Payment Gateway</span>
             <h2 id="gatewayStatusText">Checking...</h2>
@@ -151,7 +151,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
 
     <div class="paymongo-health-grid">
         <article class="paymongo-health-card" id="apiConnectionCard">
-            <div class="paymongo-health-icon"><i class="ti ti-wifi" id="apiConnectionIcon" aria-hidden="true"></i></div>
+            <div class="paymongo-health-icon"><i class="ti ti-plug-connected" id="apiConnectionIcon" aria-hidden="true"></i></div>
             <div>
                 <span>PayMongo API Connection</span>
                 <h3 id="apiConnectionText">Checking...</h3>
@@ -159,7 +159,7 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
             </div>
         </article>
         <article class="paymongo-health-card" id="webhookStatusCard">
-            <div class="paymongo-health-icon"><i class="ti ti-antenna" id="webhookStatusIcon" aria-hidden="true"></i></div>
+            <div class="paymongo-health-icon"><i class="ti ti-webhook" id="webhookStatusIcon" aria-hidden="true"></i></div>
             <div>
                 <span>Webhook Status</span>
                 <h3 id="webhookStatusText">Checking...</h3>
@@ -438,6 +438,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (force) {
             iconRefresh.classList.add('fa-spin');
             btnRefresh.disabled = true;
+            btnRefresh.setAttribute('aria-busy', 'true');
         }
 
         const url = '../../api/paymongo/status.php' + (force ? '?force=1' : '');
@@ -449,7 +450,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // API CARD
                 if (data.api.connected) {
-                    setCardState(ui.api, 'Connected', 'success', 'ti ti-wifi', data.api.message);
+                    setCardState(ui.api, 'Connected', 'success', 'ti ti-plug-connected', data.api.message);
                 } else if (data.api.status === 'auth_failed') {
                     setCardState(ui.api, 'Auth Failed', 'danger', 'ti ti-circle-x', data.api.message);
                 } else {
@@ -458,7 +459,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // WEBHOOK CARD
                 if (data.webhook.status === 'ready') {
-                    setCardState(ui.webhook, 'Ready', 'success', 'ti ti-antenna', data.webhook.message);
+                    setCardState(ui.webhook, 'Ready', 'success', 'ti ti-webhook', data.webhook.message);
                 } else if (data.webhook.status === 'url_mismatch') {
                     setCardState(ui.webhook, 'URL Mismatch', 'danger', 'ti ti-link-off', data.webhook.message);
                 } else if (data.webhook.status === 'configured_but_invalid') {
@@ -471,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (data.gateway.status === 'TEST ACTIVE') {
                     setCardState(ui.gateway, 'TEST ACTIVE', 'success', 'ti ti-player-play', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE READY') {
-                    setCardState(ui.gateway, 'LIVE READY', 'primary', 'ti ti-rocket', data.gateway.message);
+                    setCardState(ui.gateway, 'LIVE READY', 'primary', 'ti ti-shield-check', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE ACTIVE') {
                     setCardState(ui.gateway, 'LIVE ACTIVE', 'success', 'ti ti-checks', data.gateway.message);
                 } else if (data.gateway.status === 'LIVE NOT READY') {
@@ -497,6 +498,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (force) {
                     iconRefresh.classList.remove('fa-spin');
                     btnRefresh.disabled = false;
+                    btnRefresh.removeAttribute('aria-busy');
                 }
             });
     }
@@ -596,6 +598,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     btnTestConnection.addEventListener('click', () => {
         btnTestConnection.disabled = true;
+        btnTestConnection.setAttribute('aria-busy', 'true');
+        btnTestConnection.querySelector('i')?.classList.add('fa-spin');
         const body = new URLSearchParams({
             csrf_token: csrfToken,
             correlation_id: crypto.randomUUID(),
@@ -608,11 +612,15 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json().then(data => ({ok: res.ok, data})))
             .then(({ok, data}) => {
                 const label = data.status || data.error || 'PROVIDER_ERROR';
-                setCardState(ui.api, label.replaceAll('_', ' '), ok ? 'success' : 'danger', ok ? 'ti ti-wifi' : 'ti ti-alert-triangle', data.message || 'Connection test completed.');
+                setCardState(ui.api, label.replaceAll('_', ' '), ok ? 'success' : 'danger', ok ? 'ti ti-plug-connected' : 'ti ti-alert-triangle', data.message || 'Connection test completed.');
                 fetchStatus(true);
             })
             .catch(() => setCardState(ui.api, 'NETWORK ERROR', 'danger', 'ti ti-alert-triangle', 'The connection test could not be completed.'))
-            .finally(() => { btnTestConnection.disabled = false; });
+            .finally(() => {
+                btnTestConnection.disabled = false;
+                btnTestConnection.removeAttribute('aria-busy');
+                btnTestConnection.querySelector('i')?.classList.remove('fa-spin');
+            });
     });
 
     btnRefresh.addEventListener('click', () => {

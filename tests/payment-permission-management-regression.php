@@ -18,6 +18,25 @@ pmCheck(!in_array('student',array_column($data['roles'],'key'),true),'Student mu
 $decisions=pmDecisions($data,'accounting_officer');
 $decisions['payment.reconciliation.view']=true;
 $service=new PaymentPermissionManagementService($pdo,new StructuredActivityAuditWriter($pdo));
+$validAlias=PaymentPermissionManagementService::normalizeDecisions(['payment.concern_review'=>true]);
+pmCheck($validAlias===['payment.concern.view'=>true],'A valid legacy permission alias normalizes to its canonical key');
+$completeAliasPayload=$decisions;
+unset($completeAliasPayload['payment.concern.view']);
+$completeAliasPayload['payment.concern_review']=$decisions['payment.concern.view'];
+pmCheck(array_keys(PaymentPermissionManagementService::normalizeDecisions($completeAliasPayload))===paymentPermissionCatalog(),'A legacy alias remains compatible in a complete canonical decision payload');
+foreach ([
+    ['payment.concern.view'=>true,'payment.concern_review'=>false],
+    ['payment.concern_review'=>true,'payment.concern.review'=>false],
+] as $ambiguous) {
+    try { PaymentPermissionManagementService::normalizeDecisions($ambiguous); pmCheck(false,'Canonical permission collision accepted'); }
+    catch (InvalidArgumentException $e) { pmCheck($e->getMessage()==='DUPLICATE_CANONICAL_PERMISSION','Canonical alias collision rejected'); }
+}
+try { PaymentPermissionManagementService::normalizeDecisions(['payment.not_registered'=>true]); pmCheck(false,'Unknown permission accepted'); }
+catch (InvalidArgumentException $e) { pmCheck($e->getMessage()==='PERMISSION_INVALID','Unknown permission rejected'); }
+try { PaymentPermissionManagementService::rejectDuplicateDecisionKeysInJson('{"other":{"ok":true},"decisions":{"payment.collection":true,"payment.collection":false}}'); pmCheck(false,'Repeated identical JSON permission key accepted'); }
+catch (InvalidArgumentException $e) { pmCheck($e->getMessage()==='DUPLICATE_CANONICAL_PERMISSION','Repeated identical JSON permission key rejected before decoding'); }
+PaymentPermissionManagementService::rejectDuplicateDecisionKeysInJson('{"decisions":{"payment.collection":true,"payment.walkin_history":false}}');
+pmCheck(true,'Distinct decision keys remain valid in raw JSON validation');
 $result=$service->update('accounting_officer',$decisions,$data['versions']['accounting_officer'],'11111111-1111-4111-8111-111111111111',$actor);
 pmCheck($result['role']==='accounting_officer','Selected role persisted');
 pmCheck((int)$pdo->query("SELECT granted FROM role_permissions WHERE role_key='accounting_officer' AND module_key='payment.reconciliation.view'")->fetchColumn()===1,'Eligible grant persisted');
@@ -46,6 +65,7 @@ $api=(string)file_get_contents(ROOT_PATH.'/modules/payment/api/mis_admin/role-pe
 $page=(string)file_get_contents(ROOT_PATH.'/modules/payment/pages/mis_admin/roles-permissions.php');
 $js=(string)file_get_contents(ROOT_PATH.'/modules/payment/assets/js/payment-role-permissions.js');
 pmCheck(str_contains($api,"!== 'POST'")&&str_contains($api,'verifyCsrfToken')&&str_contains($api,'requireActiveMisActor'),'POST, CSRF, and active MIS guards');
+pmCheck(str_contains($api,'normalizeDecisions')&&str_contains($api,'DUPLICATE_CANONICAL_PERMISSION'),'API rejects canonical alias collisions');
 pmCheck(str_contains($api,'PERMISSION_VERSION_CONFLICT')&&str_contains($api,'ROLE_CEILING_EXCEEDED'),'Conflict and ceiling outcomes exposed');
 pmCheck(str_contains($page,'data-update-api')&&str_contains($page,'permissionPreviewModal')&&str_contains($page,"requirePaymentPermission('payment.permissions.manage')"),'Editor page uses dedicated permission');
 pmCheck(str_contains($js,'expected_version')&&str_contains($js,'X-CSRF-Token')&&str_contains($js,'data-module'),'Client uses version, CSRF, and module controls');

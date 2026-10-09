@@ -8,25 +8,25 @@
 }
 
 .mis-page-header h1 { margin-bottom: .25rem; }
-.mis-page-header p { margin-bottom: 0; color: var(--bs-secondary-color); }
+.mis-page-header p { margin-bottom: 0; color: var(--sms-text-muted); }
 
 .mis-card {
     height: 100%;
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--sms-border);
     border-radius: .75rem;
     box-shadow: 0 .125rem .35rem rgba(15, 23, 42, .06);
 }
 
 .mis-card .card-body { padding: 1.25rem; }
-.mis-card-label { color: var(--bs-secondary-color); font-size: .875rem; font-weight: 600; }
+.mis-card-label { color: var(--sms-text-muted); font-size: .875rem; font-weight: 600; }
 .mis-card-value { margin-top: .4rem; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
 
 /* ---- Stat cards (dashboard-style summary row) ---------------------------- */
 .mis-stat-card {
     height: 100%;
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--sms-border);
     border-radius: .85rem;
-    background: var(--bs-body-bg);
+    background: var(--sms-surface-solid);
     padding: 1.1rem 1.25rem;
     box-shadow: 0 .125rem .35rem rgba(15, 23, 42, .05);
     transition: box-shadow .15s ease, transform .15s ease;
@@ -55,7 +55,7 @@
     font-weight: 700;
     letter-spacing: .04em;
     text-transform: uppercase;
-    color: var(--bs-secondary-color);
+    color: var(--sms-text-muted);
 }
 .mis-stat-value {
     font-size: 1.85rem;
@@ -66,7 +66,7 @@
 .mis-stat-sub {
     margin-top: .35rem;
     font-size: .78rem;
-    color: var(--bs-secondary-color);
+    color: var(--sms-text-muted);
 }
 .mis-stat-dot {
     display: inline-block;
@@ -78,15 +78,15 @@
 
 .mis-filter-bar {
     padding: 1rem;
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--sms-border);
     border-radius: .65rem;
-    background: var(--bs-tertiary-bg);
+    background: var(--sms-surface-muted);
 }
 
 /* ---- Table card ------------------------------------------------------------ */
-.mis-table-card { overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: .75rem; }
+.mis-table-card { overflow: hidden; border: 1px solid var(--sms-border); border-radius: .75rem; }
 .mis-table-card .table-responsive { margin-bottom: 0; }
-.mis-table-card thead th { white-space: nowrap; background: var(--bs-tertiary-bg); }
+.mis-table-card thead th { white-space: nowrap; background: var(--sms-surface-muted); }
 .mis-table-card tbody td { vertical-align: middle; }
 
 .mis-table-card-header {
@@ -94,8 +94,8 @@
     align-items: center;
     justify-content: space-between;
     gap: .75rem;
-    background: var(--bs-body-bg);
-    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--sms-surface-solid);
+    border-bottom: 1px solid var(--sms-border);
 }
 
 .mis-users-table tbody tr {
@@ -126,7 +126,7 @@
 }
 .mis-user-handle {
     font-size: .78rem;
-    color: var(--bs-secondary-color);
+    color: var(--sms-text-muted);
 }
 
 .mis-status-badge { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; }
@@ -134,7 +134,7 @@
 .mis-code { display: inline-block; max-width: 18rem; overflow-wrap: anywhere; }
 
 .mis-last-login-date { font-size: .82rem; }
-.mis-last-login-ip { font-size: .72rem; color: var(--bs-secondary-color); }
+.mis-last-login-ip { font-size: .72rem; color: var(--sms-text-muted); }
 
 .mis-pagination {
     display: flex;
@@ -148,71 +148,72 @@
 
 /* Payment user create/edit modal */
 .payment-user-modal-dialog { max-width: 720px; }
-.payment-user-modal { overflow: hidden; border: 1px solid #dbe4f0; border-radius: 1rem; box-shadow: 0 1.25rem 3rem rgba(15, 35, 75, .2); }
-.payment-user-modal-header { padding: 1rem 1.35rem; background: #f4f7fc; border-bottom-color: #dfe7f1; }
-.payment-user-modal-header .modal-title { margin: 0 0 .15rem; color: #14264b; font-size: 1.05rem; font-weight: 800; }
-.payment-user-modal-header p { color: #6a778a; font-size: .78rem; }
+.payment-user-modal { overflow: hidden; border: 1px solid var(--sms-border); border-radius: 1rem; box-shadow: 0 1.25rem 3rem rgba(15, 35, 75, .2); }
+.payment-user-modal-header { padding: 1rem 1.35rem; background: var(--sms-surface-muted); border-bottom-color: var(--sms-border); }
+.payment-user-modal-header .modal-title { margin: 0 0 .15rem; color: var(--sms-text-strong); font-size: 1.05rem; font-weight: 800; }
+.payment-user-modal-header p { color: var(--sms-text-muted); font-size: .78rem; }
 .payment-user-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.45rem; height: 2.45rem; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); border-radius: .7rem; font-size: 1.15rem; }
 .payment-user-modal-body { display: grid; gap: 1rem; max-height: min(68vh, 650px); padding: 1.25rem 1.35rem; overflow-y: auto; }
 .payment-user-field { min-width: 0; }
-.payment-user-field .form-label { margin-bottom: .4rem; color: #536174; font-size: .7rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
+.payment-user-field .form-label { margin-bottom: .4rem; color: var(--sms-text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
 .payment-user-input-wrap { position: relative; }
-.payment-user-control { min-height: 43px; background-color: #f7f9fc; border-color: #d6e0ed; border-radius: .65rem; font-size: .85rem; }
-.payment-user-control:focus { background-color: #fff; border-color: var(--bs-primary); box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .1); }
+.payment-user-control { min-height: 43px; background-color: var(--sms-surface-muted); border-color: var(--sms-border); border-radius: .65rem; font-size: .85rem; }
+.payment-user-control:focus { background-color: var(--sms-surface-solid); border-color: var(--bs-primary); box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .1); }
 .payment-user-control.has-leading-icon { padding-left: 2.45rem; }
-.payment-user-field-icon { position: absolute; z-index: 3; top: 50%; left: .82rem; color: #8090a4; font-size: 1rem; transform: translateY(-50%); pointer-events: none; }
+.payment-user-field-icon { position: absolute; z-index: 3; top: 50%; left: .82rem; color: var(--sms-text-muted); font-size: 1rem; transform: translateY(-50%); pointer-events: none; }
 .payment-user-input-wrap:focus-within .payment-user-field-icon { color: var(--bs-primary); }
-.payment-user-field-note { display: flex; gap: .35rem; margin-top: .4rem; color: #3c69b7; font-size: .72rem; }
+.payment-user-field-note { display: flex; gap: .35rem; margin-top: .4rem; color: var(--sms-text-muted); font-size: .72rem; }
 .password-fields { display: grid; gap: .9rem; }
 .password-fields[hidden] { display: none !important; }
 .payment-user-modal input[type="password"]::-ms-reveal,
 .payment-user-modal input[type="password"]::-ms-clear { display: none; }
-.payment-password-policy { padding: .85rem .95rem; background: #f4f7fc; border: 1px solid #dfe7f1; border-radius: .75rem; }
-.payment-password-policy .password-feedback { margin-bottom: .55rem; color: #657489; font-size: .73rem; font-weight: 700; }
+.payment-password-policy { padding: .85rem .95rem; background: var(--sms-surface-muted); border: 1px solid var(--sms-border); border-radius: .75rem; }
+.payment-password-policy .password-feedback { margin-bottom: .55rem; color: var(--sms-text-muted); font-size: .73rem; font-weight: 700; }
 .payment-password-policy .password-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem 1rem; margin: 0; padding: 0; list-style: none; }
-.payment-password-policy .password-rules li { position: relative; padding-left: 1rem; color: #d23f4b; font-size: .72rem; }
+.payment-password-policy .password-rules li { position: relative; padding-left: 1rem; color: color-mix(in srgb, var(--sms-danger) 70%, var(--sms-text-strong)); font-size: .72rem; }
 .payment-password-policy .password-rules li::before { position: absolute; top: .48em; left: .15rem; width: .38rem; height: .38rem; background: currentColor; border-radius: 50%; content: ''; }
-.payment-password-policy .password-rules li.text-success { color: #16825b !important; font-weight: 650; }
+.payment-password-policy .password-rules li.text-success { color: color-mix(in srgb, var(--sms-success) 70%, var(--sms-text-strong)) !important; font-weight: 650; }
 .payment-password-policy .password-rules li.text-success::before { top: .05em; left: 0; width: auto; height: auto; background: transparent; content: '✓'; font-size: .85rem; }
-.payment-user-policy-lock { display: flex; align-items: flex-start; gap: .65rem; padding-top: .85rem; color: #536174; border-top: 1px solid #e2e8f1; }
-.payment-user-policy-lock > i { margin-top: .1rem; color: #325fae; font-size: 1rem; }
+.payment-user-policy-lock { display: flex; align-items: flex-start; gap: .65rem; padding-top: .85rem; color: var(--sms-text-muted); border-top: 1px solid var(--sms-border); }
+.payment-user-policy-lock > i { margin-top: .1rem; color: var(--sms-primary); font-size: 1rem; }
 .payment-user-policy-lock strong, .payment-user-policy-lock span { display: block; }
-.payment-user-policy-lock strong { color: #253751; font-size: .78rem; }
+.payment-user-policy-lock strong { color: var(--sms-text-strong); font-size: .78rem; }
 .payment-user-policy-lock span { margin-top: .12rem; font-size: .7rem; }
-.payment-user-modal-footer { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1.35rem; background: #f4f7fc; border-top-color: #dfe7f1; }
-.payment-user-governance { display: flex; align-items: center; gap: .35rem; color: #77869a; font-size: .7rem; }
+.payment-user-modal-footer { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1.35rem; background: var(--sms-surface-muted); border-top-color: var(--sms-border); }
+.payment-user-governance { display: flex; align-items: center; gap: .35rem; color: var(--sms-text-muted); font-size: .7rem; }
 .payment-user-modal-actions { display: flex; gap: .55rem; }
 .payment-user-modal-actions .btn { min-width: 104px; border-radius: .6rem; font-size: .82rem; font-weight: 700; }
 .payment-user-modal .modal-form-message:empty { display: none; }
 
 /* Payment personnel password reset modal */
 .reset-password-dialog { max-width: 540px; }
-.reset-password-modal { overflow: hidden; border: 1px solid #dbe4f0; border-radius: 1rem; box-shadow: 0 1.25rem 3rem rgba(15, 35, 75, .2); }
-.reset-password-header { padding: 1.15rem 1.35rem; background: var(--bs-body-bg, #fff); border-bottom-color: #e4eaf2; }
-.reset-password-header .modal-title { margin-bottom: .2rem; color: #172b4d; font-size: 1.12rem; font-weight: 800; }
-.reset-password-header small { color: #65758b; }
-.reset-password-body { display: grid; gap: 1rem; max-height: min(72vh, 690px); padding: 1.25rem 1.35rem; overflow-y: auto; }
-.reset-password-notice { display: flex; align-items: flex-start; gap: .65rem; padding: .8rem .9rem; color: #315e91; background: #edf6ff; border: 1px solid #d8eaff; border-radius: .7rem; font-size: .76rem; line-height: 1.45; }
+.reset-password-modal { overflow: hidden; border: 1px solid var(--sms-border); border-radius: 1rem; box-shadow: 0 1.25rem 3rem rgba(15, 35, 75, .2); }
+.reset-password-modal > form { display: flex; flex-direction: column; min-height: 0; max-height: calc(100dvh - 2rem); }
+.reset-password-header { padding: 1.15rem 1.35rem; background: var(--sms-surface-solid); border-bottom-color: var(--sms-border); }
+.reset-password-header .modal-title { margin-bottom: .2rem; color: var(--sms-text-strong); font-size: 1.12rem; font-weight: 800; }
+.reset-password-header small { color: var(--sms-text-muted); }
+.reset-password-body { display: grid; flex: 1 1 auto; gap: 1rem; min-height: 0; max-height: none; padding: 1.25rem 1.35rem; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.reset-password-notice { display: flex; align-items: flex-start; gap: .65rem; padding: .8rem .9rem; color: var(--sms-text-muted); background: var(--sms-surface-muted); border: 1px solid var(--sms-border); border-radius: .7rem; font-size: .76rem; line-height: 1.45; }
 .reset-password-notice i { flex: 0 0 auto; margin-top: .08rem; font-size: 1.05rem; }
 .reset-password-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; }
 .reset-password-toolbar .btn { display: inline-flex; align-items: center; gap: .35rem; min-height: 34px; border-radius: .55rem; font-size: .72rem; font-weight: 700; }
-.reset-account-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: .85rem; color: #704600; background: #fff8e7; border: 1px solid #f2d99b; border-radius: .7rem; }
+.reset-account-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: .85rem; color: color-mix(in srgb, var(--sms-warning) 70%, var(--sms-text-strong)); background: color-mix(in srgb, var(--sms-warning) 12%, var(--sms-surface-solid)); border: 1px solid var(--sms-warning); border-radius: .7rem; }
 .reset-account-control strong,
 .reset-account-control span,
 .reset-account-control small { display: block; }
 .reset-account-control strong { font-size: .7rem; letter-spacing: .045em; text-transform: uppercase; }
 .reset-account-control span { margin-top: .15rem; font-size: .76rem; font-weight: 700; }
-.reset-account-control small { margin-top: .2rem; color: #7d6a45; font-size: .64rem; }
+.reset-account-control small { margin-top: .2rem; color: var(--sms-text-muted); font-size: .64rem; }
 .reset-account-control .btn { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; font-size: .7rem; font-weight: 700; }
-.reset-password-footer { gap: .55rem; padding: .9rem 1.35rem; background: #f6f8fc; border-top-color: #e2e8f1; }
+.reset-password-footer { gap: .55rem; padding: .9rem 1.35rem; background: var(--sms-surface-muted); border-top-color: var(--sms-border); }
 .reset-password-footer .btn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-width: 116px; border-radius: .6rem; font-size: .8rem; font-weight: 750; }
-.reset-password-footer .btn-warning { color: #332200; }
+.reset-password-footer .btn-warning { color: color-mix(in srgb, var(--sms-warning) 70%, var(--sms-text-strong)); }
 
 [data-theme="dark"] .reset-password-header,
 [data-theme="dark"] .reset-password-modal { background: var(--sms-surface-elevated); border-color: var(--sms-border); }
 [data-theme="dark"] .reset-password-footer { background: var(--sms-surface-muted); border-color: var(--sms-border); }
 [data-theme="dark"] .reset-password-notice { color: var(--sms-text); background: rgba(43, 101, 190, .16); border-color: rgba(111, 159, 232, .24); }
-[data-theme="dark"] .reset-account-control { color: #f0c36c; background: rgba(166, 112, 18, .16); border-color: rgba(216, 164, 73, .25); }
+[data-theme="dark"] .reset-account-control { color: color-mix(in srgb, var(--sms-warning) 70%, var(--sms-text-strong)); background: rgba(166, 112, 18, .16); border-color: rgba(216, 164, 73, .25); }
 
 @media (max-width: 767.98px) {
     .mis-page-header > * { width: 100%; }
@@ -229,4 +230,117 @@
     .payment-user-governance { justify-content: center; }
     .payment-user-modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
     .payment-password-policy .password-rules { grid-template-columns: 1fr; }
+}
+
+/* MIS controls inherit the existing SMS2 palette, including Bootstrap states. */
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) .btn-primary {
+    --bs-btn-color: var(--sms-surface-solid);
+    --bs-btn-bg: var(--sms-primary);
+    --bs-btn-border-color: var(--sms-primary);
+    --bs-btn-hover-color: var(--sms-surface-solid);
+    --bs-btn-hover-bg: var(--sms-primary-dark);
+    --bs-btn-hover-border-color: var(--sms-primary-dark);
+    --bs-btn-active-color: var(--sms-surface-solid);
+    --bs-btn-active-bg: var(--sms-primary-dark);
+    --bs-btn-active-border-color: var(--sms-primary-dark);
+    --bs-btn-disabled-color: var(--sms-text-muted);
+    --bs-btn-disabled-bg: var(--sms-surface-muted);
+    --bs-btn-disabled-border-color: var(--sms-border);
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) .btn-outline-primary {
+    --bs-btn-color: var(--sms-primary);
+    --bs-btn-border-color: var(--sms-primary);
+    --bs-btn-hover-color: var(--sms-surface-solid);
+    --bs-btn-hover-bg: var(--sms-primary);
+    --bs-btn-hover-border-color: var(--sms-primary);
+    --bs-btn-active-color: var(--sms-surface-solid);
+    --bs-btn-active-bg: var(--sms-primary-dark);
+    --bs-btn-active-border-color: var(--sms-primary-dark);
+    --bs-btn-disabled-color: var(--sms-text-muted);
+    --bs-btn-disabled-border-color: var(--sms-border);
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) :is(.btn-primary, .btn-outline-primary) {
+    color: var(--bs-btn-color);
+    background-color: var(--bs-btn-bg, transparent);
+    border-color: var(--bs-btn-border-color);
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) :is(.btn-primary, .btn-outline-primary):is(:hover, :focus-visible):not(:disabled) {
+    color: var(--bs-btn-hover-color);
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) :is(.btn-primary, .btn-outline-primary):active:not(:disabled) {
+    color: var(--bs-btn-active-color);
+    background-color: var(--bs-btn-active-bg);
+    border-color: var(--bs-btn-active-border-color);
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) :is(.btn-primary, .btn-outline-primary):disabled {
+    color: var(--bs-btn-disabled-color);
+    background-color: var(--bs-btn-disabled-bg, var(--sms-surface-muted));
+    border-color: var(--bs-btn-disabled-border-color);
+    opacity: 1;
+    cursor: not-allowed;
+}
+.sms-app :is(.security-monitoring-page, .paymongo-config, .ocr-admin, .mis-admin-dashboard, #accountingUsersApp) .btn:focus-visible {
+    outline: 2px solid var(--sms-primary);
+    outline-offset: 3px;
+}
+.paymongo-header-actions .btn { white-space: nowrap; }
+.paymongo-header-actions .btn > i { color: inherit; display: inline-block; width: 1em; text-align: center; }
+.sms-app .paymongo-readiness-card .paymongo-readiness-copy h2 { color: #fff; }
+.sms-app .payment-page .paymongo-readiness-copy p { color: rgba(255,255,255,.9); }
+.sms-app .paymongo-health-card[data-state="success"] h3 { color: color-mix(in srgb, var(--sms-success) 70%, var(--sms-text-strong)); }
+.sms-app .paymongo-health-card[data-state="danger"] h3 { color: color-mix(in srgb, var(--sms-danger) 70%, var(--sms-text-strong)); }
+.sms-app .paymongo-health-card[data-state="warning"] h3 { color: color-mix(in srgb, var(--sms-warning) 70%, var(--sms-text-strong)); }
+
+/* Keep metric icons compact and aligned across MIS pages. */
+:is(.security-summary-icon, .security-panel-icon, .mis-dashboard-kpi-icon, .paymongo-health-icon, .paymongo-section-icon) > i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    color: inherit;
+}
+
+/* Dynamic password controls in the MIS personnel reset dialog. */
+.reset-password-toolbar .reset-password-copy-feedback { min-height: 1.25rem; align-self: center; color: var(--sms-text-muted); }
+.reset-password-toolbar .reset-password-copy-feedback[data-state="success"] { color: var(--sms-success); }
+.reset-password-toolbar .reset-password-copy-feedback[data-state="error"] { color: var(--sms-danger); }
+.reset-password-toolbar .reset-password-copy-feedback:empty { display: none; }
+.reset-password-input-wrap { position: relative; }
+.reset-password-input-wrap .invalid-feedback { position: static; width: 100%; margin-top: .25rem; }
+.reset-password-input-wrap .payment-user-control { padding-right: 2.8rem; }
+.reset-password-confirm-wrap .payment-user-control { padding-right: 5.35rem; }
+.reset-password-input-action { position: absolute; top: 50%; right: .35rem; display: inline-flex; width: 2.1rem; height: 2.1rem; align-items: center; justify-content: center; padding: 0; color: var(--sms-text-muted); background: transparent; border: 0; border-radius: .45rem; transform: translateY(-50%); transition: color .18s ease, background-color .18s ease, opacity .18s ease; }
+.reset-password-input-action:hover:not(:disabled) { color: var(--sms-primary); background: var(--sms-surface-muted); }
+.reset-password-input-action:focus-visible { outline: 2px solid var(--sms-primary); outline-offset: 1px; }
+.reset-password-input-action:disabled { opacity: .45; cursor: not-allowed; }
+.reset-password-confirm-wrap [data-password-toggle] { right: 2.55rem; }
+.reset-password-confirm-wrap .reset-password-copy { right: .3rem; }
+.reset-password-copy.is-copied { color: var(--sms-success); }
+.payment-password-policy .password-rules li { position: static; display: flex; min-width: 0; align-items: flex-start; gap: .4rem; padding-left: 0; color: var(--sms-text-muted); font-size: .72rem; transition: color .2s ease; }
+.payment-password-policy .password-rules li::before { content: none; }
+.payment-password-policy .password-rules li > i { position: static; flex: 0 0 1rem; width: 1rem; height: auto; margin-top: .08rem; padding: 0; color: var(--sms-text-muted); background: transparent; border-radius: 0; text-align: center; transform: scale(.92); transition: color .2s ease, transform .2s ease; }
+.payment-password-policy .password-rules li.is-invalid > i { color: color-mix(in srgb, var(--sms-danger) 72%, var(--sms-text-strong)); }
+.payment-password-policy .password-rules li.is-valid { color: color-mix(in srgb, var(--sms-success) 70%, var(--sms-text-strong)); font-weight: 650; }
+.payment-password-policy .password-rules li.is-valid > i { color: var(--sms-success); }
+.payment-password-policy .password-rules li.is-changing.is-valid > i { animation: password-rule-check .22s ease-out both; }
+.payment-password-policy .password-rules li.password-rule-server { color: var(--sms-text-muted); }
+.payment-password-policy .password-rules li.password-rule-server > i { color: var(--sms-primary); }
+@keyframes password-rule-check { from { opacity: .35; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+.reset-password-input-action:focus-visible { box-shadow: 0 0 0 .15rem color-mix(in srgb, var(--sms-primary) 25%, transparent); }
+[data-theme="dark"] .reset-password-input-action:hover:not(:disabled) { color: var(--sms-text-strong); background: var(--sms-surface-muted); }
+@media (prefers-reduced-motion: reduce) {
+    .payment-password-policy .password-rules li, .payment-password-policy .password-rules li > i, .reset-password-input-action { transition-duration: .01ms; }
+    .payment-password-policy .password-rules li.is-changing.is-valid > i { animation: none; }
+}
+@media (max-width: 767.98px) {
+    .reset-password-modal > form { max-height: calc(100dvh - 1rem); }
+    .reset-password-header, .reset-password-footer { padding-right: 1rem; padding-left: 1rem; }
+    .reset-password-body { padding: 1rem; }
+    .reset-account-control { grid-template-columns: 1fr; }
+    .reset-account-control .btn { justify-content: center; }
 }

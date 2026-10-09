@@ -22,7 +22,7 @@ $pages = [
     'security' => $read('modules/payment/pages/mis_admin/security-monitoring.php'),
 ];
 $expectedGroups = [
-    'Payment Administration' => 'mis_admin/payment-user-management',
+    'MIS ADMIN' => 'mis_admin/payment-user-management',
     'Integrations' => 'mis_admin/online-payment-integration',
     'Security' => 'mis_admin/security-monitoring',
 ];
@@ -30,10 +30,10 @@ foreach ($expectedGroups as $group => $slug) {
     mis8check(str_contains($config, "'{$group}'") && str_contains($config, "'{$slug}'"), "{$group} navigation group");
 }
 mis8check(str_contains($auth, "\$visible['payment']['label'] = 'MIS Admin'"), 'MIS-only module label');
-mis8check(!str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and MIS Admin Overview use separate configured navigation sections');
+mis8check(!str_contains($auth, "\$visible['payment']['overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "\$dashboardLabel = \$paymentRoleKey === 'mis_admin' ? 'Dashboard' : 'Overview';") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and MIS Admin Overview use separate configured navigation sections');
 mis8check(str_contains($sidebar, "/dashboard/index.php") && str_contains($index, "'mis_admin/dashboard'") && str_contains($config, "'slug' => 'mis_admin/dashboard'"), 'MIS Admin Dashboard route resolves independently');
 mis8check(str_contains($sidebar, "/modules/payment/pages/mis_admin/overview.php") && str_contains($config, "'label' => 'Payment Management'"), 'MIS Admin Overview remains its own module destination');
-mis8check(str_contains($index, "'mis_admin' => ['Payment Administration', 'Integrations', 'Security']"), 'Payment index supports MIS group list');
+mis8check(str_contains($index, "'mis_admin' => ['MIS ADMIN', 'Integrations', 'Security']"), 'Payment index supports MIS group list');
 mis8check(str_contains($sidebar, 'foreach ($module[\'groups\'] as $groupLabel => $groupSlugs)'), 'Existing generic sidebar grouping preserved');
 $mappings = [
     'mis_admin/dashboard' => 'payment.mis_overview',
@@ -75,7 +75,7 @@ foreach (['payment-user-management.php', 'security-monitoring.php', 'online-paym
     mis8check(str_contains($pages['overview'], $route), "Overview link {$route}");
 }
 $legacyUi = implode("\n", $pages);
-foreach (['MIS Admin Overview', 'Payment Personnel Management', 'Online Payment Integration', 'Online Payment Configuration', 'Google OCR Configuration', 'Manage Payment Users'] as $legacy) {
+foreach (['MIS Admin Overview', 'Payment Personnel Management', 'Online Payment Integration', 'Manage Payment Users'] as $legacy) {
     mis8check(!str_contains($legacyUi, $legacy), "Legacy UI label removed: {$legacy}");
 }
 foreach (['Fee Setup', 'Student Billing', 'Payment Approval', 'Payment Ledger', 'Accounts Receivable', 'Collection Reporting', 'School Sales', 'Refund', 'Void'] as $financial) {

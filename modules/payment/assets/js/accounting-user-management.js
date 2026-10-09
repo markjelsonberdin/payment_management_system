@@ -17,14 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const paymentUserRole = document.getElementById('paymentUserRole');
   const paymentUserRoleIcon = document.getElementById('paymentUserRoleIcon');
   const generateResetPassword = document.getElementById('generateResetPassword');
-  const viewResetPassword = document.getElementById('viewResetPassword');
   const copyResetPassword = document.getElementById('copyResetPassword');
+  const resetPasswordCopyFeedback = document.getElementById('resetPasswordCopyFeedback');
+  const resetPasswordSubmit = resetForm?.querySelector('[type="submit"]');
   const deactivateFromReset = document.getElementById('deactivateFromReset');
   const PAGE_SIZE = 8;
 
   let users = [];
   let originalRole = '';
   let resetUser = null;
+  let resettingPassword = false;
   let page = 1;
 
   function updateRoleIcon() {
@@ -216,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (can('canUpdate') || can('canAssignRole')) actions.push(actionButton('edit', user.id, 'Edit', 'primary'));
       if (user.status === 'inactive') {
         if (can('canActivate')) actions.push(actionButton('activate', user.id, 'Activate', 'success'));
-      } else if (can('canDeactivate')) actions.push(actionButton('deactivate', user.id, 'Deactivate', 'secondary'));
+      }
       if (locked && can('canUnlock')) actions.push(actionButton('unlock', user.id, 'Unlock', 'info'));
       if (can('canResetPassword')) actions.push(actionButton('reset', user.id, 'Reset password', 'warning'));
       return `<tr class="${user.status !== 'active' || locked ? 'mis-row-attention' : ''}">` +
@@ -255,19 +257,46 @@ document.addEventListener('DOMContentLoaded', () => {
       const username = (identity()?.username || targetForm.querySelector('[name=username]')?.value || '').toLowerCase();
       const email = (identity()?.email || targetForm.querySelector('[name=email]')?.value || '').toLowerCase();
       const local = email.split('@')[0];
-      const checks = {length: value.length >= 12 && value.length <= 128, upper: /[A-Z]/.test(value),
+      const minLength = targetForm === resetForm ? Number(password.minLength) || 12 : 12;
+      const checks = {length: value.length >= minLength && value.length <= 128, upper: /[A-Z]/.test(value),
         lower: /[a-z]/.test(value), number: /\d/.test(value), special: /[^A-Za-z0-9]/.test(value),
-        identifier: !(username.length >= 3 && lower.includes(username)) && !(local.length >= 3 && lower.includes(local)),
+        identifier: !!value && ![username, email, local].filter(identifier => identifier.length >= 3).some(identifier => lower.includes(identifier)),
+        not_blank: value.trim() !== '',
         match: !!value && value === confirm.value};
       Object.entries(checks).forEach(([key, ok]) => {
         const item = rules[key];
         if (!item) return;
-        item.classList.toggle('text-success', ok); item.classList.toggle('text-danger', !ok);
-        item.textContent = item.textContent.replace(/^[✓○] /, '');
+        const wasValid = item.dataset.valid === 'true';
+        item.dataset.valid = String(ok);
+        item.classList.toggle('is-valid', ok); item.classList.toggle('is-invalid', !ok);
+        if (targetForm !== resetForm) {
+          item.classList.toggle('text-success', ok);
+          item.classList.toggle('text-danger', !ok);
+        }
+        const icon = item.querySelector('i');
+        if (icon) icon.className = ok ? 'ti ti-check' : 'ti ti-circle';
+        if (ok !== wasValid) {
+          item.classList.remove('is-changing');
+          void item.offsetWidth;
+          item.classList.add('is-changing');
+          window.setTimeout(() => item.classList.remove('is-changing'), 240);
+        }
       });
       const met = Object.values(checks).filter(Boolean).length;
-      feedback.className = 'password-feedback small mt-2 ' + (met === 7 ? 'text-success' : 'text-muted');
-      feedback.textContent = !value ? 'Start typing to check your password.' : met === 7 ? 'Strong password — ready to save.' : `${met}/7 requirements met`;
+      if (copyResetPassword) copyResetPassword.disabled = !(value && confirm.value && value === confirm.value);
+      if (targetForm === resetForm && resetPasswordCopyFeedback) {
+        resetPasswordCopyFeedback.textContent = '';
+        resetPasswordCopyFeedback.removeAttribute('data-state');
+        if (copyResetPassword) {
+          copyResetPassword.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i>';
+          copyResetPassword.classList.remove('is-copied');
+          copyResetPassword.setAttribute('aria-label', 'Copy password');
+        }
+      }
+      feedback.className = 'password-feedback small mt-2 ' + (met === Object.keys(checks).length ? 'text-success' : 'text-muted');
+      feedback.textContent = !value ? 'Start typing to check your password.' : met === Object.keys(checks).length
+        ? 'All live requirements met; common/default password policy is checked when submitted.'
+        : `${met}/${Object.keys(checks).length} live requirements met; common/default password policy is checked when submitted.`;
       return checks;
     };
     password.addEventListener('input', update); confirm.addEventListener('input', update);
@@ -312,25 +341,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1200);
   });
 
-  viewResetPassword?.addEventListener('click', () => {
-    const reveal = resetForm.password.type === 'password';
-    resetForm.password.type = reveal ? 'text' : 'password';
-    resetForm.password_confirm.type = reveal ? 'text' : 'password';
-    viewResetPassword.setAttribute('aria-pressed', reveal ? 'true' : 'false');
-    viewResetPassword.innerHTML = reveal ? '<i class="ti ti-eye-off" aria-hidden="true"></i><span>Hide</span>' : '<i class="ti ti-eye" aria-hidden="true"></i><span>View</span>';
-  });
+  resetForm?.querySelectorAll('[data-password-toggle]').forEach(button => button.addEventListener('click', () => {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    if (!input) return;
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(reveal));
+    const target = input.name === 'password' ? 'new temporary password' : 'confirmation password';
+    button.setAttribute('aria-label', `${reveal ? 'Hide' : 'Show'} ${target}`);
+    button.title = `${reveal ? 'Hide' : 'Show'} password`;
+    button.innerHTML = `<i class="ti ${reveal ? 'ti-eye-off' : 'ti-eye'}" aria-hidden="true"></i>`;
+  }));
 
   copyResetPassword?.addEventListener('click', async () => {
     const password = resetForm.password.value;
-    if (!password) return;
-    const original = copyResetPassword.innerHTML;
+    if (!password || !resetForm.password_confirm.value || password !== resetForm.password_confirm.value) {
+      if (resetPasswordCopyFeedback) {
+        resetPasswordCopyFeedback.dataset.state = 'error';
+        resetPasswordCopyFeedback.textContent = 'Enter matching passwords before copying.';
+      }
+      return;
+    }
     try {
       await navigator.clipboard.writeText(password);
-      copyResetPassword.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i><span>Copied</span>';
-    } catch (error) {
-      copyResetPassword.innerHTML = '<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Failed</span>';
+      copyResetPassword.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+      copyResetPassword.classList.add('is-copied');
+      copyResetPassword.setAttribute('aria-label', 'Password copied');
+      if (resetPasswordCopyFeedback) {
+        resetPasswordCopyFeedback.dataset.state = 'success';
+        resetPasswordCopyFeedback.textContent = 'Password copied.';
+      }
+    } catch {
+      if (resetPasswordCopyFeedback) {
+        resetPasswordCopyFeedback.dataset.state = 'error';
+        resetPasswordCopyFeedback.textContent = 'Clipboard access is unavailable in this browser context.';
+      }
     } finally {
-      window.setTimeout(() => { copyResetPassword.innerHTML = original; }, 1000);
+      window.setTimeout(() => {
+        copyResetPassword.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i>';
+        copyResetPassword.classList.remove('is-copied');
+        copyResetPassword.setAttribute('aria-label', 'Copy password');
+      }, 1400);
     }
   });
 
@@ -392,10 +443,19 @@ document.addEventListener('DOMContentLoaded', () => {
         resetUser = user; resetForm.reset(); message.innerHTML = ''; clearModalMessage(resetForm); resetForm.user_id.value = user.id;
         document.getElementById('resetAccountStatus').textContent = user.status === 'active' ? 'Active account' : 'Inactive account';
         resetForm.password.type = resetForm.password_confirm.type = 'password';
-        if (viewResetPassword) {
-          viewResetPassword.setAttribute('aria-pressed', 'false');
-          viewResetPassword.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i><span>View</span>';
+        resetForm.querySelectorAll('[data-password-toggle]').forEach(button => {
+          button.setAttribute('aria-pressed', 'false');
+          button.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i>';
+          button.setAttribute('aria-label', button.dataset.passwordToggle === 'resetTempPassword' ? 'Show new temporary password' : 'Show confirmation password');
+          button.title = 'Show password';
+        });
+        if (copyResetPassword) {
+          copyResetPassword.disabled = true;
+          copyResetPassword.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i>';
+          copyResetPassword.classList.remove('is-copied');
+          copyResetPassword.setAttribute('aria-label', 'Copy password');
         }
+        if (resetPasswordCopyFeedback) { resetPasswordCopyFeedback.textContent = ''; resetPasswordCopyFeedback.removeAttribute('data-state'); }
         if (deactivateFromReset) {
           deactivateFromReset.disabled = user.status === 'inactive' || !can('canDeactivate');
           deactivateFromReset.title = user.status === 'inactive' ? 'Account is already inactive' : '';
@@ -436,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   resetForm.addEventListener('submit', async event => {
     event.preventDefault(); const data = new FormData(resetForm);
+    if (resettingPassword) return;
     clearModalMessage(resetForm);
     if (!validateRequiredFields(resetForm)) return;
     if (!Object.values(resetPolicy()).every(Boolean)) {
@@ -443,12 +504,26 @@ document.addEventListener('DOMContentLoaded', () => {
       resetForm.password.focus();
       return;
     }
+    resettingPassword = true;
+    if (resetPasswordSubmit) {
+      resetPasswordSubmit.disabled = true;
+      resetPasswordSubmit.setAttribute('aria-busy', 'true');
+      resetPasswordSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Resetting…</span>';
+    }
     try {
       if (data.get('password') !== data.get('password_confirm')) throw new Error('Password confirmation does not match.');
       await call('reset_password', {user_id: Number(data.get('user_id')), password: data.get('password'),
         password_confirm: data.get('password_confirm')});
       resetModal.hide(); show('Temporary password saved and existing sessions revoked.'); await load();
     } catch (error) { showModalError(resetForm, error.message); }
+    finally {
+      resettingPassword = false;
+      if (resetPasswordSubmit) {
+        resetPasswordSubmit.disabled = false;
+        resetPasswordSubmit.removeAttribute('aria-busy');
+        resetPasswordSubmit.innerHTML = '<i class="ti ti-key" aria-hidden="true"></i>Reset password';
+      }
+    }
   });
   load().catch(error => show(error.message, 'danger'));
 });

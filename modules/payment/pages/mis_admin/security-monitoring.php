@@ -15,8 +15,8 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=3">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/security-monitoring.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=4">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/security-monitoring.css?v=3">
 <main class="container-fluid payment-page security-monitoring-page py-4" id="paymentSecurityApp"
  data-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php', ENT_QUOTES, 'UTF-8') ?>"
  data-personnel-api="<?= htmlspecialchars(BASE_URL . '/modules/payment/api/mis_admin/payment-users.php', ENT_QUOTES, 'UTF-8') ?>"
@@ -29,7 +29,6 @@ renderBreadcrumbs($breadcrumbs);
       <h1>Security Monitoring</h1>
       <p>Personnel authentication state and attributable Payment security events.</p>
     </div>
-    <button class="btn btn-outline-primary" id="securityRefresh" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
   </header>
 
   <div id="securityNotice" class="d-none" role="alert" aria-live="assertive"></div>
@@ -93,5 +92,5 @@ renderBreadcrumbs($breadcrumbs);
     </div></div>
   </div>
 </main>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=5"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-security-monitoring.js?v=6"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

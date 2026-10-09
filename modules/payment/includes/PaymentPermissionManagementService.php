@@ -14,6 +14,115 @@ final class PaymentPermissionManagementService
         private readonly StructuredActivityAuditWriter $audit
     ) {}
 
+    /** @param array<string,bool> $decisions @return array<string,bool> */
+    public static function normalizeDecisions(array $decisions): array
+    {
+        $catalog = paymentPermissionCatalog();
+        $normalized = [];
+        foreach ($decisions as $permission => $granted) {
+            if (!is_string($permission) || !is_bool($granted)) {
+                throw new InvalidArgumentException('DECISION_INVALID');
+            }
+            $canonical = paymentCanonicalPermission($permission);
+            if (!in_array($canonical, $catalog, true)) {
+                throw new InvalidArgumentException('PERMISSION_INVALID');
+            }
+            if (array_key_exists($canonical, $normalized)) {
+                throw new InvalidArgumentException('DUPLICATE_CANONICAL_PERMISSION');
+            }
+            $normalized[$canonical] = $granted;
+        }
+        ksort($normalized, SORT_STRING);
+        return $normalized;
+    }
+
+    public static function rejectDuplicateDecisionKeysInJson(string $json): void
+    {
+        $offset = 0;
+        self::skipJsonWhitespace($json, $offset);
+        if (($json[$offset] ?? '') !== '{') return;
+        $offset++;
+        while (true) {
+            self::skipJsonWhitespace($json, $offset);
+            if (($json[$offset] ?? '') === '}') return;
+            $key = self::readJsonString($json, $offset);
+            self::skipJsonWhitespace($json, $offset);
+            if (($json[$offset] ?? '') !== ':') return;
+            $offset++;
+            self::skipJsonWhitespace($json, $offset);
+            if ($key === 'decisions' && ($json[$offset] ?? '') === '{') {
+                $offset++;
+                $seen = [];
+                while (true) {
+                    self::skipJsonWhitespace($json, $offset);
+                    if (($json[$offset] ?? '') === '}') return;
+                    $permission = self::readJsonString($json, $offset);
+                    if (isset($seen[$permission])) throw new InvalidArgumentException('DUPLICATE_CANONICAL_PERMISSION');
+                    $seen[$permission] = true;
+                    self::skipJsonWhitespace($json, $offset);
+                    if (($json[$offset] ?? '') !== ':') return;
+                    $offset++;
+                    self::skipJsonValue($json, $offset);
+                    self::skipJsonWhitespace($json, $offset);
+                    if (($json[$offset] ?? '') === ',') { $offset++; continue; }
+                    if (($json[$offset] ?? '') === '}') return;
+                    return;
+                }
+            }
+            self::skipJsonValue($json, $offset);
+            self::skipJsonWhitespace($json, $offset);
+            if (($json[$offset] ?? '') === ',') { $offset++; continue; }
+            return;
+        }
+    }
+
+    private static function skipJsonWhitespace(string $json, int &$offset): void
+    {
+        $length = strlen($json);
+        while ($offset < $length && str_contains(" \t\r\n", $json[$offset])) $offset++;
+    }
+
+    private static function readJsonString(string $json, int &$offset): string
+    {
+        $start = $offset;
+        if (($json[$offset] ?? '') !== '"') throw new InvalidArgumentException('INVALID_JSON');
+        $offset++;
+        $length = strlen($json);
+        while ($offset < $length) {
+            if ($json[$offset] === '\\') { $offset += 2; continue; }
+            if ($json[$offset] === '"') {
+                $offset++;
+                try { return (string) json_decode(substr($json, $start, $offset - $start), true, 512, JSON_THROW_ON_ERROR); }
+                catch (JsonException) { throw new InvalidArgumentException('INVALID_JSON'); }
+            }
+            $offset++;
+        }
+        throw new InvalidArgumentException('INVALID_JSON');
+    }
+
+    private static function skipJsonValue(string $json, int &$offset): void
+    {
+        self::skipJsonWhitespace($json, $offset);
+        $start = $offset;
+        if (($json[$offset] ?? '') === '"') { self::readJsonString($json, $offset); return; }
+        $stack = [];
+        $length = strlen($json);
+        while ($offset < $length) {
+            $char = $json[$offset];
+            if ($char === '"') { self::readJsonString($json, $offset); continue; }
+            if ($char === '{' || $char === '[') $stack[] = $char === '{' ? '}' : ']';
+            elseif ($char === '}' || $char === ']') {
+                if ($stack === []) break;
+                array_pop($stack);
+                $offset++;
+                if ($stack === []) return;
+                continue;
+            } elseif ($char === ',' && $stack === []) break;
+            $offset++;
+        }
+        if ($offset === $start) $offset++;
+    }
+
     /** @param array<string,bool> $decisions @param array{id:int,name:string,role:string} $actor */
     public function update(string $role, array $decisions, string $expectedVersion, string $correlationId, array $actor): array
     {

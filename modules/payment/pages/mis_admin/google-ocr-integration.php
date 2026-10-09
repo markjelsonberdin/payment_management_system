@@ -59,9 +59,9 @@ require_once ROOT_PATH . '/includes/breadcrumbs.php';
 require_once ROOT_PATH . '/includes/layout-start.php';
 renderBreadcrumbs($breadcrumbs);
 ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=1">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-config.css?v=1">
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-colors.css?v=1">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-config.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-colors.css?v=2">
 <main id="ocrAdminApp" class="container-fluid payment-page ocr-admin py-4"
       data-status-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-status.php"
       data-diagnostic-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-test-connection.php">

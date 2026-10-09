@@ -71,6 +71,7 @@ final class PaymentPermissionMatrixService
                     'role_label' => $label,
                     'module' => self::moduleFor($permission),
                     'permission' => $permission,
+                    'capability_label' => self::capabilityLabel($permission),
                     'role_ceiling' => $ceiling ? 'permitted' : 'denied',
                     'core_permission' => $core,
                     'effective_access' => $effective,
@@ -88,29 +89,61 @@ final class PaymentPermissionMatrixService
         foreach ($rows as $row) {
             $modules[$row['module']]['label'] = $row['module'];
             $modules[$row['module']]['permissions'][$row['permission']] = true;
-            $modules[$row['module']]['roles'][$row['role']][] = $row['effective_access'];
+            $modules[$row['module']]['roles'][$row['role']][] = $row;
         }
         $moduleRows = [];
         foreach ($modules as $label => $module) {
             $roleStates = [];
+            $roleAggregates = [];
             foreach (self::ROLES as $role => $_) {
-                $states = $module['roles'][$role] ?? [];
-                $roleStates[$role] = in_array('allowed', $states, true) ? 'allowed'
-                    : (in_array('unavailable', $states, true) ? 'unavailable' : 'denied');
+                $cells = $module['roles'][$role] ?? [];
+                $applicable = array_values(array_filter($cells, static fn(array $cell): bool => $cell['available']));
+                $allowed = count(array_filter($applicable, static fn(array $cell): bool => $cell['effective_access'] === 'allowed'));
+                $protected = count(array_filter($applicable, static fn(array $cell): bool => $cell['protected']));
+                $unavailable = !$available || $applicable === [] || count(array_filter($applicable, static fn(array $cell): bool => $cell['effective_access'] === 'unavailable')) > 0;
+                $state = $unavailable ? 'unavailable'
+                    : ($allowed === count($applicable) ? 'full'
+                        : ($allowed > 0 ? 'partial'
+                            : ($protected === count($applicable) ? 'protected' : 'denied')));
+                $roleAggregates[$role] = [
+                    'state' => $state,
+                    'allowed_count' => $allowed,
+                    'applicable_count' => count($applicable),
+                    'protected_count' => $protected,
+                ];
+                $roleStates[$role] = match ($state) {
+                    'full', 'partial' => 'allowed',
+                    'protected' => 'denied',
+                    default => $state,
+                };
             }
             $moduleRows[] = [
                 'module' => $label,
                 'permissions' => array_keys($module['permissions']),
                 'roles' => $roleStates,
+                'role_aggregates' => $roleAggregates,
             ];
         }
         usort($moduleRows, static fn(array $a, array $b): int => $a['module'] <=> $b['module']);
+
+        $summaryCards = [
+            ['key'=>'allowed','label'=>'Effective allowed','all_label'=>'Effective allowed role assignments','tone'=>'success'],
+            ['key'=>'denied','label'=>'Effective denied','all_label'=>'Effective denied role assignments','tone'=>'secondary'],
+            ['key'=>'explicit','label'=>'Explicit decisions','all_label'=>'Explicit role decisions','tone'=>'primary'],
+            ['key'=>'protected','label'=>'Protected','all_label'=>'Protected role assignments','tone'=>'warning'],
+        ];
+        $summaries = ['all' => $this->summarize($rows)];
+        foreach (self::ROLES as $role => $_) {
+            $summaries[$role] = $this->summarize(array_values(array_filter($rows, static fn(array $row): bool => $row['role'] === $role)));
+        }
 
         return [
             'authorization_available' => $available,
             'roles' => array_map(static fn(string $key, string $label): array => ['key'=>$key,'label'=>$label], array_keys(self::ROLES), array_values(self::ROLES)),
             'versions' => $versions,
             'duplicates' => array_values(array_unique($duplicates)),
+            'summary_cards' => $summaryCards,
+            'summaries' => $summaries,
             'modules' => $moduleRows,
             'rows' => $rows,
         ];
@@ -143,6 +176,25 @@ final class PaymentPermissionMatrixService
     public static function implemented(string $permission): bool
     {
         return paymentCapabilityImplemented($permission);
+    }
+
+    public static function capabilityLabel(string $permission): string
+    {
+        return implode(' · ', array_map(
+            static fn(string $part): string => ucwords(str_replace(['_', '-'], ' ', $part)),
+            explode('.', $permission)
+        ));
+    }
+
+    private function summarize(array $rows): array
+    {
+        $applicable = array_values(array_filter($rows, static fn(array $row): bool => $row['available']));
+        return [
+            'allowed' => count(array_filter($applicable, static fn(array $row): bool => $row['effective_access'] === 'allowed')),
+            'denied' => count(array_filter($applicable, static fn(array $row): bool => $row['effective_access'] === 'denied')),
+            'explicit' => count(array_filter($applicable, static fn(array $row): bool => str_starts_with($row['source'], 'explicit_'))),
+            'protected' => count(array_filter($applicable, static fn(array $row): bool => $row['protected'])),
+        ];
     }
 
     private function critical(string $role, string $permission): bool

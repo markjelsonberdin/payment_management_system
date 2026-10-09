@@ -20,7 +20,7 @@
     color: var(--sms-heading);
 }
 
-.sms-app .payment-page p,
+.sms-app .payment-page p:not(.paymongo-readiness-copy p),
 .sms-app .payment-page .text-muted,
 .sms-app .payment-shell .text-muted,
 .sms-app .payment-dashboard .text-muted,

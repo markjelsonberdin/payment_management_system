@@ -113,10 +113,10 @@ foreach (['AUB Bank Reconciliation', 'Fee Setup', 'Student Billing', 'Payment Ap
     'Accounts Receivable', 'Collection Reporting', 'School Sales', 'Refund', 'Void'] as $forbidden) {
     mis9check(!str_contains($misUi, $forbidden), "MIS UI excludes $forbidden");
 }
-foreach (['Payment Administration', 'Integrations', 'Security'] as $group) {
+foreach (['MIS ADMIN', 'Integrations', 'Security'] as $group) {
     mis9check(str_contains($config, "'$group'"), "Navigation group $group");
 }
-mis9check(!str_contains($auth, "overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "Dashboard Module") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and Overview remain separate under their configured sections');
+mis9check(!str_contains($auth, "overview_group_label'] = 'Dashboard'") && str_contains($sidebar, "\$dashboardLabel = \$paymentRoleKey === 'mis_admin' ? 'Dashboard' : 'Overview';") && str_contains($sidebar, "if (!\$isMisOverview || \$paymentRoleKey === 'mis_admin')"), 'Dashboard and Overview remain separate under their configured sections');
 mis9check(str_contains($sidebar, "module['overview_group_label']"), 'Optional navigation metadata');
 mis9check(!str_contains($config, "'MIS ADMIN PORTAL'"), 'Legacy flat MIS group absent');
 

@@ -23,7 +23,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     permissionUpdateRespond(['ok'=>false,'error'=>'METHOD_NOT_ALLOWED'], 405);
 }
 
-$input = json_decode((string) file_get_contents('php://input'), true);
+$rawInput = (string) file_get_contents('php://input');
+try {
+    PaymentPermissionManagementService::rejectDuplicateDecisionKeysInJson($rawInput);
+} catch (InvalidArgumentException $exception) {
+    if ($exception->getMessage() === 'DUPLICATE_CANONICAL_PERMISSION') {
+        permissionUpdateRespond(['ok'=>false,'error'=>'DUPLICATE_CANONICAL_PERMISSION','message'=>'Each canonical permission may be submitted only once.'], 422);
+    }
+    permissionUpdateRespond(['ok'=>false,'error'=>'INVALID_JSON'], 400);
+}
+$input = json_decode($rawInput, true);
 if (!is_array($input)) permissionUpdateRespond(['ok'=>false,'error'=>'INVALID_JSON'], 400);
 $csrf = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($input['csrf_token'] ?? ''));
 if (!verifyCsrfToken($csrf)) permissionUpdateRespond(['ok'=>false,'error'=>'CSRF_INVALID'], 403);
@@ -34,12 +43,7 @@ try {
     $actor = PayMongoIntegrationSecurity::requireActiveMisActor($core, 'payment.permissions.manage');
     $decisions = $input['decisions'] ?? null;
     if (!is_array($decisions)) throw new InvalidArgumentException('DECISIONS_REQUIRED');
-    $normalized = [];
-    foreach ($decisions as $permission => $value) {
-        if (!is_string($permission) || !is_bool($value)) throw new InvalidArgumentException('DECISION_INVALID');
-        $normalized[paymentCanonicalPermission($permission)] = $value;
-    }
-    ksort($normalized, SORT_STRING);
+    $normalized = PaymentPermissionManagementService::normalizeDecisions($decisions);
     $result = (new PaymentPermissionManagementService($core, new StructuredActivityAuditWriter($core)))->update(
         (string) ($input['role'] ?? ''),
         $normalized,
@@ -57,7 +61,15 @@ try {
         ? $exception->getMessage() : 'NOT_AUTHORIZED';
     permissionUpdateRespond(['ok'=>false,'error'=>$safe], 403);
 } catch (InvalidArgumentException $exception) {
-    permissionUpdateRespond(['ok'=>false,'error'=>'REQUEST_INVALID'], 422);
+    $code = in_array($exception->getMessage(), ['DUPLICATE_CANONICAL_PERMISSION','PERMISSION_INVALID','DECISION_INVALID','DECISIONS_REQUIRED'], true)
+        ? $exception->getMessage() : 'REQUEST_INVALID';
+    $message = match ($code) {
+        'DUPLICATE_CANONICAL_PERMISSION' => 'Each canonical permission may be submitted only once.',
+        'PERMISSION_INVALID' => 'A permission key is not part of the supported catalog.',
+        'DECISION_INVALID' => 'Each permission decision must be true or false.',
+        default => 'The permission update request is invalid.',
+    };
+    permissionUpdateRespond(['ok'=>false,'error'=>$code,'message'=>$message], 422);
 } catch (Throwable $exception) {
     error_log('Payment permission update failed: ' . get_class($exception));
     permissionUpdateRespond(['ok'=>false,'error'=>'PERMISSION_UPDATE_FAILED'], 500);

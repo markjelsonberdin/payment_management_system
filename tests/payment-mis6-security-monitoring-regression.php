@@ -113,7 +113,7 @@ mis6Check(str_contains($api, "'AUTHENTICATION_REQUIRED'") && str_contains($api, 
 mis6Check(str_contains($api, "actorRow['status'] !== 'active'") && str_contains($api, "actorRow['role_key'] !== 'mis_admin'"), 'API revalidates active current MIS actor');
 mis6Check(str_contains($js, "action: 'unlock'") && str_contains($js, 'app.dataset.personnelApi'), 'Canonical unlock endpoint reused');
 mis6Check(!str_contains($js, 'summary-filter') && !str_contains($js, 'View accounts'), 'Overview cards remain informational without shortcut controls');
-foreach (['Locked Accounts', 'Failed Sign-ins', 'Disabled Accounts', 'Revoked Sessions'] as $simpleLabel) {
+foreach (['Locked Accounts', 'Failed Attempts', 'Disabled Accounts', 'Revoked Sessions'] as $simpleLabel) {
     mis6Check(str_contains($js, $simpleLabel), "Simple summary label retained: {$simpleLabel}");
 }
 mis6Check(!str_contains($js, 'Security monitoring updated.') && !str_contains($page, 'Loading security information'), 'Passive refresh and loading banners stay hidden');

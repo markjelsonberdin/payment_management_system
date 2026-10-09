@@ -80,8 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderSummary(summary) {
     const cards = [
-      ['Locked Accounts', summary.locked_accounts, 'danger', 'Currently locked Payment personnel.', 'ti-lock-clock', 'Current state'],
-      ['Failed Attempts', summary.accounts_with_failed_attempts, 'warning', 'Accounts with current failed counters.', 'ti-password', 'Counter state'],
+      ['Locked Accounts', summary.locked_accounts, 'danger', 'Currently locked Payment personnel.', 'ti-lock', 'Current state'],
+      ['Failed Attempts', summary.accounts_with_failed_attempts, 'warning', 'Accounts with current failed counters.', 'ti-login', 'Counter state'],
       ['Disabled Accounts', summary.disabled_accounts, 'neutral', 'Administratively disabled personnel.', 'ti-user-off', 'Administrative'],
       ['Revoked Sessions', summary.recent_session_revocations, 'info', 'Persisted revocations in the last 30 days.', 'ti-logout', 'Recorded events']
     ];
@@ -165,8 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function load() {
     notice();
     app.setAttribute('aria-busy', 'true');
-    byId('securityRefresh').disabled = true;
-    byId('securityRefresh').querySelector('i')?.classList.add('fa-spin');
     try {
       const response = await fetch(`${app.dataset.api}?${query()}`, {
         credentials: 'same-origin', cache: 'no-store', headers: {Accept: 'application/json'}
@@ -185,8 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
       byId('securityEventRows').innerHTML = '<tr><td colspan="7"><div class="security-empty-state is-error">Unable to load security events.</div></td></tr>';
     } finally {
       app.removeAttribute('aria-busy');
-      byId('securityRefresh').disabled = false;
-      byId('securityRefresh').querySelector('i')?.classList.remove('fa-spin');
     }
   }
 
@@ -203,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await load();
   }
 
-  byId('securityRefresh').addEventListener('click', load);
   byId('personnelFilters').addEventListener('submit', event => { event.preventDefault(); state.personnelPage = 1; load(); });
   byId('eventFilters').addEventListener('submit', event => { event.preventDefault(); state.eventPage = 1; load(); });
   byId('personnelReset').addEventListener('click', () => { byId('personnelFilters').reset(); state.personnelPage = 1; load(); });

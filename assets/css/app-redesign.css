@@ -67,7 +67,7 @@ body.sms-app {
 .sms-app .sms-navbar .nav-link,
 .sms-app .sms-navbar .dropdown-toggle,
 .sms-app .sms-navbar .btn-link {
-    color: #344054 !important;
+    color: var(--sms-text) !important;
     -webkit-text-fill-color: currentColor;
 }
 
@@ -82,7 +82,7 @@ body.sms-app {
 
 .sms-app .sms-navbar .sidebar-toggle,
 .sms-app .sms-navbar .btn-link:hover {
-    color: #17477f !important;
+    color: var(--sms-primary) !important;
 }
 
 .sms-app .sms-navbar .notification-badge {
