@@ -1,0 +1,204 @@
+name: Validate SMS2 release image
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to validate
+        required: true
+        default: codex/payment-stabilization-production
+        type: string
+  push:
+    branches:
+      - codex/payment-stabilization-production
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - composer.json
+      - composer.lock
+      - modules/payment/includes/ocr/**
+      - modules/payment/includes/OcrConfigurationService.php
+      - modules/payment/api/accounting/ocr-scan-concern.php
+      - .github/workflows/validate-release-image.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - composer.json
+      - composer.lock
+      - modules/payment/includes/ocr/**
+      - modules/payment/includes/OcrConfigurationService.php
+      - modules/payment/api/accounting/ocr-scan-concern.php
+      - .github/workflows/validate-release-image.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.event.pull_request.head.sha || github.sha }}
+
+      - name: Record candidate SHA
+        id: candidate
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm Docker daemon is available
+        id: docker
+        shell: bash
+        run: |
+          if docker info >/dev/null 2>&1; then
+            echo "PASS: Docker daemon is available."
+          else
+            echo "::notice title=BLOCKED::Docker daemon is unavailable on this runner."
+            exit 1
+          fi
+
+      - name: Build production Docker image locally
+        id: image
+        env:
+          IMAGE: sms2-release-validation:${{ github.run_id }}
+        run: docker build --pull --tag "$IMAGE" .
+
+      - name: Verify runtime dependencies, OCR defaults, and retired legacy calls
+        id: runtime
+        env:
+          IMAGE: sms2-release-validation:${{ github.run_id }}
+        run: |
+          docker run --rm -i -e SMS2_ENABLE_LEGACY_OCR=1 "$IMAGE" php <<'PHP'
+          <?php
+          require '/var/www/html/vendor/autoload.php';
+          foreach (['pdo_mysql', 'mbstring', 'curl', 'openssl', 'json', 'fileinfo', 'zip'] as $extension) {
+              if (!extension_loaded($extension)) {
+                  fwrite(STDERR, "Missing required PHP extension: {$extension}\n");
+                  exit(1);
+              }
+          }
+          foreach ([
+              'Google\\Cloud\\Vision\\V1\\ImageAnnotatorClient',
+              'Grpc\\BaseStub',
+          ] as $class) {
+              if (!class_exists($class)) {
+                  fwrite(STDERR, "Required Composer class failed to load.\n");
+                  exit(1);
+              }
+          }
+          $caPath = '/var/www/html/vendor/grpc/grpc/etc/roots.pem';
+          $caBundle = is_readable($caPath) ? file_get_contents($caPath) : false;
+          if (!is_string($caBundle) || !str_contains($caBundle, 'BEGIN CERTIFICATE')) {
+              fwrite(STDERR, "Required gRPC CA bundle is missing or unreadable.\n");
+              exit(1);
+          }
+          require '/var/www/html/modules/payment/includes/OcrConfigurationService.php';
+          $defaults = (new ReflectionClass(OcrConfigurationService::class))->getConstant('DEFAULTS');
+          if (($defaults['ocr_enabled'] ?? null) !== '0'
+              || ($defaults['ocr_mode'] ?? null) !== 'DOCUMENT_TEXT_DETECTION'
+              || ($defaults['ocr_monthly_limit'] ?? null) !== '900') {
+              fwrite(STDERR, "OCR defaults do not match the approved disabled configuration.\n");
+              exit(1);
+          }
+          require '/var/www/html/modules/payment/includes/ocr/GoogleOCRService.php';
+          $legacy = new GoogleOCRService();
+          foreach ([
+              static fn() => $legacy->extractFromImage('synthetic test bytes'),
+              static fn() => $legacy->processReceipt(1, 'synthetic/path', 1),
+          ] as $legacyCall) {
+              try {
+                  $legacyCall();
+                  fwrite(STDERR, "Retired legacy OCR entry point unexpectedly ran.\n");
+                  exit(1);
+              } catch (LogicException $error) {
+                  if ($error->getMessage() !== 'LEGACY_OCR_SERVICE_RETIRED') {
+                      fwrite(STDERR, "Legacy OCR returned an unexpected failure.\n");
+                      exit(1);
+                  }
+              }
+          }
+          echo "PASS: PHP dependencies, Vision SDK, gRPC CA, OCR defaults, and legacy retirement.\n";
+          PHP
+
+      - name: Scan built image for excluded artifacts
+        id: scan
+        env:
+          IMAGE: sms2-release-validation:${{ github.run_id }}
+        run: |
+          docker run --rm "$IMAGE" sh -eu -c '
+            root=/var/www/html
+            fail() { echo "FAIL: excluded artifact category found: $1" >&2; exit 1; }
+            test ! -e "$root/scratch" || fail scratch
+            test ! -e "$root/tests" || fail tests
+            test ! -e "$root/docs" || fail docs
+            test ! -e "$root/.github" || fail ci_metadata
+            test ! -e "$root/database/ACCOUNTS.txt" || fail bootstrap_credentials
+            test ! -e "$root/database/seed_accounts.php" || fail unsafe_seed_script
+            test ! -e "$root/database/seed_panel_members.php" || fail unsafe_seed_script
+            if find "$root" -type d -name credentials -print -quit | grep -q .; then fail credentials_directory; fi
+            if find "$root" -type f \( -name ".env" -o -name "*.env" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*service-account*.json" -o -name "*-payment-management-system-*.json" -o -name "*.log" -o -name "*dump.sql" -o -name "*export.sql" -o -name "*backup.sql" -o -name "payment_db_production.sql" -o -name "payment_db.sql" \) -print -quit | grep -q .; then fail file; fi
+            if find "$root" -type f -name "*.pem" ! -path "$root/vendor/grpc/grpc/etc/roots.pem" -print -quit | grep -q .; then fail private_pem; fi
+            if find "$root" -type f -name "*.json" -exec grep -lE '"type"[[:space:]]*:[[:space:]]*"service_account"|"private_key"[[:space:]]*:' {} + | grep -q .; then fail service_account_json; fi
+            if find "$root/uploads/receipts" -type f ! -name .htaccess -print -quit | grep -q .; then fail receipt_upload; fi
+            if find "$root/storage/backups" -type f ! -name .htaccess -print -quit | grep -q .; then fail backup; fi
+            if grep -RIlE --exclude=roots.pem -- "BEGIN (EC |RSA |OPENSSH )?PRIVATE KEY" "$root" >/dev/null 2>&1; then fail private_key_content; fi
+            echo "PASS: no credentials, private keys, dumps, logs, scratch reports, or receipt uploads in image."
+          '
+
+      - name: Start Apache image and check application health
+        id: health
+        env:
+          IMAGE: sms2-release-validation:${{ github.run_id }}
+          CONTAINER: sms2-health-${{ github.run_id }}
+        run: |
+          docker run --detach --name "$CONTAINER" --publish 127.0.0.1:18080:8000 "$IMAGE"
+          cleanup() { docker rm --force "$CONTAINER" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error http://127.0.0.1:18080/health.php | grep -q '"status":"ok"'; then
+              echo "PASS: Apache and SMS2 health endpoint started."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "FAIL: container did not serve the SMS2 health endpoint." >&2
+          docker logs "$CONTAINER" >&2
+          exit 1
+
+      - name: Summarize validation status
+        if: always()
+        shell: bash
+        env:
+          DOCKER_OUTCOME: ${{ steps.docker.outcome }}
+          IMAGE_OUTCOME: ${{ steps.image.outcome }}
+          RUNTIME_OUTCOME: ${{ steps.runtime.outcome }}
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          HEALTH_OUTCOME: ${{ steps.health.outcome }}
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          status() {
+            case "$1" in
+              success) echo PASS ;;
+              skipped) echo BLOCKED ;;
+              *) echo FAIL ;;
+            esac
+          }
+          docker_status=PASS
+          if [[ "$DOCKER_OUTCOME" != success ]]; then docker_status=BLOCKED; fi
+          {
+            echo "### SMS2 Docker image validation"
+            echo "Candidate: \`${CANDIDATE_SHA:-unavailable}\`"
+            echo "- Docker runner: $docker_status"
+            echo "- Image build: $(status "$IMAGE_OUTCOME")"
+            echo "- Dependencies/CA/OCR guardrails: $(status "$RUNTIME_OUTCOME")"
+            echo "- Sensitive artifact scan: $(status "$SCAN_OUTCOME")"
+            echo "- Apache and /health.php: $(status "$HEALTH_OUTCOME")"
+            echo "No image push, deployment, production database write, or Vision OCR request is performed by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$DOCKER_OUTCOME" != success || "$IMAGE_OUTCOME" != success || "$RUNTIME_OUTCOME" != success || "$SCAN_OUTCOME" != success || "$HEALTH_OUTCOME" != success ]]; then
+            exit 1
+          fi
