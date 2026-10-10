@@ -59,4 +59,12 @@ $assert($reserve !== false && $mark !== false && $call !== false && $reserve < $
 $assert(str_contains($processor, 'min(900,'), 'Application monthly quota remains capped at 900 units.');
 $assert(str_contains($processor, 'cache_hit') && strpos($processor, 'cache_hit') < $call, 'Cache-hit handling returns before a provider request.');
 
+$dockerIgnore = file_get_contents($root . '/.dockerignore');
+$grpcStub = file_get_contents($root . '/vendor/grpc/grpc/src/lib/BaseStub.php');
+$caBundle = $root . '/vendor/grpc/grpc/etc/roots.pem';
+$pemRule = strpos($dockerIgnore, '**/*.pem');
+$caException = strpos($dockerIgnore, '!vendor/grpc/grpc/etc/roots.pem');
+$assert($pemRule !== false && $caException !== false && $caException > $pemRule, 'Docker context restores the required public gRPC CA bundle after the private PEM exclusion.');
+$assert(is_file($caBundle) && str_contains($grpcStub, "../../etc/roots.pem"), 'The gRPC runtime CA bundle required for TLS is present in the tracked dependency tree.');
+
 echo "PASS: {$checks} OCR quota-path regression checks.\n";

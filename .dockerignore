@@ -8,6 +8,7 @@
 **/*.log
 **/credentials/
 **/*.pem
+!vendor/grpc/grpc/etc/roots.pem
 **/*.key
 **/*.p12
 **/*.pfx
