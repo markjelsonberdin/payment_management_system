@@ -24,10 +24,19 @@ checkOcr($status['status'] === 'NOT_CONFIGURED' && $status['readable'] === false
 
 $outside = tempnam(sys_get_temp_dir(), 'sms2-ocr-');
 if ($outside === false) throw new RuntimeException('Temporary file unavailable');
+file_put_contents($outside, json_encode([
+    'type' => 'service_account',
+    'project_id' => 'bcp-payment-management-system',
+    'private_key' => 'synthetic-test-key-not-valid-for-authentication',
+    'client_email' => 'fixture@example.invalid',
+], JSON_THROW_ON_ERROR));
 try {
     putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $outside);
     $status = $service->configurationStatus();
     checkOcr($status['status'] === 'CONFIGURED' && $status['readable'], 'Protected external credential path is accepted');
+    file_put_contents($outside, '{invalid-json');
+    $status = $service->configurationStatus();
+    checkOcr($status['status'] === 'NOT_CONFIGURED' && !$status['readable'], 'Readable but malformed external credential files fail closed');
 } finally { @unlink($outside); }
 
 $inline = json_encode([

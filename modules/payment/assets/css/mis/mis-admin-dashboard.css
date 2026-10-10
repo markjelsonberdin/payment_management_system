@@ -39,8 +39,8 @@
 
 .mis-dashboard-header h1 { margin: 0; color: var(--dash-navy); font-size: 1.55rem; font-weight: 800; }
 .mis-dashboard-header p { margin: .15rem 0 0; color: var(--dash-muted); font-size: .85rem; }
-.mis-dashboard-refresh-wrap { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-.mis-dashboard-refresh-wrap small { color: var(--dash-muted); font-size: .72rem; }
+.mis-dashboard-update-status { display: flex; align-items: center; flex-wrap: wrap; }
+.mis-dashboard-update-status small { color: var(--dash-muted); font-size: .72rem; }
 .mis-dashboard-role-counts { display: flex; flex-wrap: wrap; gap: .75rem; }
 .mis-dashboard-role-count { display: inline-flex; align-items: center; gap: .75rem; padding: .65rem .85rem; border: 1px solid var(--dash-border); border-radius: .6rem; }
 .mis-dashboard-role-count strong { font-size: .8rem; }

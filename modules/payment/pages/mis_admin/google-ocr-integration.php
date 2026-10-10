@@ -62,6 +62,7 @@ renderBreadcrumbs($breadcrumbs);
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/payment-mis-admin.css?v=2">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-config.css?v=2">
 <link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-colors.css?v=2">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/payment/assets/css/mis/google-ocr-readiness.css?v=1">
 <main id="ocrAdminApp" class="container-fluid payment-page ocr-admin py-4"
       data-status-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-status.php"
       data-diagnostic-url="<?= BASE_URL ?>/modules/payment/api/mis_admin/ocr-test-connection.php">
@@ -73,6 +74,12 @@ renderBreadcrumbs($breadcrumbs);
     <?php foreach ([['ocrStatusCard','ti-scan','OCR Status','ocrSummaryStatus','ocrSummaryStatusNote'],['ocrAuthCard','ti-shield-check','Authentication Status','ocrSummaryAuth','ocrSummaryAuthNote'],['ocrUsageCard','ti-chart-bar','Monthly OCR Usage','ocrSummaryUsage','ocrSummaryMonth'],['ocrQuotaCard','ti-gauge','Remaining Quota','ocrSummaryRemaining','ocrSummaryQuotaNote']] as [$card,$icon,$label,$value,$note]): ?>
     <article class="ocr-summary" id="<?= e($card) ?>"><span class="ocr-summary-icon"><i class="ti <?= e($icon) ?>"></i></span><div><small><?= e($label) ?></small><strong id="<?= e($value) ?>">Loading…</strong><p id="<?= e($note) ?>">Loading persisted status…</p></div></article>
     <?php endforeach; ?>
+  </section>
+
+  <section class="ocr-panel ocr-readiness" aria-labelledby="ocrReadinessTitle">
+    <div class="ocr-panel-title"><div><span class="ocr-title-icon"><i class="ti ti-checklist"></i></span><div><h2 id="ocrReadinessTitle">Integration Readiness</h2><p>Ready requires current configuration, protected storage, database/quota checks, and a successful OCR test.</p></div></div><span class="ocr-pill" id="ocrReadinessBadge">Checking</span></div>
+    <div class="ocr-readiness-grid" id="ocrReadinessSteps" aria-live="polite"><div class="ocr-readiness-step"><i class="ti ti-loader-2"></i><div><strong>Checking readiness</strong><span>Loading current system status.</span></div></div></div>
+    <div class="ocr-safe-note"><i class="ti ti-info-circle"></i><span>The authentication diagnostic does not send a receipt to Vision. A controlled OCR test is a separate request that may consume quota or incur Google Cloud charges; it remains pending until separately authorized.</span></div>
   </section>
 
   <div class="ocr-main-grid">
@@ -94,5 +101,5 @@ renderBreadcrumbs($breadcrumbs);
 </main>
 
 <div class="modal fade" id="ocrConfirmModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content ocr-confirm"><div class="modal-header"><div><h2 class="modal-title">Confirm Configuration Changes</h2><p>Review availability and quota changes before saving.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>This update applies to authorized receipt OCR requests.</p><div class="ocr-change-table"><div><span>Setting</span><span>Current</span><span>New</span></div><div><strong>OCR Processing</strong><span id="ocrPreviousEnabled">—</span><span id="ocrNewEnabled">—</span></div><div><strong>Monthly Quota</strong><span id="ocrPreviousLimit">—</span><span id="ocrNewLimit">—</span></div></div><div class="ocr-safe-note"><i class="ti ti-shield-check"></i><span>The change will be attributed to the active administrator through the existing structured audit flow.</span></div></div><div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="ocrConfirmSave" type="button">Confirm &amp; Apply</button></div></div></div></div>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-ocr-administration.js?v=3" defer></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-ocr-administration.js?v=4" defer></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

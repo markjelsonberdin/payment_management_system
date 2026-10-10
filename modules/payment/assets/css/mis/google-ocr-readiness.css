@@ -1,0 +1,11 @@
+.ocr-readiness { margin-bottom: 1rem; }
+.ocr-readiness-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; padding-top: 1rem; }
+.ocr-readiness-step { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; padding: .75rem; color: var(--sms-text); background: var(--sms-surface-muted); border: 1px solid var(--sms-border); border-radius: .55rem; }
+.ocr-readiness-step > i { flex: 0 0 auto; margin-top: .08rem; color: var(--sms-text-muted); }
+.ocr-readiness-step strong, .ocr-readiness-step span { display: block; }
+.ocr-readiness-step strong { color: var(--sms-text-strong); font-size: .72rem; }
+.ocr-readiness-step span { margin-top: .15rem; color: var(--sms-text-muted); font-size: .66rem; line-height: 1.4; }
+.ocr-readiness-step.is-verified > i { color: var(--sms-success); }
+.ocr-readiness-step.is-blocked > i { color: var(--sms-danger); }
+.ocr-readiness-step.is-pending > i { color: var(--sms-warning); }
+@media (max-width: 575.98px) { .ocr-readiness-grid { grid-template-columns: 1fr; } }

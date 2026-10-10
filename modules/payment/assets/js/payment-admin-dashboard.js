@@ -4,7 +4,7 @@
   if (!byId('misOverview')) return;
 
   const links = window.MIS_OVERVIEW_LINKS || {};
-  let requestVersion = 0;
+  let requestInFlight = false;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -40,7 +40,8 @@
     const alertCount = summary ? Number(summary.locked_accounts || 0) + Number(summary.accounts_with_failed_attempts || 0) : null;
     const ocr = overview.ocr;
     const paymongo = overview.paymongo;
-    const ocrState = !ocr ? 'Unavailable' : (ocr.enabled ? (ocr.status === 'Technical configuration saved' ? 'Enabled' : 'Error') : 'Disabled');
+    const ocrReadiness = ocr?.readiness?.state || 'UNAVAILABLE';
+    const ocrState = titleCase(ocrReadiness);
     const paymongoConfigured = !!(paymongo && paymongo.api_credentials && paymongo.webhook_secret);
     const paymongoState = !paymongo ? 'Unavailable' : (paymongoConfigured ? 'Configured' : 'Not Configured');
     const roles = accounts?.by_role;
@@ -66,9 +67,9 @@
         href: links.security
       }),
       kpiCard({
-        label: 'Google OCR', value: ocrState, detail: '', description: 'Receipt scanning status.',
-        icon: 'ti-scan', tone: ocrState === 'Enabled' ? 'success' : 'neutral',
-        status: statusPill(ocr?.status || 'Configuration unavailable', ocrState === 'Enabled' ? 'success' : 'neutral'),
+        label: 'Google OCR', value: ocrState, detail: '', description: 'Verified OCR readiness; OAuth alone does not mean processing is ready.',
+        icon: 'ti-scan', tone: ocrReadiness === 'READY' ? 'success' : ocrReadiness === 'BLOCKED' || ocrReadiness === 'DEGRADED' ? 'danger' : 'neutral',
+        status: statusPill(ocrReadiness === 'READY' ? 'Ready' : ocr?.enabled ? 'Pending verification' : 'Disabled', ocrReadiness === 'READY' ? 'success' : ocrReadiness === 'BLOCKED' ? 'danger' : 'neutral'),
         href: links.ocr
       }),
       kpiCard({
@@ -96,7 +97,10 @@
     const paymongo = data.paymongo;
     const ocr = data.ocr;
     const payConfigured = !!(paymongo && paymongo.api_credentials && paymongo.webhook_secret);
-    const ocrConfigured = !!(ocr && ocr.status === 'Technical configuration saved');
+    const readiness = ocr?.readiness || {};
+    const readinessState = readiness.state || 'UNAVAILABLE';
+    const readinessSteps = Array.isArray(readiness.steps) ? readiness.steps.map(item =>
+      step(item.label || 'OCR readiness', item.detail || 'Status unavailable.', item.state === 'verified' ? 'ok' : item.state === 'blocked' ? 'error' : 'pending')) : [];
     byId('integrationHealth').innerHTML =
       integrationCard('PayMongo QR Ph', 'ti-qrcode', payConfigured ? 'Configured' : 'Incomplete', payConfigured ? 'success' : 'warning', [
         step('Configuration', paymongo?.environment ? titleCase(paymongo.environment) + ' mode saved' : 'Environment unavailable', paymongo?.environment ? 'ok' : 'pending'),
@@ -104,13 +108,8 @@
         step('Webhook secret', paymongo?.webhook_secret ? 'Protected secret present' : 'Secret missing', paymongo?.webhook_secret ? 'ok' : 'error'),
         step('Provider connectivity', 'Not checked by this dashboard', 'pending')
       ]) +
-      integrationCard('Google OCR', 'ti-scan', ocrConfigured && ocr?.enabled ? 'Enabled' : (ocrConfigured ? 'Disabled' : 'Incomplete'),
-        ocrConfigured && ocr?.enabled ? 'success' : 'warning', [
-        step('Configuration', ocr?.status || 'Configuration unavailable', ocrConfigured ? 'ok' : 'error'),
-        step('Receipt scanning', ocr?.enabled ? 'Enabled by configuration' : 'Disabled by configuration', ocr?.enabled ? 'ok' : 'pending'),
-        step('Provider authentication', 'Not checked by this dashboard', 'pending'),
-        step('Live OCR processing', 'Unverified', 'pending')
-      ]);
+      integrationCard('Google OCR', 'ti-scan', readinessState === 'READY' ? 'Ready' : titleCase(readinessState),
+        readinessState === 'READY' ? 'success' : readinessState === 'BLOCKED' || readinessState === 'DEGRADED' ? 'danger' : 'warning', readinessSteps);
   }
 
   function eventIcon(type) {
@@ -154,42 +153,53 @@
     return body.data || body;
   }
 
-  async function load() {
-    const current = ++requestVersion;
-    byId('refreshDashboard').disabled = true;
-    setLoading();
-    byId('dashboardNotice').className = 'd-none';
+  async function load(initial = false) {
+    if (requestInFlight) return;
+    requestInFlight = true;
+    if (initial) setLoading();
 
-    const [overviewResult, securityResult] = await Promise.allSettled([
-      fetchJson(window.MIS_OVERVIEW_API),
-      fetchJson(window.MIS_SECURITY_API + '?page_size=25&event_page=1')
-    ]);
-    if (current !== requestVersion) return;
-    byId('refreshDashboard').disabled = false;
+    try {
+      const [overviewResult, securityResult] = await Promise.allSettled([
+        fetchJson(window.MIS_OVERVIEW_API),
+        fetchJson(window.MIS_SECURITY_API + '?page_size=25&event_page=1')
+      ]);
 
-    if (overviewResult.status === 'rejected') {
-      byId('dashboardNotice').className = 'alert alert-danger';
-      byId('dashboardNotice').textContent = 'MIS Admin dashboard is temporarily unavailable. Please refresh or sign in again.';
-      byId('adminKpis').innerHTML = '<div class="mis-dashboard-state is-error">Dashboard summary unavailable.</div>';
-      byId('integrationHealth').innerHTML = '<div class="mis-dashboard-state is-error">Integration configuration unavailable.</div>';
-      byId('roleCounts').textContent = 'Role counts unavailable.';
-      byId('securitySummary').textContent = 'Account security summary unavailable.';
-      byId('adminLastUpdated').textContent = 'Refresh failed';
-      renderSecurity(securityResult.status === 'fulfilled' ? securityResult.value : null);
-    } else {
+      if (overviewResult.status === 'rejected') {
+        if (initial) {
+          byId('dashboardNotice').className = 'alert alert-danger';
+          byId('adminKpis').innerHTML = '<div class="mis-dashboard-state is-error">Dashboard summary unavailable.</div>';
+          byId('integrationHealth').innerHTML = '<div class="mis-dashboard-state is-error">Integration configuration unavailable.</div>';
+          byId('roleCounts').textContent = 'Role counts unavailable.';
+          byId('securitySummary').textContent = 'Account security summary unavailable.';
+          renderSecurity(securityResult.status === 'fulfilled' ? securityResult.value : null);
+        } else {
+          byId('dashboardNotice').className = 'alert alert-warning';
+          byId('dashboardNotice').textContent = 'Live update is temporarily unavailable. Showing the last loaded data; automatic retry continues.';
+        }
+        byId('adminLastUpdated').textContent = 'Automatic update delayed';
+        return;
+      }
+
       const overview = overviewResult.value;
       const security = securityResult.status === 'fulfilled' ? securityResult.value : null;
       renderKpis(overview, security);
       renderIntegrations(overview);
       renderSecurity(security);
       const updated = new Date(overview.generated_at);
-      byId('adminLastUpdated').textContent = Number.isNaN(updated.getTime()) ? 'Update time unavailable' : 'Updated ' + updated.toLocaleString('en-PH');
+      byId('adminLastUpdated').textContent = Number.isNaN(updated.getTime()) ? 'Auto-updated just now' : 'Auto-updated ' + updated.toLocaleString('en-PH');
       const partial = Object.values(overview.section_status || {}).includes('error') || !security;
       byId('dashboardNotice').className = partial ? 'alert alert-warning' : 'd-none';
-      byId('dashboardNotice').textContent = partial ? 'Some dashboard information is currently unavailable.' : '';
+      byId('dashboardNotice').textContent = partial ? 'Some dashboard information is currently unavailable. Automatic retry continues.' : '';
+    } finally {
+      requestInFlight = false;
     }
   }
 
-  byId('refreshDashboard').addEventListener('click', load);
-  load();
+  load(true);
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible') load();
+  }, 10000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') load();
+  });
 })();

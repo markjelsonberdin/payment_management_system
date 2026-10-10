@@ -52,14 +52,35 @@ final class MisOverviewService
         });
         $this->section($result, 'ocr', function (): array {
             if (!$this->technical) throw new RuntimeException('Technical configuration unavailable');
-            $stmt = $this->technical->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key IN ('ocr_enabled', 'ocr_project_id', 'ocr_mode', 'ocr_monthly_limit')");
+            require_once __DIR__ . '/OcrTechnicalStatusService.php';
+            require_once __DIR__ . '/ocr/GoogleVisionOcrService.php';
+            $stmt = $this->technical->query("SELECT setting_key, setting_value FROM payment_gateway_settings WHERE setting_key LIKE 'ocr_%'");
             $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-            $configured = ($settings['ocr_project_id'] ?? '') !== ''
-                && ($settings['ocr_mode'] ?? '') === 'DOCUMENT_TEXT_DETECTION'
-                && (int) ($settings['ocr_monthly_limit'] ?? 0) >= 1;
-            return [
+            $config = [
                 'enabled' => ($settings['ocr_enabled'] ?? '0') === '1',
-                'status' => $configured ? 'Technical configuration saved' : 'Configuration incomplete',
+                'project_id' => (string) ($settings['ocr_project_id'] ?? ''),
+                'mode' => (string) ($settings['ocr_mode'] ?? 'DOCUMENT_TEXT_DETECTION'),
+                'monthly_limit' => (int) ($settings['ocr_monthly_limit'] ?? 900),
+                'last_test_status' => $settings['ocr_last_test_status'] ?? null,
+                'last_test_authentication' => $settings['ocr_last_test_authentication'] ?? null,
+                'last_test_error_category' => $settings['ocr_last_test_error_category'] ?? null,
+                'last_diagnostic_at' => $settings['ocr_last_diagnostic_at'] ?? null,
+                'last_diagnostic_config_fingerprint' => $settings['ocr_last_diagnostic_config_fingerprint'] ?? null,
+                'last_ocr_successful_test' => $settings['ocr_last_ocr_test_successful_at'] ?? null,
+                'last_ocr_test_config_fingerprint' => $settings['ocr_last_ocr_test_config_fingerprint'] ?? null,
+            ];
+            $provider = new GoogleVisionOcrService();
+            $credential = $provider->configurationStatus();
+            $credential['project_matches'] = $provider->projectIdentityMatches($config['project_id']);
+            $credential['configuration_fingerprint'] = $provider->configurationFingerprint(
+                $config['project_id'], $config['mode'], $config['monthly_limit'], $config['enabled']
+            );
+            $technical = (new OcrTechnicalStatusService($this->technical))->load($config, $credential);
+            return [
+                'enabled' => $config['enabled'],
+                'status' => $config['project_id'] !== '' && $config['mode'] === 'DOCUMENT_TEXT_DETECTION'
+                    ? 'Technical configuration saved' : 'Configuration incomplete',
+                'readiness' => $technical['readiness'],
             ];
         });
         $result['integrations'] = [

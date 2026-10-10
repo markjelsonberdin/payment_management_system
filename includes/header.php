@@ -96,8 +96,8 @@ $bodyClass = $bodyClass ?? '';
     </script>
     <?php endif; ?>
     <!-- SMS 2 Theme -->
-    <link href="<?= BASE_URL ?>/assets/css/theme.css?v=3" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/layout.css?v=5" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/theme.css?v=4" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/layout.css?v=7" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/navbar-components.css?v=7" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/icons.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/responsive.css" rel="stylesheet">
@@ -109,7 +109,7 @@ $bodyClass = $bodyClass ?? '';
     <?php foreach ($smsExtraHeadCss as $smsHeadHref): ?>
     <link href="<?= htmlspecialchars((string) $smsHeadHref, ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet">
     <?php endforeach; ?>
-    <link href="<?= BASE_URL ?>/assets/css/app-redesign.css?v=2" rel="stylesheet">
+    <link href="<?= BASE_URL ?>/assets/css/app-redesign.css?v=4" rel="stylesheet">
     <?php if (strpos(' ' . $bodyClass . ' ', ' welcome-page ') !== false): ?>
     <link href="<?= BASE_URL ?>/assets/css/welcome.css?v=1" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/welcome-site.css?v=2" rel="stylesheet">

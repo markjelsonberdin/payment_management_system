@@ -43,6 +43,12 @@ try {
 
     $configuredProject = trim((string) ($configuration['project_id'] ?? ''));
     $projectMatches = $provider->projectIdentityMatches($configuredProject);
+    $configurationFingerprint = $provider->configurationFingerprint(
+        $configuredProject,
+        (string) ($configuration['mode'] ?? ''),
+        (int) ($configuration['monthly_limit'] ?? 900),
+        (bool) ($configuration['enabled'] ?? false)
+    );
     $configurationValid = ($providerStatus['status'] ?? '') === 'CONFIGURED'
         && ($providerStatus['protected_location'] ?? false) === true
         && strtoupper((string) ($configuration['mode'] ?? '')) === GoogleVisionOcrService::FEATURE
@@ -66,7 +72,9 @@ try {
     }
 
     $correlationId = trim((string) ($_POST['correlation_id'] ?? ''));
-    $service->recordDiagnostic($correlationId, $actor, $diagnostic);
+    $service->recordDiagnostic($correlationId, $actor, $diagnostic + [
+        'configuration_fingerprint' => $configurationFingerprint ?? '',
+    ]);
     ocrDiagnosticRespond([
         'ok' => true,
         'diagnostic' => $diagnostic,

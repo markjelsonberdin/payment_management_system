@@ -22,9 +22,8 @@ renderBreadcrumbs($breadcrumbs);
       <span class="mis-dashboard-heading-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
       <div><h1>Dashboard</h1><p>Monitor Payment personnel, integrations, and security.</p></div>
     </div>
-    <div class="mis-dashboard-refresh-wrap">
-      <small id="adminLastUpdated">Not yet updated</small>
-      <button id="refreshDashboard" class="btn btn-outline-primary" type="button"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</button>
+    <div class="mis-dashboard-update-status">
+      <small id="adminLastUpdated">Loading dashboard data…</small>
     </div>
   </div>
 
@@ -72,5 +71,5 @@ window.MIS_OVERVIEW_API = <?= json_encode(BASE_URL . '/modules/payment/api/mis_a
 window.MIS_SECURITY_API = <?= json_encode(BASE_URL . '/modules/payment/api/mis_admin/security-monitoring.php') ?>;
 window.MIS_OVERVIEW_LINKS = <?= json_encode(['users' => BASE_URL . '/modules/payment/pages/mis_admin/payment-user-management.php', 'security' => BASE_URL . '/modules/payment/pages/mis_admin/security-monitoring.php', 'paymongo' => BASE_URL . '/modules/payment/pages/mis_admin/online-payment-integration.php', 'ocr' => BASE_URL . '/modules/payment/pages/mis_admin/google-ocr-integration.php']) ?>;
 </script>
-<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=8"></script>
+<script src="<?= BASE_URL ?>/modules/payment/assets/js/payment-admin-dashboard.js?v=10"></script>
 <?php require_once ROOT_PATH . '/includes/layout-end.php'; ?>

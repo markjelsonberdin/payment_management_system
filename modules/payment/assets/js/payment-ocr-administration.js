@@ -25,17 +25,45 @@
     }
     function renderConfiguration(data) {
         const config = data.configuration || {};
-        let label = 'Disabled', note = 'Receipt OCR processing is turned off.', cardState = '';
-        if (config.enabled && (!config.project_configured || config.credential_status !== 'CONFIGURED')) { label = 'Not Configured'; note = 'Processing is enabled but configuration is incomplete.'; cardState = 'warning'; }
-        else if (config.enabled) { label = 'Enabled'; note = 'Saved processing state; provider operation is not implied.'; cardState = 'success'; }
+        const readiness = data.readiness || {};
+        const label = value(readiness.state, config.enabled ? 'NOT_CONFIGURED' : 'DISABLED').replaceAll('_', ' ');
+        const note = readiness.state === 'READY' ? 'Current configuration and OCR processing have been verified.'
+            : readiness.state === 'AUTHENTICATED' ? 'OAuth is verified; actual Vision OCR processing is still pending.'
+                : config.enabled ? 'Receipt scanning is enabled, but one or more readiness checks are incomplete.' : 'Receipt OCR processing is currently turned off.';
+        const cardState = readiness.state === 'READY' ? 'success'
+            : readiness.state === 'BLOCKED' || readiness.state === 'DEGRADED' ? 'danger'
+                : readiness.state === 'NOT_CONFIGURED' ? 'warning' : '';
         setText('ocrSummaryStatus', label); setText('ocrSummaryStatusNote', note); state('ocrStatusCard', cardState);
-        badge('ocrConfigurationBadge', config.project_configured ? 'Configured' : 'Incomplete', config.project_configured ? 'success' : 'warning');
+        const projectReady = config.project_matches === true && config.mode_valid === true;
+        badge('ocrConfigurationBadge', projectReady ? 'Project Match' : 'Project Mismatch', projectReady ? 'success' : 'danger');
         badge('ocrCredentialBadge', titleCase(config.credential_status), config.credential_status === 'CONFIGURED' ? 'success' : 'warning');
+    }
+    function renderReadiness(data) {
+        const readiness = data.readiness || {};
+        const steps = Array.isArray(readiness.steps) ? readiness.steps : [];
+        const badgeTone = readiness.state === 'READY' ? 'success' : readiness.state === 'BLOCKED' || readiness.state === 'DEGRADED' ? 'danger' : 'warning';
+        badge('ocrReadinessBadge', value(readiness.state, 'UNAVAILABLE'), badgeTone);
+        const target = byId('ocrReadinessSteps');
+        if (!target) return;
+        target.replaceChildren();
+        if (!steps.length) {
+            const item = document.createElement('div'); item.className = 'ocr-readiness-step is-blocked';
+            item.textContent = 'Readiness data is unavailable.'; target.append(item); return;
+        }
+        const icons = { verified: 'ti-circle-check-filled', blocked: 'ti-alert-circle-filled', pending: 'ti-clock' };
+        steps.forEach((step) => {
+            const item = document.createElement('div'); item.className = `ocr-readiness-step is-${step.state || 'pending'}`;
+            const icon = document.createElement('i'); icon.className = `ti ${icons[step.state] || icons.pending}`; icon.setAttribute('aria-hidden', 'true');
+            const copy = document.createElement('div'); const title = document.createElement('strong'); title.textContent = step.label || 'Readiness check';
+            const detail = document.createElement('span'); detail.textContent = step.detail || 'Status unavailable.';
+            copy.append(title, detail); item.append(icon, copy); target.append(item);
+        });
     }
     function renderDiagnostic(data) {
         const diagnostic = data.diagnostic || {}; let label = 'Not Checked', note = 'No persisted OAuth diagnostic.', cardState = '';
-        if (diagnostic.authentication_state === 'VERIFIED') { label = 'Verified'; note = 'OAuth authentication was verified.'; cardState = 'success'; }
-        else if (diagnostic.authentication_state === 'FAILED') { label = 'Failed'; note = 'The latest OAuth diagnostic failed.'; cardState = 'danger'; }
+        if (diagnostic.authentication_state === 'VERIFIED' && diagnostic.diagnostic_current) { label = 'Verified'; note = 'OAuth authentication was verified for the current configuration.'; cardState = 'success'; }
+        else if (diagnostic.authentication_state === 'FAILED' && diagnostic.diagnostic_current) { label = 'Failed'; note = 'The latest OAuth diagnostic failed for the current configuration.'; cardState = 'danger'; }
+        else if (diagnostic.last_status) { label = 'Stale'; note = 'Configuration changed since the last OAuth diagnostic.'; cardState = 'warning'; }
         else if (data.configuration?.credential_status !== 'CONFIGURED') { label = 'Not Configured'; note = 'Credential readiness is incomplete.'; cardState = 'warning'; }
         setText('ocrSummaryAuth', label); setText('ocrSummaryAuthNote', note); setText('ocrCredentialDiagnostic', label); state('ocrAuthCard', cardState);
         setText('ocrDiagnosticStatus', diagnostic.last_status ? titleCase(diagnostic.last_status) : 'Not Checked');
@@ -58,7 +86,7 @@
         [['ocrConsumed',recorded?usage.consumed:null],['ocrReserved',recorded?usage.reserved:null],['ocrRemaining',recorded?usage.remaining:null],['ocrProviderAttempts',available?usage.provider_attempts:null],['ocrSuccessful',recorded?usage.successful:null],['ocrFailed',recorded?usage.failed:null],['ocrCacheHits',available?usage.cache_hits:null],['ocrStale',available?data.stale_incomplete:null],['ocrConsumedLegend',recorded?usage.consumed:null],['ocrReservedLegend',recorded?usage.reserved:null],['ocrAvailableLegend',recorded?usage.remaining:null]].forEach(([id,item]) => setText(id,item));
     }
     async function refresh() {
-        try { const response = await fetch(root.dataset.statusUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } }); const payload = await response.json(); if (!response.ok || !payload.ok) throw new Error(payload.message || 'OCR status is unavailable.'); const data = payload.data || {}; renderConfiguration(data); renderDiagnostic(data); renderUsage(data); renderRows('ocrLifecycleRows', data.lifecycle_states, 'lifecycle_state'); renderRows('ocrFailureRows', data.failure_categories, 'category'); }
+        try { const response = await fetch(root.dataset.statusUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } }); const payload = await response.json(); if (!response.ok || !payload.ok) throw new Error(payload.message || 'OCR status is unavailable.'); const data = payload.data || {}; renderConfiguration(data); renderReadiness(data); renderDiagnostic(data); renderUsage(data); renderRows('ocrLifecycleRows', data.lifecycle_states, 'lifecycle_state'); renderRows('ocrFailureRows', data.failure_categories, 'category'); }
         catch (error) { badge('ocrUsageAvailability', 'Unavailable', 'danger'); setText('ocrStatusMessage', error.message || 'OCR status is temporarily unavailable.'); }
     }
     const diagnosticForm = byId('ocrDiagnosticForm');

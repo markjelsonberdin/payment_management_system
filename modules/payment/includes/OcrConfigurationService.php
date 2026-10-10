@@ -33,6 +33,10 @@ final class OcrConfigurationService
             'last_test_status' => $settings['ocr_last_test_status'] ?? null,
             'last_test_authentication' => $settings['ocr_last_test_authentication'] ?? null,
             'last_test_error_category' => $settings['ocr_last_test_error_category'] ?? null,
+            'last_diagnostic_at' => $settings['ocr_last_diagnostic_at'] ?? null,
+            'last_diagnostic_config_fingerprint' => $settings['ocr_last_diagnostic_config_fingerprint'] ?? null,
+            'last_ocr_successful_test' => $settings['ocr_last_ocr_test_successful_at'] ?? null,
+            'last_ocr_test_config_fingerprint' => $settings['ocr_last_ocr_test_config_fingerprint'] ?? null,
             'last_configuration_update' => $settings['ocr_last_config_update'] ?? null,
         ];
     }
@@ -83,9 +87,11 @@ final class OcrConfigurationService
         $status = (string) ($diagnostic['status'] ?? 'FAILED');
         $authentication = (string) ($diagnostic['authentication'] ?? 'UNVERIFIED');
         $category = (string) ($diagnostic['error_category'] ?? 'NONE');
+        $fingerprint = (string) ($diagnostic['configuration_fingerprint'] ?? '');
         if (!in_array($status, ['CONFIGURATION_VALID','AUTHENTICATION_VERIFIED','FAILED'], true)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_STATUS_INVALID');
         if (!in_array($authentication, ['VERIFIED','FAILED','UNVERIFIED'], true)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_AUTH_INVALID');
         if (!preg_match('/^[A-Z0-9_]{1,64}$/', $category)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_CATEGORY_INVALID');
+        if ($fingerprint !== '' && !preg_match('/^[a-f0-9]{64}$/', $fingerprint)) throw new InvalidArgumentException('OCR_DIAGNOSTIC_FINGERPRINT_INVALID');
         $checkedAt = gmdate('c');
         $safe = ['status'=>$status,'authentication'=>$authentication,'error_category'=>$category,'provider_capability'=>'UNVERIFIED','actual_ocr_processing'=>'UNVERIFIED','checked_at'=>$checkedAt];
         return $this->mutations->execute($correlationId, $safe, [
@@ -93,9 +99,10 @@ final class OcrConfigurationService
             'detail'=>'Non-billable Google OCR configuration and authentication diagnostic completed.',
             'before_state'=>null,'after_state'=>$safe,'actor_user_id'=>$actor['id'],'actor_user_name'=>$actor['name'],'actor_role_key'=>$actor['role'],
             'actor_ip_address'=>function_exists('smsClientIp')?smsClientIp():null,'actor_user_agent'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),
-        ], function(PDO $pdo) use($safe,$status,$checkedAt): array {
+        ], function(PDO $pdo) use($safe,$status,$checkedAt,$fingerprint): array {
             $q=$pdo->prepare('INSERT INTO payment_gateway_settings (setting_key,setting_value,description) VALUES (?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),description=VALUES(description)');
-            foreach ([['ocr_last_test_status',$safe['status'],'Latest non-billable OCR diagnostic result'],['ocr_last_test_authentication',$safe['authentication'],'Latest OCR authentication state'],['ocr_last_test_error_category',$safe['error_category'],'Latest safe OCR diagnostic category'],[$status==='AUTHENTICATION_VERIFIED'?'ocr_last_successful_test':'ocr_last_failed_test',$checkedAt,'Latest OCR diagnostic timestamp']] as $row) $q->execute($row);
+            foreach ([['ocr_last_test_status',$safe['status'],'Latest non-billable OCR diagnostic result'],['ocr_last_test_authentication',$safe['authentication'],'Latest OAuth authentication state'],['ocr_last_test_error_category',$safe['error_category'],'Latest safe OCR diagnostic category'],['ocr_last_diagnostic_at',$checkedAt,'Latest non-billable OCR diagnostic timestamp'],['ocr_last_diagnostic_config_fingerprint',$fingerprint,'Configuration marker for the latest non-billable diagnostic']] as $row) $q->execute($row);
+            if ($status !== 'AUTHENTICATION_VERIFIED') $q->execute(['ocr_last_failed_test',$checkedAt,'Latest failed non-billable OCR diagnostic timestamp']);
             return $safe;
         });
     }

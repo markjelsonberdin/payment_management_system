@@ -275,34 +275,38 @@ require_once __DIR__ . '/../../../../includes/layout-start.php';
                                         </div>
                                         <div class="row mb-3">
                                             <div class="col-6 text-muted small fw-bold">OCR Reference No.</div>
-                                            <div class="col-6 text-dark fw-bold" id="ocr_ref_<?= $row['concern_id'] ?>"><?= htmlspecialchars($row['ocr_ref'] ?? 'Pending Scan') ?></div>
+                                            <div class="col-6 text-dark fw-bold" id="ocr_ref_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['ocr_ref'] ?? 'Pending Scan') ?></div>
                                         </div>
-                                        <div class="row mb-0"><div class="col-6 text-muted small fw-bold">Automated assessment</div><div class="col-6"><span class="badge bg-light text-dark border"><?= htmlspecialchars($row['rule_status'] ?? 'OCR pending') ?></span></div></div>
+                                        <div class="row mb-0"><div class="col-6 text-muted small fw-bold">Automated assessment</div><div class="col-6"><span class="badge bg-light text-dark border" id="ocr_assessment_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['rule_status'] ?? 'OCR pending') ?></span></div></div>
                                     </div>
 
                                     <?php endif; ?><?php if ($canConcernEvidence): ?><div class="row g-3 mb-3">
                                         <div class="col-md-6">
                                             <div class="bg-white border rounded-3 p-3 h-100">
                                                 <h6 class="fw-bold">Google OCR evidence</h6>
-                                                <div class="small"><strong>Status:</strong> <?= htmlspecialchars($row['extraction_status'] ?? $row['ocr_status']) ?></div>
-                                                <div class="small"><strong>Reference:</strong> <?= htmlspecialchars($row['ocr_ref'] ?? 'Not extracted') ?></div>
-                                                <div class="small"><strong>Amount:</strong> <?= $row['extracted_amount'] !== null ? '₱' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></div>
-                                                <div class="small"><strong>Date:</strong> <?= htmlspecialchars($row['transaction_date'] ?? 'Not extracted') ?></div>
-                                                <div class="small"><strong>Receipt channel:</strong> <?= htmlspecialchars($row['bank_name'] ?? 'Not extracted') ?></div>
+                                                <div class="small"><strong>Status:</strong> <span id="ocr_evidence_status_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['extraction_status'] ?? $row['ocr_status']) ?></span></div>
+                                                <div class="small"><strong>Reference:</strong> <span id="ocr_evidence_ref_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['ocr_ref'] ?? 'Not extracted') ?></span></div>
+                                                <div class="small"><strong>Amount:</strong> <span id="ocr_evidence_amount_<?= (int)$row['concern_id'] ?>"><?= $row['extracted_amount'] !== null ? '₱' . number_format((float)$row['extracted_amount'], 2) : 'Not extracted' ?></span></div>
+                                                <div class="small"><strong>Date:</strong> <span id="ocr_evidence_date_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['transaction_date'] ?? 'Not extracted') ?></span></div>
+                                                <div class="small"><strong>Time:</strong> <span id="ocr_evidence_time_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['transaction_time'] ?? 'Not extracted') ?></span></div>
+                                                <div class="small"><strong>Receipt channel:</strong> <span id="ocr_evidence_channel_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['bank_name'] ?? 'Not extracted') ?></span></div>
+                                                <div class="small"><strong>Confidence:</strong> <span id="ocr_evidence_confidence_<?= (int)$row['concern_id'] ?>"><?= $row['confidence_score'] !== null ? htmlspecialchars((string)$row['confidence_score']) . '%' : 'Not available' ?></span></div>
+                                                <div class="small"><strong>Review indicators:</strong> <span id="ocr_evidence_indicators_<?= (int)$row['concern_id'] ?>">Run OCR or review the receipt manually.</span></div>
                                                 <div class="small mt-2 text-muted">OCR values are evidence only. Compare them with the original receipt before deciding.</div>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="bg-white border rounded-3 p-3 h-100">
                                                 <h6 class="fw-bold">Review indicators</h6>
-                                                <div class="small"><strong>Assessment:</strong> <?= htmlspecialchars($row['rule_status'] ?? 'Pending OCR') ?></div>
-                                                <div class="small text-muted mt-2"><?= htmlspecialchars($row['rule_remarks'] ?? 'Run OCR or review the receipt manually.') ?></div>
+                                                <div class="small"><strong>Assessment:</strong> <span id="ocr_review_assessment_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['rule_status'] ?? 'Pending OCR') ?></span></div>
+                                                <div class="small text-muted mt-2" id="ocr_review_indicators_<?= (int)$row['concern_id'] ?>"><?= htmlspecialchars($row['rule_remarks'] ?? 'Run OCR or review the receipt manually.') ?></div>
                                             </div>
                                         </div>
                                     </div>
                                     <?php endif; ?><?php if ($row['verification_status'] === 'On Hold'): ?>
                                         <div class="alert alert-info py-2"><strong>On hold:</strong> <?= htmlspecialchars($row['hold_reason'] ?? '') ?></div>
                                     <?php endif; ?>
+                                    <?php if ($canConcernEvidence): ?><div class="alert alert-info py-2 d-none" id="ocr_scan_notice_<?= (int)$row['concern_id'] ?>" role="status" aria-live="polite"></div><?php endif; ?>
 
                                     <hr class="my-3">
                                     <h6 class="fw-bold text-primary mb-2"><i class="ti ti-edit me-2"></i>Accounting verified values</h6>
@@ -379,6 +383,11 @@ const CSRF_TOKEN = '<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8
 
 function scanConcernOCR(concernId, btnElement, retry = false) {
     const originalText = btnElement.innerHTML;
+    const notice = document.getElementById('ocr_scan_notice_' + concernId);
+    if (notice) {
+        notice.className = 'alert alert-info py-2';
+        notice.textContent = 'Scanning the receipt. Extracted values will appear here for review.';
+    }
     btnElement.innerHTML = '<i class="ti ti-loader me-2"></i> Scanning...';
     btnElement.disabled = true;
 
@@ -396,25 +405,55 @@ function scanConcernOCR(concernId, btnElement, retry = false) {
     })
     .then(data => {
         if (data.success) {
+            const evidence = data.evidence || {};
+            const indicators = Array.isArray(data.review_indicators) ? data.review_indicators : [];
+            const setText = (suffix, value, fallback = 'Not extracted') => {
+                const element = document.getElementById(suffix + concernId);
+                if (element) element.textContent = value === null || value === undefined || value === '' ? fallback : String(value);
+            };
+            const amount = evidence.amount === null || evidence.amount === undefined || evidence.amount === ''
+                ? 'Not extracted'
+                : '\u20B1' + Number(evidence.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const reviewSummary = indicators.length ? indicators.join(', ') : 'No OCR quality indicators flagged. Accounting review is still required.';
+            const assessment = indicators.length ? 'Manual review required' : 'Evidence extracted - Accounting review required';
+            setText('ocr_amount_', amount);
+            setText('ocr_ref_', evidence.reference_number);
+            setText('ocr_assessment_', assessment);
+            setText('ocr_evidence_status_', 'Completed');
+            setText('ocr_evidence_ref_', evidence.reference_number);
+            setText('ocr_evidence_amount_', amount);
+            setText('ocr_evidence_date_', evidence.transaction_date);
+            setText('ocr_evidence_time_', evidence.transaction_time);
+            setText('ocr_evidence_channel_', evidence.channel);
+            setText('ocr_evidence_confidence_', evidence.confidence_score === null || evidence.confidence_score === undefined ? null : evidence.confidence_score + '%', 'Not available');
+            setText('ocr_evidence_indicators_', reviewSummary);
+            setText('ocr_review_assessment_', assessment);
+            setText('ocr_review_indicators_', reviewSummary);
             const badge = document.getElementById('ocr_status_badge_' + concernId);
             if (badge) {
                 badge.textContent = 'Completed';
                 badge.className = 'badge bg-success';
             }
             btnElement.innerHTML = '<i class="ti ti-circle-check me-2"></i> OCR Scan Complete';
-            const hint = document.createElement('div');
-            hint.className = 'small text-success mt-2';
-            hint.textContent = 'OCR completed. Reopen this concern later to view refreshed extracted details.';
-            btnElement.parentElement.append(hint);
+            if (notice) {
+                notice.className = 'alert alert-success py-2';
+                notice.textContent = 'OCR evidence loaded. Compare every extracted value with the original receipt; OCR does not approve or reject payment.';
+            }
         } else {
-            alert("OCR Failed: " + (data.message || data.error || "Unknown error"));
+            if (notice) {
+                notice.className = 'alert alert-warning py-2';
+                notice.textContent = data.message || data.error || 'OCR could not complete. Manual receipt review remains available.';
+            }
             btnElement.innerHTML = originalText;
             btnElement.disabled = false;
         }
     })
     .catch(err => {
         console.error(err);
-        alert(err.message || "Network error during OCR scan.");
+        if (notice) {
+            notice.className = 'alert alert-warning py-2';
+            notice.textContent = err.message || 'Network error during OCR scan.';
+        }
         btnElement.innerHTML = originalText;
         btnElement.disabled = false;
     });

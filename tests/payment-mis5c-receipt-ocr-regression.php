@@ -63,6 +63,11 @@ mis5c(!str_contains($service,'BankReconciliationService'),'Concern decision has 
 mis5c(!str_contains($page,'AUB'),'Accounting OCR review is AUB-neutral');
 mis5c(str_contains($page,'review_confirmed'),'Accounting review confirmation required');
 mis5c(str_contains($page,'retry: retry === true'),'Retry is explicit in Accounting UI');
+mis5c(str_contains($page,'ocr_scan_notice_'),'Concern page presents scan state inline');
+mis5c(str_contains($page,'ocr_evidence_confidence_'),'Concern page renders confidence from the scan response');
+mis5c(str_contains($page,'data.evidence || {}')&&str_contains($page,'data.review_indicators'),'Concern page applies returned OCR evidence and indicators');
+mis5c(str_contains($page,'Compare every extracted value with the original receipt'),'Live scan results remain evidence-only');
+mis5c(!str_contains($page,'Reopen this concern later to view refreshed extracted details'),'Successful scan no longer hides results until a reload');
 mis5c(str_contains($service,"payment_status = 'Verified'"),'Duplicate verified reference check remains');
 mis5c(!str_contains($service,'Run OCR and review the receipt before approval.'),'Manual Accounting approval remains available when OCR is unavailable');
 mis5c(!str_contains($page,"if (\$row['ocr_status'] === 'Completed')"),'Accounting Verify action is not hidden behind OCR success');

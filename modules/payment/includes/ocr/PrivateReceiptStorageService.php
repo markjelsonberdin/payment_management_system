@@ -90,7 +90,7 @@ final class PrivateReceiptStorageService
     private function privateRoot(bool $create): string
     {
         $configured = trim((string) ($this->configuredRoot ?? getenv('PAYMENT_PRIVATE_RECEIPT_ROOT')));
-        if ($configured === '' || preg_match('/^(?:[A-Za-z]:[\\\/]|[\\\/]{2}|\/)/', $configured) !== 1) {
+        if ($configured === '' || preg_match('~^(?:[A-Za-z]:[\\\\/]|[\\\\/]{2}|/)~', $configured) !== 1) {
             throw new ReceiptStorageException('PRIVATE_RECEIPT_STORAGE_NOT_CONFIGURED');
         }
         if ($this->isWithin($configured, ROOT_PATH) || $this->samePath($configured, ROOT_PATH)) {

@@ -28,9 +28,11 @@ $assert(str_contains($endpoint, "'provider_capability' => 'UNVERIFIED'"), 'Provi
 $assert(str_contains($endpoint, "'actual_ocr_processing' => 'UNVERIFIED'"), 'Actual OCR processing must remain unverified.');
 $assert(!str_contains($endpoint, 'access_token'), 'Endpoint source must not expose access tokens.');
 $assert(str_contains($statusApi, 'OcrTechnicalStatusService'), 'Status API must use the technical monitoring service.');
-$assert(str_contains($page, 'Run controlled diagnostic'), 'MIS page must expose the controlled action.');
-$assert(str_contains($page, 'Technical health'), 'MIS page must display technical health.');
-$assert(str_contains($page, 'Usage monitoring'), 'MIS page must display usage monitoring.');
+$assert(str_contains($page, 'Run Authentication Diagnostic'), 'MIS page must expose the non-billable authentication diagnostic.');
+$assert(str_contains($page, 'Non-billable Diagnostics'), 'MIS page must display non-billable diagnostics.');
+$assert(str_contains($page, 'Usage &amp; Quota Monitoring'), 'MIS page must display usage and quota monitoring.');
+$assert(str_contains($page, 'Integration Readiness') && str_contains($page, 'ocrReadinessSteps'), 'MIS page must render the shared readiness checklist.');
+$assert(str_contains($statusApi, 'project_matches') && str_contains($statusApi, 'configuration_fingerprint'), 'Status API must compare project identity and current diagnostic configuration.');
 $assert(str_contains($legacy, 'LEGACY_OCR_SERVICE_RETIRED'), 'Legacy OCR must fail closed by default.');
 
 $oldCredentials = getenv('GOOGLE_APPLICATION_CREDENTIALS');
@@ -41,6 +43,8 @@ putenv('GOOGLE_CLOUD_PROJECT=test-project');
 $configuration = (new GoogleVisionOcrService())->configurationStatus();
 $assert($configuration['status'] === 'CONFIGURED', 'Valid inline credential shape should be recognized without network access.');
 $assert($configuration['protected_location'] === true, 'Inline credential should be treated as protected transport.');
+$fingerprint = (new GoogleVisionOcrService())->configurationFingerprint('test-project', 'DOCUMENT_TEXT_DETECTION', 900);
+$assert(is_string($fingerprint) && preg_match('/^[a-f0-9]{64}$/', $fingerprint) === 1, 'Configuration fingerprint is non-reversible and contains no credential payload.');
 $oldCredentials === false ? putenv('GOOGLE_APPLICATION_CREDENTIALS') : putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $oldCredentials);
 $oldProject === false ? putenv('GOOGLE_CLOUD_PROJECT') : putenv('GOOGLE_CLOUD_PROJECT=' . $oldProject);
 
@@ -65,6 +69,15 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $assert($data['usage']['provider_attempts'] === 2, 'Provider attempts must use provider_called state.');
     $assert($data['usage']['cache_hits'] === 1, 'Cache hits must be counted separately.');
     $assert($data['stale_incomplete'] === 1, 'Stale reservations must be visible.');
+    $fingerprint = str_repeat('a', 64);
+    $authenticated = (new OcrTechnicalStatusService($pdo))->load([
+        'enabled'=>true,'project_id'=>'test-project','mode'=>'DOCUMENT_TEXT_DETECTION','monthly_limit'=>900,
+        'last_test_authentication'=>'VERIFIED','last_diagnostic_config_fingerprint'=>$fingerprint,
+    ], ['status'=>'CONFIGURED','readable'=>true,'protected_location'=>true,'project_matches'=>true,'configuration_fingerprint'=>$fingerprint]);
+    $assert($authenticated['diagnostic']['authentication_state'] === 'VERIFIED', 'OAuth result is current only when its configuration fingerprint matches.');
+    $assert($authenticated['diagnostic']['actual_ocr_processing'] === 'UNVERIFIED', 'OAuth success never claims actual OCR processing.');
+    $assert($authenticated['readiness']['steps'][3]['state'] === 'pending', 'Vision OCR processing remains pending until an actual OCR test succeeds.');
+    $assert($authenticated['readiness']['state'] !== 'READY', 'Authenticated configuration is not Ready without a live OCR test and all prerequisites.');
 }
 
 echo "Batch 4H OCR technical regression: {$passed} assertions passed.\n";

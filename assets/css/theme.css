@@ -1469,10 +1469,10 @@ hr { border-color: var(--sms-border); opacity: 1; }
     height: 36px;
     padding: 0.35rem 0.7rem;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff;
+    border: 1px solid var(--sms-border);
+    background: var(--sms-surface-muted);
+    color: var(--sms-text-muted) !important;
+    -webkit-text-fill-color: currentColor;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.78rem;
     font-weight: 700;
@@ -1482,7 +1482,7 @@ hr { border-color: var(--sms-border); opacity: 1; }
     user-select: none;
     font-variant-numeric: tabular-nums;
     opacity: 1;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    text-shadow: none;
     box-sizing: border-box;
 }
 
@@ -1505,21 +1505,21 @@ hr { border-color: var(--sms-border); opacity: 1; }
     align-items: center;
     justify-content: center;
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.10);
-    color: rgba(255,255,255,0.9) !important;
+    border: 1px solid var(--sms-border);
+    background: var(--sms-surface-muted);
+    color: var(--sms-primary) !important;
     padding: 0;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 .theme-toggle:hover {
-    background: rgba(255,255,255,0.18);
-    border-color: rgba(255,255,255,0.35);
-    color: #fff !important;
-    transform: translateY(-1px);
+    background: var(--sms-dropdown-hover);
+    border-color: var(--sms-primary-light);
+    color: var(--sms-primary) !important;
 }
 .theme-toggle:focus-visible {
-    outline: 2px solid rgba(147,197,253,0.7);
+    outline: 2px solid var(--sms-primary-light);
     outline-offset: 2px;
+    box-shadow: 0 0 0 3px var(--sms-input-focus);
 }
 .theme-toggle .theme-icon-sun { display: none; }
 .theme-toggle .theme-icon-moon { display: inline-block; }

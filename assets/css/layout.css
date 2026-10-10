@@ -100,10 +100,10 @@
 }
 .sms-navbar .btn-link:hover { color: #fff !important; }
 
-/* PH clock — always readable on dark navbar (light + dark theme) */
+/* Header action colors use the shared SMS2 theme tokens. */
 .sms-navbar .navbar-ph-clock {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff;
+    color: var(--sms-text-muted) !important;
+    -webkit-text-fill-color: currentColor;
 }
 
 .sms-navbar .nav-link,
@@ -1049,7 +1049,7 @@ body.sidebar-open {
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(255,255,255,0.5);
+    color: var(--sms-text-muted);
     font-size: 0.76rem;
     pointer-events: none;
     z-index: 2;
@@ -1060,25 +1060,25 @@ body.sidebar-open {
     width: 100%;
     height: 36px;
     padding: 0 4.25rem 0 2rem;
-    background: rgba(255,255,255,0.10) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
+    background: var(--sms-input-bg);
+    border: 1px solid var(--sms-input-border);
     border-radius: 8px !important;
-    color: #fff !important;
+    color: var(--sms-text-strong);
     font-size: 0.82rem;
     transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     outline: none;
-    box-shadow: none !important;
+    box-shadow: none;
 }
 
 .navbar-search-input::placeholder {
-    color: rgba(255,255,255,0.45);
+    color: var(--sms-text-muted);
 }
 
 .navbar-search-input:focus {
-    background: rgba(255,255,255,0.18) !important;
-    border-color: rgba(255,255,255,0.55) !important;
-    box-shadow: 0 0 0 3px rgba(96,165,250,0.25) !important;
-    color: #fff !important;
+    background: var(--sms-input-bg);
+    border-color: var(--sms-primary-light);
+    box-shadow: 0 0 0 3px var(--sms-input-focus);
+    color: var(--sms-text-strong);
 }
 
 .navbar-search-input.has-results {
@@ -1089,7 +1089,7 @@ body.sidebar-open {
 
 .navbar-search-input:focus + .navbar-search-clear,
 .navbar-search-input:focus ~ .navbar-search-icon {
-    color: rgba(255,255,255,0.75);
+    color: var(--sms-primary);
 }
 
 .navbar-search-clear {
@@ -1099,7 +1099,7 @@ body.sidebar-open {
     transform: translateY(-50%);
     background: transparent;
     border: none;
-    color: rgba(255,255,255,0.5);
+    color: var(--sms-text-muted);
     font-size: 0.72rem;
     padding: 0.2rem 0.3rem;
     cursor: pointer;
@@ -1108,7 +1108,7 @@ body.sidebar-open {
     transition: color 0.15s;
 }
 
-.navbar-search-clear:hover { color: #fff; }
+.navbar-search-clear:hover { color: var(--sms-primary); }
 
 /* Dropdown */
 .navbar-search-dropdown {
@@ -1293,9 +1293,9 @@ body.sidebar-open {
     font-size: 0.55rem;
     padding: 0.08em 0.28em;
     border-radius: 3px;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: rgba(255,255,255,0.55);
+    background: var(--sms-surface-muted);
+    border: 1px solid var(--sms-border);
+    color: var(--sms-text-muted);
     font-family: inherit;
     line-height: 1.4;
 }
@@ -1332,7 +1332,7 @@ body.sidebar-open {
     .navbar-right { gap: 0.1rem !important; }
     .navbar-right .btn-link { padding: 0.25rem 0.35rem !important; }
     .navbar-right .d-none.d-md-inline { display: none !important; }
-    .theme-toggle { width: 30px; height: 30px; border-radius: 8px; }
+    .sms-navbar .theme-toggle { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 8px; }
     .notification-badge { min-width: 14px; padding: 0.15em 0.35em; font-size: 0.52rem; }
 }
 

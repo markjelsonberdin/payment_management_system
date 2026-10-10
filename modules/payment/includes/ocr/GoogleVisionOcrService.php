@@ -24,7 +24,12 @@ final class GoogleVisionOcrService implements OcrTextProviderInterface
         $project = trim((string) getenv('GOOGLE_CLOUD_PROJECT'));
         $inline = $this->decodeInlineCredential($credential);
         $safe = $credential !== '' && $this->isAbsolutePath($credential) && !$this->isInsidePublicApplication($credential);
-        $readable = $inline !== null || ($safe && is_file($credential) && is_readable($credential));
+        $decoded = $inline;
+        if ($decoded === null && $safe && is_file($credential) && is_readable($credential)) {
+            $json = @file_get_contents($credential);
+            $decoded = is_string($json) ? $this->decodeInlineCredential($json) : null;
+        }
+        $readable = $decoded !== null;
         return [
             'status' => $readable && $project !== '' ? 'CONFIGURED' : 'NOT_CONFIGURED',
             'path_configured' => $credential !== '',
@@ -64,6 +69,24 @@ final class GoogleVisionOcrService implements OcrTextProviderInterface
         $decoded = $this->resolveCredential();
         $credentialProject = is_array($decoded) ? trim((string) ($decoded['project_id'] ?? '')) : '';
         return $credentialProject !== '' && hash_equals($expectedProject, $credentialProject);
+    }
+
+    /** Return a non-reversible version marker without exposing credential material. */
+    public function configurationFingerprint(string $expectedProject, string $mode, int $monthlyLimit, bool $enabled = false): ?string
+    {
+        $decoded = $this->resolveCredential();
+        if ($decoded === null) return null;
+        $identity = [
+            trim($expectedProject),
+            trim((string) getenv('GOOGLE_CLOUD_PROJECT')),
+            strtoupper(trim($mode)),
+            (string) $monthlyLimit,
+            $enabled ? '1' : '0',
+            trim((string) ($decoded['project_id'] ?? '')),
+            trim((string) ($decoded['client_email'] ?? '')),
+            trim((string) ($decoded['private_key_id'] ?? '')),
+        ];
+        return hash('sha256', implode("\0", $identity));
     }
 
     /** @return array{raw_text:?string,provider:string,feature:string} */
@@ -111,7 +134,8 @@ final class GoogleVisionOcrService implements OcrTextProviderInterface
 
     private function isInsidePublicApplication(string $path): bool
     {
-        $root = realpath(ROOT_PATH) ?: ROOT_PATH;
+        $applicationRoot = defined('ROOT_PATH') ? ROOT_PATH : dirname(__DIR__, 4);
+        $root = realpath($applicationRoot) ?: $applicationRoot;
         $candidate = realpath($path) ?: $path;
         return str_starts_with(strtolower(str_replace('\\', '/', $candidate)), rtrim(strtolower(str_replace('\\', '/', $root)), '/') . '/');
     }

@@ -33,10 +33,17 @@ checkMis(!str_contains(json_encode($data), 'private-financial-policy'), 'Financi
 checkMis($data['paymongo']['environment'] === 'live' && $data['paymongo']['api_credentials'] === true && $data['paymongo']['webhook_secret'] === false, 'Only selected-environment presence flags');
 checkMis(!array_key_exists('connected', $data['paymongo']), 'Configuration does not claim connectivity');
 checkMis($data['integrations']['ocr'] === 'Configuration incomplete' && !array_key_exists('aub', $data['integrations']), 'OCR status remains honest and AUB remains deferred');
+checkMis(count($data['ocr']['readiness']['steps'] ?? []) === 8, 'Dashboard exposes the shared OCR readiness and enablement checklist');
+checkMis(($data['ocr']['readiness']['state'] ?? '') !== 'READY', 'Dashboard never reports OCR ready without verified live processing');
 $technical->exec("INSERT INTO payment_gateway_settings VALUES ('ocr_enabled', '0'), ('ocr_project_id', 'bcp-payment-management-system'), ('ocr_mode', 'DOCUMENT_TEXT_DETECTION'), ('ocr_monthly_limit', '900')");
 checkMis($service->load()['integrations']['ocr'] === 'Technical configuration saved', 'OCR overview reports saved non-secret configuration');
 $technical->exec("UPDATE payment_gateway_settings SET setting_value='invalid' WHERE setting_key='gateway_mode'");
 checkMis($service->load()['paymongo']['environment'] === null, 'Invalid mode cannot silently become test or live');
+$dashboardPage = file_get_contents(__DIR__ . '/../modules/payment/pages/mis_admin/dashboard.php');
+$dashboardScript = file_get_contents(__DIR__ . '/../modules/payment/assets/js/payment-admin-dashboard.js');
+checkMis(!str_contains($dashboardPage, 'refreshDashboard') && !str_contains($dashboardPage, '>Refresh</button>'), 'MIS dashboard has no manual refresh control');
+checkMis(!str_contains($dashboardScript, 'refreshDashboard') && str_contains($dashboardScript, 'window.setInterval'), 'MIS dashboard refreshes data automatically without a click handler');
+checkMis(str_contains($dashboardScript, '10000') && str_contains($dashboardScript, "document.visibilityState === 'visible'"), 'Dashboard polls every ten seconds only while visible');
 $partial = (new MisOverviewService($core))->load();
 checkMis($partial['section_status']['paymongo'] === 'error' && $partial['accounts']['total'] === 3, 'Technical DB failure retains account information');
 $core->exec('DELETE FROM users');

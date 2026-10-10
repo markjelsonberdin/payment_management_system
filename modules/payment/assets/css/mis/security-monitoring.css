@@ -94,6 +94,18 @@
     line-height: 1;
     text-align: center;
 }
+.security-summary-icon,
+.security-panel-icon,
+.security-snapshot-icon,
+.security-recent-icon {
+    display: grid;
+    place-items: center;
+    padding: 0;
+}
+.security-snapshot-row > .security-snapshot-icon {
+    display: grid;
+    place-items: center;
+}
 .security-summary-icon > i,
 .security-panel-icon > i,
 .security-snapshot-icon > i,
