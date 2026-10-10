@@ -228,11 +228,11 @@ try {
     if ($action === 'reset_password') {
         $id = (int) ($data['user_id'] ?? 0);
         $temp = (string) ($data['password'] ?? '');
-        if ($id <= 0 || strlen($temp) < (int) smsSetting('min_password_length', '8')) {
-            throw new InvalidArgumentException('Invalid user or password too short');
+        if ($id <= 0 || $temp === '') {
+            throw new InvalidArgumentException('Invalid user or password');
         }
         if (!smsSetUserPassword($id, $temp, true)) {
-            throw new RuntimeException('Reset failed');
+            throw new InvalidArgumentException('Password does not meet policy or reset failed');
         }
         logActivity('password_reset', 'Admin reset password for user #' . $id, 'user-management');
         echo json_encode(['ok' => true]);
@@ -268,18 +268,19 @@ try {
         $pdo->beginTransaction();
         try {
             if ($password !== '') {
-                $min = (int) smsSetting('min_password_length', '8');
-                if (strlen($password) < $min) {
-                    throw new InvalidArgumentException("Password must be at least {$min} characters");
+                $validation = smsValidatePasswordForAccount($password, $username, $email);
+                if (!$validation['ok']) {
+                    throw new InvalidArgumentException($validation['message']);
                 }
                 $pdo->prepare(
                     'UPDATE users SET full_name=?, username=?, email=?, role_key=?, status=?, notes=?, student_id=?,
-                     password_hash=?, password_changed_at=NOW(), must_change_password=0
+                     password_hash=?, password_changed_at=NOW(), must_change_password=1
                      WHERE id=?'
                 )->execute([
                     $fullName, $username, $email, $role, $status, $notes ?: null, $studentId,
                     password_hash($password, PASSWORD_DEFAULT), $id,
                 ]);
+                smsBumpUserKickEpoch($pdo, $id);
             } else {
                 $pdo->prepare(
                     'UPDATE users SET full_name=?, username=?, email=?, role_key=?, status=?, notes=?, student_id=?
@@ -301,9 +302,9 @@ try {
         exit;
     }
 
-    $min = (int) smsSetting('min_password_length', '8');
-    if (strlen($password) < $min) {
-        throw new InvalidArgumentException("Password must be at least {$min} characters");
+    $validation = smsValidatePasswordForAccount($password, $username, $email);
+    if (!$validation['ok']) {
+        throw new InvalidArgumentException($validation['message']);
     }
 
     $pdo->beginTransaction();

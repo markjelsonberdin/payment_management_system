@@ -226,7 +226,7 @@ try {
         ? $internalPayment['expires_at']
         : (!empty($internalPayment['created_at']) ? date('Y-m-d H:i:s', strtotime($internalPayment['created_at']) + 600) : null);
     if ($paymentExpiresAt !== null && time() > strtotime($paymentExpiresAt)) {
-        error_log("[" . date('Y-m-d H:i:s') . "] Late Webhook Reconciliation: Payment ID {$internalPayment['payment_id']} confirmed by PayMongo after expiry time ({$paymentExpiresAt}). Reconciling as Paid.\n", 3, __DIR__ . '/webhook_error.log');
+        error_log('Late PayMongo webhook reconciliation detected; payment was confirmed after expiry.');
     }
 
     $stmtUpdate = $pdo->prepare("
@@ -315,7 +315,7 @@ try {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log("[" . date('Y-m-d H:i:s') . "] Webhook Error: " . $e->getMessage() . "\n", 3, __DIR__ . '/webhook_error.log');
+    error_log('PayMongo webhook processing failed: ' . get_class($e));
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Webhook processing failed']);
 }

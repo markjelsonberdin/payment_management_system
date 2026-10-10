@@ -213,7 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $targetId = (int) ($_POST['target_user_id'] ?? 0);
         $newPassword = (string) ($_POST['new_password'] ?? '');
         $confirmPassword = (string) ($_POST['new_password_confirm'] ?? '');
-        $forceChange = !empty($_POST['force_change']);
         $allowedIds = array_map(static fn($u) => (int) $u['id'], smsUsersForModuleReset($postModule));
         $label = $moduleOptions[$postModule]['label'] ?? $postModule;
         $strength = smsValidatePasswordStrength($newPassword);
@@ -233,18 +232,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash_sec_error'] = $strength['message'];
         } elseif ($newPassword !== $confirmPassword) {
             $_SESSION['flash_sec_error'] = 'New password and confirmation do not match.';
-        } elseif (!smsSetUserPassword($targetId, $newPassword, $forceChange)) {
+        } elseif (!smsSetUserPassword($targetId, $newPassword, true)) {
             $_SESSION['flash_sec_error'] = 'Could not reset password.';
         } else {
             logActivity(
                 'password_reset',
-                'Reset password for ' . smsUserLogLabel($targetId)
-                    . ($forceChange ? ' (must change on next login)' : ''),
+                'Reset password for ' . smsUserLogLabel($targetId) . ' (must change on next login)',
                 $postModule
             );
-            $_SESSION['flash_sec_success'] = $forceChange
-                ? 'Password reset. The user must change it on next login.'
-                : 'Password reset successfully.';
+            $_SESSION['flash_sec_success'] = 'Password reset. The user must change it on next login.';
             $_SESSION['um_sec_panel'] = 'passwords';
         }
         header('Location: ' . $returnUrl, true, 303);
@@ -502,7 +498,7 @@ if (!$hasModule) {
     $pendingCount = count($pendingRequests);
     $moduleMaintenanceOn = smsIsModuleInMaintenance($moduleKey);
     $moduleMaintenanceMsg = smsSetting(smsModuleMaintenanceMsgKey($moduleKey), '');
-    $minLen = (int) smsSetting('min_password_length', '8');
+    $minLen = (int) smsPasswordPolicy()['min'];
     $singleResetUser = count($resetUsers) === 1 ? $resetUsers[0] : null;
     $authUsers = [];
     foreach ($resetUsers as $u) {
@@ -935,14 +931,7 @@ renderBreadcrumbs($breadcrumbs);
                                             'minlength' => $minLen,
                                         ]) ?>
                                     </div>
-                                    <div class="col-12">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="1" id="force_change" name="force_change" checked>
-                                            <label class="form-check-label" for="force_change">
-                                                Require change on next login
-                                            </label>
-                                        </div>
-                                    </div>
+                                    <div class="col-12"><div class="alert alert-info mb-0">The user must change this password at the next login.</div></div>
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-sms-primary" <?= !$resetUsers ? 'disabled' : '' ?>>
                                             <i class="fas fa-key me-1"></i>Reset password

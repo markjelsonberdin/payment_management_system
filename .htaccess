@@ -1,5 +1,24 @@
 Options -Indexes
 
+# Defense in depth for operational and credential artifacts if copied into the
+# document root. Private data must live outside the web root as well.
+<IfModule mod_authz_core.c>
+    <FilesMatch "(?i)(^ACCOUNTS\.txt$|\.(sql|log|env|bak|backup|dump|pem|key|p12|pfx)$|service-account.*\.json$|.*-payment-management-system-.*\.json$)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "(?i)(^ACCOUNTS\.txt$|\.(sql|log|env|bak|backup|dump|pem|key|p12|pfx)$|service-account.*\.json$|.*-payment-management-system-.*\.json$)">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(scratch|tests|docs|credentials|private)(/|$) - [F,L,NC]
+</IfModule>
+
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"

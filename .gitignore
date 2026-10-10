@@ -12,6 +12,7 @@ payment_db_production.sql
 /modules/payment/database/payment_db.sql
 /modules/payment/database/payment_db-*.sql
 /database/migrations/sms2_db.sql
+/database/ACCOUNTS.txt
 
 # Payment runtime logs (created automatically by active writers)
 /modules/payment/includes/sync_error.log

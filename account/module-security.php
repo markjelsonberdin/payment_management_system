@@ -316,20 +316,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Admin: direct reset password for a user (auto-generated temp only)
+    // Legacy direct reset endpoint is disabled; use the authorized User Management reset workflow.
     if ($action === 'admin_reset_user' && $isAdmin) {
-        $targetId = (int) ($_POST['target_user_id'] ?? 0);
-        $temp = 'Temp@' . random_int(100000, 999999);
-        if ($targetId <= 0) {
-            $_SESSION['flash_sec_error'] = 'Select a user.';
-        } elseif ($targetId === $userId) {
-            $_SESSION['flash_sec_error'] = 'You cannot reset your own password on this screen.';
-        } elseif (!smsSetUserPassword($targetId, $temp, true)) {
-            $_SESSION['flash_sec_error'] = 'Could not reset password.';
-        } else {
-            logActivity('password_reset', 'Admin reset password for user #' . $targetId, $moduleKey);
-            $_SESSION['flash_sec_success'] = 'Password reset. Temporary password: ' . $temp . ' (user must change on next login).';
-        }
+        $_SESSION['flash_sec_error'] = 'Use User Management to reset a password securely.';
         header('Location: ' . BASE_URL . '/account/module-security.php?module=' . urlencode($moduleKey) . '&tab=reset');
         exit;
     }

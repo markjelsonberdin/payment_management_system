@@ -1578,23 +1578,57 @@ function smsResetPasswordWithToken(string $rawToken, string $newPassword): bool
 function smsSetUserPassword(int $userId, string $newPassword, bool $forceChange = false): bool
 {
     $pdo = db();
-    $minLen = (int) smsSetting('min_password_length', '8');
-    if (!$pdo || strlen($newPassword) < $minLen) {
+    if (!$pdo || $userId <= 0) {
         return false;
     }
 
-    $pdo->prepare(
-        'UPDATE users
-         SET password_hash = ?, must_change_password = ?, password_changed_at = NOW(),
-             failed_login_attempts = 0, locked_until = NULL
-         WHERE id = ?'
-    )->execute([
-        password_hash($newPassword, PASSWORD_DEFAULT),
-        $forceChange ? 1 : 0,
-        $userId,
-    ]);
+    $accountStmt = $pdo->prepare('SELECT username, email FROM users WHERE id = ? LIMIT 1');
+    $accountStmt->execute([$userId]);
+    $account = $accountStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$account) {
+        return false;
+    }
+    $validation = smsValidatePasswordForAccount(
+        $newPassword,
+        (string) ($account['username'] ?? ''),
+        (string) ($account['email'] ?? '')
+    );
+    if (!$validation['ok']) {
+        return false;
+    }
 
-    return true;
+    $ownsTransaction = !$pdo->inTransaction();
+    try {
+        if ($ownsTransaction) {
+            $pdo->beginTransaction();
+        }
+        $updated = $pdo->prepare(
+            'UPDATE users
+             SET password_hash = ?, must_change_password = ?, password_changed_at = NOW()
+             WHERE id = ?'
+        );
+        $updated->execute([
+            password_hash($newPassword, PASSWORD_DEFAULT),
+            $forceChange ? 1 : 0,
+            $userId,
+        ]);
+        if ($updated->rowCount() < 1) {
+            throw new RuntimeException('Password update did not affect an account.');
+        }
+        if ($forceChange) {
+            require_once __DIR__ . '/module-controls.php';
+            smsBumpUserKickEpoch($pdo, $userId);
+        }
+        if ($ownsTransaction) {
+            $pdo->commit();
+        }
+        return true;
+    } catch (Throwable $e) {
+        if ($ownsTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        return false;
+    }
 }
 
 function logout(): void

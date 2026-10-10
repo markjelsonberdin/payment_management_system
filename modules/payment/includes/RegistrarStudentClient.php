@@ -55,11 +55,7 @@ class RegistrarStudentClient {
             ]);
             $student = $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            file_put_contents(
-                __DIR__ . '/sync_error.log',
-                date('Y-m-d H:i:s') . ' Student cache lookup failed: ' . $e->getMessage() . PHP_EOL,
-                FILE_APPEND
-            );
+            error_log('Payment student cache lookup failed: ' . get_class($e));
             return null;
         }
 
@@ -163,8 +159,7 @@ class RegistrarStudentClient {
                 ':status' => $student['status'] ?? 'Enrolled'
             ]);
         } catch (Exception $e) {
-            // Log to a file instead of error_log to avoid breaking JSON output in some environments
-            file_put_contents(__DIR__ . '/sync_error.log', date('Y-m-d H:i:s') . ' ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+            error_log('Payment student synchronization failed: ' . get_class($e));
         }
     }
 }
