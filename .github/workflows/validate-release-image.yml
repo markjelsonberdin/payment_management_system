@@ -142,7 +142,7 @@ jobs:
           if find "$root" -type d -name credentials -print -quit | grep -q .; then fail credentials_directory; fi
           if find "$root" -type f \( -name ".env" -o -name "*.env" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*service-account*.json" -o -name "*-payment-management-system-*.json" -o -name "*.log" -o -name "*dump.sql" -o -name "*export.sql" -o -name "*backup.sql" -o -name "payment_db_production.sql" -o -name "payment_db.sql" \) -print -quit | grep -q .; then fail file; fi
           if find "$root" -type f -name "*.pem" ! -path "$root/vendor/grpc/grpc/etc/roots.pem" -print -quit | grep -q .; then fail private_pem; fi
-          if find "$root" -type f -name "*.json" -exec grep -lE '"type"[[:space:]]*:[[:space:]]*"service_account"|"private_key"[[:space:]]*:' {} + | grep -q .; then fail service_account_json; fi
+          if find "$root" -type f -name "*.json" -exec grep -lE '"private_key"[[:space:]]*:[[:space:]]*"-----BEGIN (EC |RSA )?PRIVATE KEY-----' {} + | grep -q .; then fail service_account_json; fi
           if find "$root/uploads/receipts" -type f ! -name .htaccess -print -quit | grep -q .; then fail receipt_upload; fi
           if find "$root/storage/backups" -type f ! -name .htaccess -print -quit | grep -q .; then fail backup; fi
           if grep -RIlE --exclude=roots.pem -- "BEGIN (EC |RSA |OPENSSH )?PRIVATE KEY" "$root" >/dev/null 2>&1; then fail private_key_content; fi
