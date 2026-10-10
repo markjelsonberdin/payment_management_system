@@ -129,25 +129,25 @@ jobs:
         env:
           IMAGE: sms2-release-validation:${{ github.run_id }}
         run: |
-          docker run --rm "$IMAGE" sh -eu -c '
-            root=/var/www/html
-            fail() { echo "FAIL: excluded artifact category found: $1" >&2; exit 1; }
-            test ! -e "$root/scratch" || fail scratch
-            test ! -e "$root/tests" || fail tests
-            test ! -e "$root/docs" || fail docs
-            test ! -e "$root/.github" || fail ci_metadata
-            test ! -e "$root/database/ACCOUNTS.txt" || fail bootstrap_credentials
-            test ! -e "$root/database/seed_accounts.php" || fail unsafe_seed_script
-            test ! -e "$root/database/seed_panel_members.php" || fail unsafe_seed_script
-            if find "$root" -type d -name credentials -print -quit | grep -q .; then fail credentials_directory; fi
-            if find "$root" -type f \( -name ".env" -o -name "*.env" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*service-account*.json" -o -name "*-payment-management-system-*.json" -o -name "*.log" -o -name "*dump.sql" -o -name "*export.sql" -o -name "*backup.sql" -o -name "payment_db_production.sql" -o -name "payment_db.sql" \) -print -quit | grep -q .; then fail file; fi
-            if find "$root" -type f -name "*.pem" ! -path "$root/vendor/grpc/grpc/etc/roots.pem" -print -quit | grep -q .; then fail private_pem; fi
-            if find "$root" -type f -name "*.json" -exec grep -lE '"type"[[:space:]]*:[[:space:]]*"service_account"|"private_key"[[:space:]]*:' {} + | grep -q .; then fail service_account_json; fi
-            if find "$root/uploads/receipts" -type f ! -name .htaccess -print -quit | grep -q .; then fail receipt_upload; fi
-            if find "$root/storage/backups" -type f ! -name .htaccess -print -quit | grep -q .; then fail backup; fi
-            if grep -RIlE --exclude=roots.pem -- "BEGIN (EC |RSA |OPENSSH )?PRIVATE KEY" "$root" >/dev/null 2>&1; then fail private_key_content; fi
-            echo "PASS: no credentials, private keys, dumps, logs, scratch reports, or receipt uploads in image."
-          '
+          docker run --rm -i "$IMAGE" sh -eu <<'SH'
+          root=/var/www/html
+          fail() { echo "FAIL: excluded artifact category found: $1" >&2; exit 1; }
+          test ! -e "$root/scratch" || fail scratch
+          test ! -e "$root/tests" || fail tests
+          test ! -e "$root/docs" || fail docs
+          test ! -e "$root/.github" || fail ci_metadata
+          test ! -e "$root/database/ACCOUNTS.txt" || fail bootstrap_credentials
+          test ! -e "$root/database/seed_accounts.php" || fail unsafe_seed_script
+          test ! -e "$root/database/seed_panel_members.php" || fail unsafe_seed_script
+          if find "$root" -type d -name credentials -print -quit | grep -q .; then fail credentials_directory; fi
+          if find "$root" -type f \( -name ".env" -o -name "*.env" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*service-account*.json" -o -name "*-payment-management-system-*.json" -o -name "*.log" -o -name "*dump.sql" -o -name "*export.sql" -o -name "*backup.sql" -o -name "payment_db_production.sql" -o -name "payment_db.sql" \) -print -quit | grep -q .; then fail file; fi
+          if find "$root" -type f -name "*.pem" ! -path "$root/vendor/grpc/grpc/etc/roots.pem" -print -quit | grep -q .; then fail private_pem; fi
+          if find "$root" -type f -name "*.json" -exec grep -lE '"type"[[:space:]]*:[[:space:]]*"service_account"|"private_key"[[:space:]]*:' {} + | grep -q .; then fail service_account_json; fi
+          if find "$root/uploads/receipts" -type f ! -name .htaccess -print -quit | grep -q .; then fail receipt_upload; fi
+          if find "$root/storage/backups" -type f ! -name .htaccess -print -quit | grep -q .; then fail backup; fi
+          if grep -RIlE --exclude=roots.pem -- "BEGIN (EC |RSA |OPENSSH )?PRIVATE KEY" "$root" >/dev/null 2>&1; then fail private_key_content; fi
+          echo "PASS: no credentials, private keys, dumps, logs, scratch reports, or receipt uploads in image."
+          SH
 
       - name: Start Apache image and check application health
         id: health
