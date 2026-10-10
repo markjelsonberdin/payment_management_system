@@ -106,4 +106,46 @@ final class OcrConfigurationService
             return $safe;
         });
     }
+
+    /** Record only after a fresh, successful provider call in the authorized receipt scan flow. */
+    public function recordSuccessfulOcrEvidence(string $correlationId, array $actor, string $providerRequestId, string $observedFingerprint): array
+    {
+        CatalogCorrelationId::assertValid($correlationId);
+        CatalogCorrelationId::assertValid($providerRequestId);
+        if (!preg_match('/^[a-f0-9]{64}$/', $observedFingerprint)) {
+            throw new InvalidArgumentException('OCR_SUCCESS_FINGERPRINT_INVALID');
+        }
+        $before = $this->get();
+        if (!$before['enabled'] || $before['project_id'] === '' || $before['mode'] !== 'DOCUMENT_TEXT_DETECTION') {
+            throw new DomainException('OCR_SUCCESS_CONFIGURATION_CHANGED');
+        }
+        require_once __DIR__ . '/ocr/GoogleVisionOcrService.php';
+        $provider = new GoogleVisionOcrService();
+        $currentFingerprint = $provider->configurationFingerprint(
+            $before['project_id'], $before['mode'], $before['monthly_limit']
+        );
+        if (!is_string($currentFingerprint) || !hash_equals($currentFingerprint, $observedFingerprint)) {
+            throw new DomainException('OCR_SUCCESS_CONFIGURATION_CHANGED');
+        }
+        $evidence=$this->pdo->prepare("SELECT l.request_id FROM ocr_usage_ledger l JOIN ocr_scan_attempts a ON a.request_id=l.request_id WHERE l.request_id=? AND l.provider='google_cloud_vision' AND l.feature='DOCUMENT_TEXT_DETECTION' AND l.provider_called=1 AND l.lifecycle_state='SUCCEEDED' AND l.completed_at IS NOT NULL AND a.extraction_status='SUCCEEDED' AND a.completed_at IS NOT NULL LIMIT 1");
+        $evidence->execute([$providerRequestId]);
+        if (!$evidence->fetchColumn()) throw new DomainException('OCR_SUCCESS_PROVIDER_EVIDENCE_REQUIRED');
+        $checkedAt = gmdate('c');
+        $safe = ['status'=>'VERIFIED','feature'=>'DOCUMENT_TEXT_DETECTION','verified_at'=>$checkedAt,
+            'provider_request_id'=>$providerRequestId,'configuration_fingerprint'=>$currentFingerprint];
+        return $this->mutations->execute($correlationId, $safe, [
+            'action'=>'OCR_PROVIDER_PROCESSING_VERIFIED','module_key'=>'payment','entity_type'=>'ocr_configuration','entity_id'=>null,
+            'detail'=>'A fresh authorized Google Vision OCR provider request completed successfully; processing evidence was recorded.',
+            'before_state'=>null,'after_state'=>$safe,'actor_user_id'=>$actor['id'],'actor_user_name'=>$actor['name'],'actor_role_key'=>$actor['role'],
+            'actor_ip_address'=>function_exists('smsClientIp')?smsClientIp():null,'actor_user_agent'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),
+        ], function(PDO $pdo) use ($checkedAt, $currentFingerprint): array {
+            $upsert = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+                ? 'INSERT INTO payment_gateway_settings (setting_key,setting_value,description) VALUES (?,?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value,description=excluded.description'
+                : 'INSERT INTO payment_gateway_settings (setting_key,setting_value,description) VALUES (?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),description=VALUES(description)';
+            $q=$pdo->prepare($upsert);
+            $q->execute(['ocr_last_ocr_test_successful_at',$checkedAt,'Latest completed authorized Google Vision OCR processing timestamp']);
+            $q->execute(['ocr_last_ocr_test_config_fingerprint',$currentFingerprint,'Non-secret configuration marker for latest successful Google Vision OCR processing']);
+            return ['status'=>'VERIFIED','verified_at'=>$checkedAt,'feature'=>'DOCUMENT_TEXT_DETECTION'];
+        });
+    }
 }

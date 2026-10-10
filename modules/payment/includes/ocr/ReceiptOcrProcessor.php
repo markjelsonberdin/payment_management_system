@@ -34,6 +34,11 @@ final class ReceiptOcrProcessor
             $providerConfiguration=$this->provider->configurationStatus();
             if(($providerConfiguration['status']??'NOT_CONFIGURED')!=='CONFIGURED')throw new DomainException('OCR_PROVIDER_NOT_CONFIGURED');
         }
+        if (strtoupper($configuration['mode']) !== GoogleVisionOcrService::FEATURE
+            || (method_exists($this->provider, 'projectIdentityMatches')
+                && !$this->provider->projectIdentityMatches($configuration['project_id']))) {
+            throw new DomainException('OCR_PROVIDER_NOT_CONFIGURED');
+        }
         $resolved=$this->storage->resolve((string)$concern['receipt_path']);
         $bytes=file_get_contents($resolved['path']);
         if($bytes===false||$bytes==='')throw new RuntimeException('OCR_RECEIPT_UNREADABLE');
@@ -56,6 +61,10 @@ final class ReceiptOcrProcessor
             return $this->responseFromAttempt($attempt,true);
         }
 
+        $providerFingerprint = method_exists($this->provider, 'configurationFingerprint')
+            ? $this->provider->configurationFingerprint($configuration['project_id'], $configuration['mode'], $configuration['monthly_limit'])
+            : null;
+
         $providerCalled=false;
         try{
             $this->guard->markProviderCalled($requestId);
@@ -66,7 +75,7 @@ final class ReceiptOcrProcessor
             $this->guard->succeed($requestId,$parsed);
             $attempt=$this->guard->attemptForRequest($requestId);
             $this->writeCompatibility($concernId,$actorId,$attempt?:[]);
-            return $this->responseFromAttempt($attempt,false);
+            return $this->responseFromAttempt($attempt,false,is_string($providerFingerprint)?$providerFingerprint:null);
         }catch(Throwable $e){
             try{$category=$e instanceof GoogleVisionOcrException?$e->category:'OCR_PROCESSING_FAILED';$this->guard->fail($requestId,$category,$providerCalled);}catch(Throwable){}
             $this->pdo->prepare("UPDATE payment_concerns SET ocr_status='Failed' WHERE concern_id=?")->execute([$concernId]);
@@ -74,12 +83,13 @@ final class ReceiptOcrProcessor
         }
     }
 
-    /** @return array{enabled:bool,monthly_limit:int} */
+    /** @return array{enabled:bool,monthly_limit:int,project_id:string,mode:string} */
     private function configuration():array
     {
-        $stmt=$this->pdo->query("SELECT setting_key,setting_value FROM payment_gateway_settings WHERE setting_key IN ('ocr_enabled','ocr_monthly_limit')");
+        $stmt=$this->pdo->query("SELECT setting_key,setting_value FROM payment_gateway_settings WHERE setting_key IN ('ocr_enabled','ocr_monthly_limit','ocr_project_id','ocr_mode')");
         $settings=$stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        return ['enabled'=>($settings['ocr_enabled']??'0')==='1','monthly_limit'=>max(1,min(900,(int)($settings['ocr_monthly_limit']??900)))];
+        return ['enabled'=>($settings['ocr_enabled']??'0')==='1','monthly_limit'=>max(1,min(900,(int)($settings['ocr_monthly_limit']??900))),
+            'project_id'=>(string)($settings['ocr_project_id']??''),'mode'=>(string)($settings['ocr_mode']??'DOCUMENT_TEXT_DETECTION')];
     }
 
     /** @param array<string,mixed> $attempt */
@@ -96,10 +106,10 @@ final class ReceiptOcrProcessor
     }
 
     /** @param array<string,mixed>|null $attempt @return array<string,mixed> */
-    private function responseFromAttempt(?array $attempt,bool $reused):array
+    private function responseFromAttempt(?array $attempt,bool $reused,?string $providerFingerprint=null):array
     {
         if(!$attempt)return ['success'=>false,'error'=>'OCR_ATTEMPT_UNAVAILABLE'];
         $quality=json_decode((string)($attempt['quality_json']??''),true);
-        return ['success'=>true,'request_id'=>$attempt['request_id'],'attempt_number'=>(int)$attempt['attempt_number'],'cache_or_idempotent_reuse'=>$reused,'evidence'=>['amount'=>$attempt['extracted_amount'],'reference_number'=>$attempt['reference_number'],'transaction_date'=>$attempt['transaction_date'],'transaction_time'=>$attempt['transaction_time'],'channel'=>$attempt['bank_name'],'confidence_score'=>$attempt['confidence_score']],'review_indicators'=>is_array($quality)?($quality['indicators']??[]):[],'message'=>'OCR evidence is ready for Accounting review.'];
+        return ['success'=>true,'request_id'=>$attempt['request_id'],'attempt_number'=>(int)$attempt['attempt_number'],'cache_or_idempotent_reuse'=>$reused,'provider_processing_fingerprint'=>$providerFingerprint,'evidence'=>['amount'=>$attempt['extracted_amount'],'reference_number'=>$attempt['reference_number'],'transaction_date'=>$attempt['transaction_date'],'transaction_time'=>$attempt['transaction_time'],'channel'=>$attempt['bank_name'],'confidence_score'=>$attempt['confidence_score']],'review_indicators'=>is_array($quality)?($quality['indicators']??[]):[],'message'=>'OCR evidence is ready for Accounting review.'];
     }
 }

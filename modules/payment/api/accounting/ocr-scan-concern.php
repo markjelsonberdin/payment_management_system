@@ -8,6 +8,7 @@ require_once ROOT_PATH . '/includes/audit.php';
 require_once ROOT_PATH . '/vendor/autoload.php';
 require_once ROOT_PATH . '/modules/payment/database/db_connect.php';
 require_once ROOT_PATH . '/modules/payment/includes/PaymentSecurityService.php';
+require_once ROOT_PATH . '/modules/payment/includes/OcrConfigurationService.php';
 require_once ROOT_PATH . '/modules/payment/includes/ocr/ReceiptOcrProcessor.php';
 require_once ROOT_PATH . '/modules/payment/includes/ocr/OcrStructuredAuditService.php';
 
@@ -39,6 +40,19 @@ try{
 
     $processor=new ReceiptOcrProcessor($pdo,new GoogleVisionOcrService(),new PrivateReceiptStorageService(),new OcrUsageGuardService($pdo),new ReceiptParserService(),new ReceiptEvidenceService($pdo));
     $result=$processor->scan((int)$concernId,$actorId,$controlledRetry);
+    if (is_string($result['provider_processing_fingerprint'] ?? null)) {
+        $observedFingerprint = $result['provider_processing_fingerprint'];
+        unset($result['provider_processing_fingerprint']);
+        try {
+            $configOutbox=new PaymentAuditOutboxService($pdo,$corePdo?new StructuredActivityAuditWriter($corePdo):null);
+            $configurationService=new OcrConfigurationService($pdo,new SchoolSalesCatalogMutationInfrastructure($pdo,$configOutbox));
+            $configurationService->recordSuccessfulOcrEvidence(CatalogCorrelationId::generate(),[
+                'id'=>$actorId,'name'=>(string)getCurrentUserName(),'role'=>(string)getCurrentUserRoleKey()
+            ],(string)$result['request_id'],$observedFingerprint);
+        } catch (Throwable $e) {
+            error_log('OCR successful processing evidence could not be persisted: ' . get_class($e));
+        }
+    }
     $audit=$auditService->record((int)$concernId,$actorId,(string)getCurrentUserName(),(string)getCurrentUserRoleKey(),$result);
     $result['audit_status']=strtolower($audit);
     logActivity('receipt_ocr_review_evidence',sprintf('OCR evidence request for concern #%d: %s; request=%s; indicators=%d',(int)$concernId,$result['success']?'completed':'not_completed',(string)($result['request_id']??'none'),count($result['review_indicators']??[])),'payment',$actorId);

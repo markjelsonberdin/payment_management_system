@@ -71,7 +71,12 @@ final class GoogleVisionOcrService implements OcrTextProviderInterface
         return $credentialProject !== '' && hash_equals($expectedProject, $credentialProject);
     }
 
-    /** Return a non-reversible version marker without exposing credential material. */
+    /** Return a non-reversible provider-capability marker without exposing credential material.
+     * The enabled switch and application quota are deliberately excluded: they gate whether
+     * a scan may start, but do not change Vision API capability and would make readiness
+     * depend circularly on enabling scans. Project, runtime identity, feature mode, and
+     * service-account/key identity invalidate prior evidence when they change.
+     */
     public function configurationFingerprint(string $expectedProject, string $mode, int $monthlyLimit, bool $enabled = false): ?string
     {
         $decoded = $this->resolveCredential();
@@ -80,8 +85,6 @@ final class GoogleVisionOcrService implements OcrTextProviderInterface
             trim($expectedProject),
             trim((string) getenv('GOOGLE_CLOUD_PROJECT')),
             strtoupper(trim($mode)),
-            (string) $monthlyLimit,
-            $enabled ? '1' : '0',
             trim((string) ($decoded['project_id'] ?? '')),
             trim((string) ($decoded['client_email'] ?? '')),
             trim((string) ($decoded['private_key_id'] ?? '')),
