@@ -139,6 +139,7 @@ jobs:
           test ! -e "$root/database/ACCOUNTS.txt" || fail bootstrap_credentials
           test ! -e "$root/database/seed_accounts.php" || fail unsafe_seed_script
           test ! -e "$root/database/seed_panel_members.php" || fail unsafe_seed_script
+          test ! -e "$root/vendor/firebase/php-jwt/README.md" || fail vendor_sample_private_key_documentation
           if find "$root" -type d -name credentials -print -quit | grep -q .; then fail credentials_directory; fi
           if find "$root" -type f \( -name ".env" -o -name "*.env" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*service-account*.json" -o -name "*-payment-management-system-*.json" -o -name "*.log" -o -name "*dump.sql" -o -name "*export.sql" -o -name "*backup.sql" -o -name "payment_db_production.sql" -o -name "payment_db.sql" \) -print -quit | grep -q .; then fail file; fi
           if find "$root" -type f -name "*.pem" ! -path "$root/vendor/grpc/grpc/etc/roots.pem" -print -quit | grep -q .; then fail private_pem; fi

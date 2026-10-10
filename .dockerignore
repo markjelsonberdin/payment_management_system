@@ -10,6 +10,7 @@
 **/credentials/
 **/*.pem
 !vendor/grpc/grpc/etc/roots.pem
+/vendor/firebase/php-jwt/README.md
 **/*.key
 **/*.p12
 **/*.pfx
